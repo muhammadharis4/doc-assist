@@ -250,6 +250,11 @@ Response:
 
 Creates a saved query.
 
+Validation:
+
+- `title` is required, trimmed, and limited to 120 characters
+- `query` is required, trimmed, and limited to 2000 characters
+
 Request body:
 
 ```json

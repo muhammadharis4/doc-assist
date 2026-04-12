@@ -13,6 +13,9 @@ export interface ExecuteQueryDto {
   userId?: string | null;
 }
 
+const SAVED_QUERY_TITLE_MAX_LENGTH = 120;
+const SAVED_QUERY_QUERY_MAX_LENGTH = 2000;
+
 @Injectable()
 export class QueriesService {
   constructor(
@@ -85,8 +88,26 @@ export class QueriesService {
    * Persists a named query for future reuse.
    * @param data Saved-query payload containing title and query text.
    */
-  createSaved(data: CreateSavedQueryDto) {
-    const { title, query } = data;
+  async createSaved(data: CreateSavedQueryDto) {
+    const title = typeof data.title === 'string' ? data.title.trim() : '';
+    const query = typeof data.query === 'string' ? data.query.trim() : '';
+
+    if (!title || !query) {
+      throw new BadRequestException('title and query are required');
+    }
+
+    if (title.length > SAVED_QUERY_TITLE_MAX_LENGTH) {
+      throw new BadRequestException(
+        `title must be at most ${SAVED_QUERY_TITLE_MAX_LENGTH} characters`,
+      );
+    }
+
+    if (query.length > SAVED_QUERY_QUERY_MAX_LENGTH) {
+      throw new BadRequestException(
+        `query must be at most ${SAVED_QUERY_QUERY_MAX_LENGTH} characters`,
+      );
+    }
+
     return this.db.savedQuery.create({
       data: {
         title,
