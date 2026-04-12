@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type { PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RagService } from '../rag/rag.service';
 
@@ -24,6 +25,10 @@ export class DocumentsService {
     private readonly ragService: RagService,
   ) {}
 
+  private get db(): PrismaClient {
+    return this.prisma as PrismaClient;
+  }
+
   async ingest(data: CreateDocumentDto) {
     const filename =
       typeof data.filename === 'string' ? data.filename.trim() : '';
@@ -40,7 +45,7 @@ export class DocumentsService {
       );
     }
 
-    const document = await this.prisma.document.create({
+    const document = await this.db.document.create({
       data: {
         filename,
         mimeType,
@@ -64,14 +69,16 @@ export class DocumentsService {
     return document;
   }
 
-  findAll() {
-    return this.prisma.document.findMany({
+  findAll(skip = 0, take = 20) {
+    return this.db.document.findMany({
+      skip,
+      take,
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async findOne(id: string) {
-    const doc = await this.prisma.document.findUnique({ where: { id } });
+    const doc = await this.db.document.findUnique({ where: { id } });
     if (!doc) {
       throw new NotFoundException('Document not found');
     }
@@ -80,13 +87,13 @@ export class DocumentsService {
 
   async remove(id: string) {
     // Ensure the document exists before attempting delete
-    const existing = await this.prisma.document.findUnique({ where: { id } });
+    const existing = await this.db.document.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Document not found');
     }
 
     await this.ragService.deleteDocumentIndex(id);
 
-    return this.prisma.document.delete({ where: { id } });
+    return this.db.document.delete({ where: { id } });
   }
 }
