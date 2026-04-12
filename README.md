@@ -84,19 +84,20 @@ python -m pytestithub/copilot-instructions.md)** — Architecture, conventions, 
 - **[RAG README](RAG/README.md)** — Retrieval service (placeholder)
 - **[Frontend README](Frontend/README.md)** — UI setup (placeholder)
 
-## 🔧 Workspace Commands
+## 🔧 Commands
 
 ```bash
-# Run a command in a specific workspace
+# Node.js workspaces (Backend + Frontend)
 npm run <script> --workspace=Backend
-npm run <script> --workspace=RAG
 npm run <script> --workspace=Frontend
-
-# Run command in all workspaces
 npm run <script> --workspaces
+
+# Python service (RAG) - managed separately
+cd RAG
+# Set up virtual environment and install when ready
 ```
 
-## 🗂️ What Each Workspace Does
+## 📂 Services
 
 ### Backend (`/Backend`)
 
