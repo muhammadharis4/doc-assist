@@ -1,6 +1,7 @@
 # RAG Service (Retrieval-Augmented Generation)
 
 This folder contains the RAG backend service for DocAssist. It handles:
+
 - Document indexing and vector embeddings
 - Query-document retrieval and ranking
 - Answer generation (integration with LLM)
