@@ -1,98 +1,303 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# DocAssist Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS API for document ingestion, query execution, and query history/source tracking.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Overview
 
-## Description
+The backend currently provides:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- Document ingest and lifecycle endpoints
+- Query execution via RAG service boundary (external or local fallback)
+- Query history and saved query endpoints
+- Prisma + SQLite persistence
 
-## Project setup
+## Tech Stack
+
+- NestJS
+- TypeScript
+- Prisma ORM
+- SQLite
+- Jest
+
+## Run Locally
 
 ```bash
-$ bun install
+# From repo root
+npm install
+npm run start:dev --workspace=Backend
 ```
 
-## Compile and run the project
+Backend runs at `http://localhost:3000` by default.
+
+## Environment Variables
+
+- `PORT`: backend HTTP port (default `3000`)
+- `DATABASE_URL`: Prisma database URL (default sqlite file)
+- `RAG_SERVICE_URL`: optional external RAG service URL
+
+If `RAG_SERVICE_URL` is not set, backend uses local retrieval fallback.
+
+## API Endpoints
+
+### Health / App
+
+#### `GET /`
+
+Returns a simple health text.
+
+Response:
+
+```text
+Hello World!
+```
+
+---
+
+### Documents
+
+#### `GET /documents`
+
+Returns documents ordered by newest first.
+
+Query params:
+
+- `skip` (optional): number of rows to skip, default `0`
+- `take` (optional): number of rows to return, default `20`, max `100`
+
+Validation:
+
+- `skip` and `take` must be non-negative integers
+
+Response:
+
+```json
+[
+  {
+    "id": "uuid",
+    "filename": "README.md",
+    "mimeType": "text/markdown",
+    "size": 1200,
+    "project": "DocAssist",
+    "category": "Setup",
+    "version": 1,
+    "storagePath": "./docs/README.md",
+    "extractedText": "...",
+    "createdAt": "2026-04-12T10:00:00.000Z",
+    "updatedAt": "2026-04-12T10:00:00.000Z"
+  }
+]
+```
+
+#### `POST /documents`
+
+Ingests and stores a document, then triggers RAG indexing.
+
+Request body:
+
+```json
+{
+  "filename": "README.md",
+  "mimeType": "text/markdown",
+  "storagePath": "./docs/README.md",
+  "extractedText": "# Getting Started...",
+  "size": 1200,
+  "project": "DocAssist",
+  "category": "Setup",
+  "version": 1
+}
+```
+
+Required fields:
+
+- `filename`
+- `mimeType`
+- `storagePath`
+- `extractedText`
+
+Response:
+
+```json
+{
+  "id": "uuid",
+  "filename": "README.md",
+  "mimeType": "text/markdown",
+  "size": 1200,
+  "project": "DocAssist",
+  "category": "Setup",
+  "version": 1,
+  "storagePath": "./docs/README.md",
+  "extractedText": "# Getting Started...",
+  "createdAt": "2026-04-12T10:00:00.000Z",
+  "updatedAt": "2026-04-12T10:00:00.000Z"
+}
+```
+
+#### `GET /documents/:id`
+
+Returns a single document.
+
+Path params:
+
+- `id`: document id
+
+Response: document object
+
+Errors:
+
+- `404` if document does not exist
+
+#### `DELETE /documents/:id`
+
+Deletes a document and attempts to remove its RAG index entry.
+
+Path params:
+
+- `id`: document id
+
+Response: deleted document object
+
+Errors:
+
+- `404` if document does not exist
+
+---
+
+### Queries
+
+#### `POST /queries`
+
+Executes a natural-language query through RAG service and stores history/sources.
+
+Request body:
+
+```json
+{
+  "query": "How do I run tests?",
+  "userId": "optional-user-id"
+}
+```
+
+Required fields:
+
+- `query`
+
+Response:
+
+```json
+{
+  "id": "history-id",
+  "query": "How do I run tests?",
+  "answer": "Use npm run test --workspace=Backend",
+  "userId": null,
+  "createdAt": "2026-04-12T10:05:00.000Z",
+  "sources": [
+    {
+      "id": "source-id",
+      "queryHistoryId": "history-id",
+      "documentId": "doc-id",
+      "snippet": "Run npm run test --workspace=Backend",
+      "score": 0.92
+    }
+  ]
+}
+```
+
+Errors:
+
+- `400` if `query` is missing/empty
+
+#### `GET /queries/history`
+
+Returns recent query history, newest first.
+
+Query params:
+
+- `limit` (optional): max rows to return, default `20`, max `100`
+
+Response:
+
+```json
+[
+  {
+    "id": "history-id",
+    "query": "How do I run tests?",
+    "answer": "Use npm run test --workspace=Backend",
+    "userId": null,
+    "createdAt": "2026-04-12T10:05:00.000Z"
+  }
+]
+```
+
+#### `GET /queries/saved`
+
+Returns saved queries ordered by recency.
+
+Response:
+
+```json
+[
+  {
+    "id": "saved-id",
+    "title": "Run tests",
+    "query": "How do I run tests?",
+    "userId": null,
+    "createdAt": "2026-04-12T10:10:00.000Z"
+  }
+]
+```
+
+#### `POST /queries/saved`
+
+Creates a saved query.
+
+Request body:
+
+```json
+{
+  "title": "Run tests",
+  "query": "How do I run tests?"
+}
+```
+
+Response: created saved query object
+
+#### `DELETE /queries/saved/:id`
+
+Deletes a saved query by id.
+
+Path params:
+
+- `id`: saved query id
+
+Response: deleted saved query object
+
+## RAG Integration Behavior
+
+The backend `RagService` behavior is:
+
+- Try external RAG endpoint when `RAG_SERVICE_URL` is configured
+- Fall back to local keyword retrieval when external RAG is unavailable
+- Continue persisting query history either way
+
+## Testing
 
 ```bash
-# development
-$ bun run start
+# Unit tests
+npm run test --workspace=Backend
 
-# watch mode
-$ bun run start:dev
+# E2E tests
+npm run test:e2e --workspace=Backend
 
-# production mode
-$ bun run start:prod
+# Build
+npm run build --workspace=Backend
 ```
 
-## Run tests
+## Key Source Files
 
-```bash
-# unit tests
-$ bun run test
-
-# e2e tests
-$ bun run test:e2e
-
-# test coverage
-$ bun run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ bun install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- `Backend/src/documents/documents.controller.ts`
+- `Backend/src/documents/documents.service.ts`
+- `Backend/src/queries/queries.controller.ts`
+- `Backend/src/queries/queries.service.ts`
+- `Backend/src/rag/rag.service.ts`
+- `Backend/src/prisma/prisma.service.ts`
+- `Backend/prisma/schema.prisma`
