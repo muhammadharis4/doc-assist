@@ -26,6 +26,7 @@ doc-assist/
 ### Installation & Development
 
 **Node.js Workspaces (Backend + Frontend):**
+
 ```bash
 # Install dependencies
 npm install
@@ -45,6 +46,7 @@ npm run lint
 ```
 
 **Python Service (RAG):**
+
 ```bash
 cd RAG
 python -m venv venv
@@ -59,7 +61,7 @@ uvicorn app.main:app --reload
 
 The backend uses Prisma + SQLite. On first run or after schema changes:
 
-```bash
+````bash
 # Generate Prisma client and run migrations
 ### npm Workspaces (Backend + Frontend)
 
@@ -70,11 +72,11 @@ npm run <script> --workspace=Frontend
 
 # Run command in all workspaces
 npm run <script> --workspaces
-```
+````
 
 ### Python Service (RAG)
 
-```bash
+````bash
 cd RAG
 python -m venv venv
 source venv/bin/activate
@@ -95,7 +97,7 @@ npm run <script> --workspaces
 # Python service (RAG) - managed separately
 cd RAG
 # Set up virtual environment and install when ready
-```
+````
 
 ## 📂 Services
 
@@ -135,13 +137,14 @@ Will handle:
 
 ### Frontend (`/Frontend`)
 
-_Placeholdeis a **polyglot monorepo** with:
+\_Placeholdeis a **polyglot monorepo** with:
 
 1. **Backend** (Node.js) — NestJS API with modules (Documents, Queries, RAG boundary, Prisma)
 2. **RAG Service** (Python) — FastAPI service for embeddings, retrieval, and LLM integration
 3. **Frontend** (Node.js) — React/Next.js client consuming the Backend API
 
 **Integration:**
+
 - Backend → calls RAG service via HTTP (or uses local fallback)
 - Frontend → calls Backend REST API
 - All services share a single git history but use independent package managers (npm for Node.js, pip for Python)
@@ -157,7 +160,8 @@ The system follows a modular monorepo structure:
 
 All packages share a common git history and can be developed independently with unified command structure.
 
-## RAG Service:** FastAPI, Pydantic, Python 3.9+
+## RAG Service:\*\* FastAPI, Pydantic, Python 3.9+
+
 - **Frontend:** React/Next.js, TypeScript (TBD)
 - **Tests:** Jest (Node.js), Pytest (Python)
 - **Code Quality:** ESLint, Prettier (Node.js), Black, Ruff (Python)
@@ -171,6 +175,7 @@ All packages share a common git history and can be developed independently with 
 1. **Create a feature branch:** `git checkout -b feature/your-feature`
 2. **Make changes** in one or more workspaces
 3. **Test locally:** `npm test --workspace=Backend` (or all: `npm test --workspaces`)
+
 ### Node.js Services (Backend + Frontend)
 
 ```bash
@@ -188,8 +193,9 @@ uvicorn app.main:app --host 0.0.0.0 --port 5000
 ```
 
 Deploy each service to your hosting platform (Docker, Heroku, AWS, GCP, etc.)
-npm run build --workspace=Backend    # Creates Backend/dist
-npm run build --workspace=Frontend   # Creates Frontend/.next or build/
+npm run build --workspace=Backend # Creates Backend/dist
+npm run build --workspace=Frontend # Creates Frontend/.next or build/
+
 ```
 
 Deploy to your hosting platform of choice using the compiled outputs.
@@ -208,3 +214,4 @@ UNLICENSED
 ---
 
 For detailed workspace instructions and architecture decisions, see [.github/copilot-instructions.md](.github/copilot-instructions.md).
+```
