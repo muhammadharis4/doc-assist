@@ -18,6 +18,12 @@ export interface CreateDocumentDto {
   version?: number;
 }
 
+export interface DocumentListFilters {
+  project?: string;
+  category?: string;
+  keyword?: string;
+}
+
 @Injectable()
 export class DocumentsService {
   constructor(
@@ -77,15 +83,32 @@ export class DocumentsService {
   }
 
   /**
-   * Returns documents ordered by recency with pagination.
+   * Returns documents ordered by recency with pagination and filters.
    * @param skip Number of rows to skip from the newest-first list.
    * @param take Maximum number of rows to return.
+   * @param filters Optional project, category, and keyword filters.
    * @returns A paginated array of document records.
    */
-  findAll(skip = 0, take = 20) {
+  findAll(skip = 0, take = 20, filters: DocumentListFilters = {}) {
+    const where = {
+      ...(filters.project ? { project: filters.project } : {}),
+      ...(filters.category ? { category: filters.category } : {}),
+      ...(filters.keyword
+        ? {
+            OR: [
+              { filename: { contains: filters.keyword } },
+              { extractedText: { contains: filters.keyword } },
+              { project: { contains: filters.keyword } },
+              { category: { contains: filters.keyword } },
+            ],
+          }
+        : {}),
+    };
+
     return this.db.document.findMany({
       skip,
       take,
+      where,
       orderBy: { createdAt: 'desc' },
     });
   }

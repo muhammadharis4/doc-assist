@@ -63,10 +63,18 @@ Query params:
 
 - `skip` (optional): number of rows to skip, default `0`
 - `take` (optional): number of rows to return, default `20`, max `100`
+- `project` (optional): exact project filter
+- `category` (optional): exact category filter
+- `keyword` (optional): search term matched against filename, extracted text, project, and category
 
 Validation:
 
 - `skip` and `take` must be non-negative integers
+
+Behavior:
+
+- `project` and `category` apply exact-match filters
+- `keyword` performs a contains search across document fields
 
 Response:
 

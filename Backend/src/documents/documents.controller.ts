@@ -16,18 +16,38 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   /**
-   * Returns a paginated list of documents.
+   * Returns a paginated and filterable list of documents.
    * @param skip Number of rows to skip from the newest-first list.
    * @param take Number of rows to return, capped at 100.
+   * @param project Exact project filter.
+   * @param category Exact category filter.
+   * @param keyword Keyword search across document fields.
    * @returns A paginated array of document records.
    */
   @Get()
-  findAll(@Query('skip') skip?: string, @Query('take') take?: string) {
+  findAll(
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+    @Query('project') project?: string,
+    @Query('category') category?: string,
+    @Query('keyword') keyword?: string,
+  ) {
     const parsedSkip = this.parseQueryNumber(skip, 0, 'skip');
     const parsedTake = this.parseQueryNumber(take, 20, 'take');
+    const normalizedProject = this.parseOptionalText(project);
+    const normalizedCategory = this.parseOptionalText(category);
+    const normalizedKeyword = this.parseOptionalText(keyword);
 
     // Keep responses bounded to avoid accidental large scans.
-    return this.documentsService.findAll(parsedSkip, Math.min(parsedTake, 100));
+    return this.documentsService.findAll(
+      parsedSkip,
+      Math.min(parsedTake, 100),
+      {
+        project: normalizedProject,
+        category: normalizedCategory,
+        keyword: normalizedKeyword,
+      },
+    );
   }
 
   /**
@@ -85,5 +105,15 @@ export class DocumentsController {
     }
 
     return parsed;
+  }
+
+  /**
+   * Normalizes optional text filters.
+   * @param value Raw query string input.
+   * @returns A trimmed string or undefined when empty.
+   */
+  private parseOptionalText(value: string | undefined) {
+    const normalized = typeof value === 'string' ? value.trim() : '';
+    return normalized || undefined;
   }
 }
