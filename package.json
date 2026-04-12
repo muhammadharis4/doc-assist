@@ -1,0 +1,23 @@
+{
+  "name": "docassist-monorepo",
+  "version": "0.1.0",
+  "description": "DocAssist: AI-powered documentation assistant for finding answers with RAG",
+  "private": true,
+  "workspaces": [
+    "Backend",
+    "RAG",
+    "Frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "build:all": "npm run build --workspaces",
+    "dev": "npm run start:dev --workspace=Backend",
+    "test:all": "npm test --workspaces",
+    "lint:all": "npm run lint --workspaces",
+    "format:all": "npm run format --workspaces"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

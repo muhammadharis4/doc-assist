@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+package-lock.json
+bun.lock
+*.lock
+
+# Build outputs
+dist/
+build/
+coverage/
+.next/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+*.db
+*.db-journal
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temporary
+tmp/
+temp/
