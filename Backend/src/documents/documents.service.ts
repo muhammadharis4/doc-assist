@@ -25,10 +25,17 @@ export class DocumentsService {
     private readonly ragService: RagService,
   ) {}
 
+  // Use a typed view of PrismaService to keep model delegate types stable.
   private get db(): PrismaClient {
     return this.prisma as PrismaClient;
   }
 
+  /**
+   * Ingests a document, saves metadata, indexes text for RAG, and returns the created record.
+   * Validates required fields and trims string inputs.
+   * @param data
+   * @returns The created document record.
+   */
   async ingest(data: CreateDocumentDto) {
     const filename =
       typeof data.filename === 'string' ? data.filename.trim() : '';
@@ -69,6 +76,12 @@ export class DocumentsService {
     return document;
   }
 
+  /**
+   * Returns documents ordered by recency with pagination.
+   * @param skip Number of rows to skip from the newest-first list.
+   * @param take Maximum number of rows to return.
+   * @returns A paginated array of document records.
+   */
   findAll(skip = 0, take = 20) {
     return this.db.document.findMany({
       skip,
@@ -77,6 +90,11 @@ export class DocumentsService {
     });
   }
 
+  /**
+   * Fetches one document and throws when not found.
+   * @param id Document unique identifier.
+   * @returns The matching document record.
+   */
   async findOne(id: string) {
     const doc = await this.db.document.findUnique({ where: { id } });
     if (!doc) {
@@ -85,6 +103,11 @@ export class DocumentsService {
     return doc;
   }
 
+  /**
+   * Deletes one document after existence verification.
+   * @param id Document unique identifier.
+   * @returns The deleted document record.
+   */
   async remove(id: string) {
     // Ensure the document exists before attempting delete
     const existing = await this.db.document.findUnique({ where: { id } });

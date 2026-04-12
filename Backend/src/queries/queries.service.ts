@@ -20,10 +20,18 @@ export class QueriesService {
     private readonly ragService: RagService,
   ) {}
 
+  /**
+   * Exposes Prisma with explicit client typing for delegate inference.
+   */
+  // Mirror the documents service typing pattern for delegate inference.
   private get db(): PrismaClient {
     return this.prisma as PrismaClient;
   }
 
+  /**
+   * Executes a query, retrieves an answer, and persists history with sources.
+   * @param data Query payload from the controller.
+   */
   async executeQuery(data: ExecuteQueryDto) {
     const query = typeof data.query === 'string' ? data.query.trim() : '';
     if (!query) {
@@ -53,6 +61,10 @@ export class QueriesService {
     return history;
   }
 
+  /**
+   * Returns recent query history ordered by newest first.
+   * @param limit Maximum number of history rows to return.
+   */
   getHistory(limit = 20) {
     return this.db.queryHistory.findMany({
       orderBy: { createdAt: 'desc' },
@@ -60,12 +72,19 @@ export class QueriesService {
     });
   }
 
+  /**
+   * Returns all saved queries ordered by recency.
+   */
   getSaved() {
     return this.db.savedQuery.findMany({
       orderBy: { createdAt: 'desc' },
     });
   }
 
+  /**
+   * Persists a named query for future reuse.
+   * @param data Saved-query payload containing title and query text.
+   */
   createSaved(data: CreateSavedQueryDto) {
     const { title, query } = data;
     return this.db.savedQuery.create({
@@ -77,6 +96,10 @@ export class QueriesService {
     });
   }
 
+  /**
+   * Deletes one saved query by id.
+   * @param id Saved query unique identifier.
+   */
   removeSaved(id: string) {
     return this.db.savedQuery.delete({ where: { id } });
   }
