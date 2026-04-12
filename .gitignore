@@ -42,3 +42,6 @@ Thumbs.db
 # Temporary
 tmp/
 temp/
+
+# Github
+.github/*.md
