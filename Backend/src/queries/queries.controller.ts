@@ -7,11 +7,8 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import {
-  CreateSavedQueryDto,
-  ExecuteQueryDto,
-  QueriesService,
-} from './queries.service';
+import { QueriesService } from './queries.service';
+import type { CreateSavedQueryDto, ExecuteQueryDto } from './queries.service';
 
 @Controller('queries')
 export class QueriesController {

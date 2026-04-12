@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import type { PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RagService } from '../rag/rag.service';
 
@@ -19,6 +20,10 @@ export class QueriesService {
     private readonly ragService: RagService,
   ) {}
 
+  private get db(): PrismaClient {
+    return this.prisma as PrismaClient;
+  }
+
   async executeQuery(data: ExecuteQueryDto) {
     const query = typeof data.query === 'string' ? data.query.trim() : '';
     if (!query) {
@@ -27,7 +32,7 @@ export class QueriesService {
 
     const result = await this.ragService.query(query);
 
-    const history = await this.prisma.queryHistory.create({
+    const history = await this.db.queryHistory.create({
       data: {
         query,
         answer: result.answer,
@@ -49,21 +54,21 @@ export class QueriesService {
   }
 
   getHistory(limit = 20) {
-    return this.prisma.queryHistory.findMany({
+    return this.db.queryHistory.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
   }
 
   getSaved() {
-    return this.prisma.savedQuery.findMany({
+    return this.db.savedQuery.findMany({
       orderBy: { createdAt: 'desc' },
     });
   }
 
   createSaved(data: CreateSavedQueryDto) {
     const { title, query } = data;
-    return this.prisma.savedQuery.create({
+    return this.db.savedQuery.create({
       data: {
         title,
         query,
@@ -73,6 +78,6 @@ export class QueriesService {
   }
 
   removeSaved(id: string) {
-    return this.prisma.savedQuery.delete({ where: { id } });
+    return this.db.savedQuery.delete({ where: { id } });
   }
 }
