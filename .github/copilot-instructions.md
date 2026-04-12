@@ -1,4 +1,65 @@
-# DocAssist Workspace Instructions
+# DocAssist Monorepo — Workspace Instructions
+
+**For AI Agents:** These instructions describe the complete project context. Use this to understand architecture, conventions, and how to work on specific features with full project awareness.
+
+## 🏗️ Monorepo Structure
+
+```
+Doc Assist/
+├── Backend/              (NestJS + Prisma + SQLite)
+│   ├── src/
+│   │   ├── documents/    (Document ingestion)
+│   │   ├── queries/      (Query execution & history)
+│   │   ├── rag/          (RAG boundary - external or local)
+│   │   ├── prisma/       (Database access)
+│   │   └── app.module.ts (Root module wiring)
+│   ├── prisma/           (Schema & migrations)
+│   └── test/             (E2E tests)
+├── Frontend/             (To be set up - React/Next.js)
+├── RAG/                  (To be set up - Python FastAPI)
+└── .github/copilot-instructions.md (This file)
+```
+
+**Current Implementation Status:**
+- ✅ Backend: MVP complete (document ingest, query answering, history)
+- ⏳ Frontend: Not started
+- ⏳ RAG: Not started (currently using local fallback in Backend)
+- ✅ Git: Unified monorepo (all services share one git history)
+
+---
+
+## 🚀 Getting Started (For Any Agent)ring
+Read this in order:
+1. **This file** (overall conventions)
+2. **Backend/README.md** (current API surface)
+3. **Backend/src/app.module.ts** (module wiring)
+4. **Backend/prisma/schema.prisma** (data model)
+
+### Running the Project
+```bash
+# Install Node.js dependencies
+npm install
+
+# Start Backend in watch mode
+npm run dev
+
+# Access API
+curl http://localhost:3000/documents  # List documents
+curl -X POST http://localhost:3000/documents -H "Content-Type: application/json" \
+  -d '{"filename":"test.md","mimeType":"text/markdown","storagePath":"./test.md","extractedText":"test content"}'
+
+# Run tests
+npm test --workspace=Backend
+```
+
+### Repository Structure
+Unified git at root level:
+```bash
+git status              # Shows all monorepo changes
+git log --oneline       # View commit history (all services)
+```
+
+---
 
 ## Project Overview
 
@@ -6,23 +67,20 @@
 
 **Core Features (Phase 1 MVP):**
 
-- Document ingestion for uploaded files and repository docs
+- Document ingestion for uploaded files
 - Query answering via external RAG service (with local fallback)
 - Query history tracking with source attribution
 - Configurable retrieval layer (external service via `RAG_SERVICE_URL` env var)
 
 **Future Phases:**
 
-- Analytics: unanswered questions, topic coverage, usage trends
-- Collaboration: workspace separation, role-based access, approval workflows
-- Frontend: user-facing search UI, source viewer, dashboard
-- Advanced indexing: Confluence/Wiki connectors, enterprise integrations
+- Phase 2: Analytics (unanswered questions, topic coverage, usage trends)
+- Phase 3: Collaboration (workspaces, RBAC, approval workflows)
+- Phase 4: Frontend & deployment (React/Next.js UI, Docker, observability)
 
-**Current Status:** Backend MVP implemented; core ingest → query → history flow operational.
+**Current Status:** Backend MVP complete with working ingest → query → history flow.
 
 ---
-
-## Backend Architecture (NestJS + Prisma)
 
 ### Module Organization
 
