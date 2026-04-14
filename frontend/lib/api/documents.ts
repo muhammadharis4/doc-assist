@@ -1,44 +1,55 @@
-import { apiRequest, toQueryString } from "@/lib/api/client";
-import type {
-    CreateDocumentInput,
-    DocumentFilters,
-    DocumentItem,
-} from "@/lib/types/documents";
+import type { CreateDocumentInput, DocumentItem } from "@/lib/types/documents";
+
+const API_BASE_URL = "http://localhost:3000";
 
 /**
- * Fetches documents with pagination and optional filters.
+ * Fetches uploaded documents through the Next.js API rewrite.
  */
-export function listDocuments(
-    filters: DocumentFilters,
-): Promise<DocumentItem[]> {
-    return apiRequest<DocumentItem[]>(
-        `/documents${toQueryString({
-            skip: filters.skip,
-            take: filters.take,
-            project: filters.project,
-            category: filters.category,
-            keyword: filters.keyword,
-        })}`,
-    );
+export async function listDocuments(): Promise<DocumentItem[]> {
+    const response = await fetch(`${API_BASE_URL}/documents`, {
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to load documents.");
+    }
+
+    return (await response.json()) as DocumentItem[];
 }
 
 /**
- * Creates a document record in Backend via Next.js proxy.
+ * Creates a document record through the Next.js API rewrite.
  */
 export function createDocument(
     input: CreateDocumentInput,
 ): Promise<DocumentItem> {
-    return apiRequest<DocumentItem>("/documents", {
+    return fetchJson<DocumentItem>(`${API_BASE_URL}/documents`, {
         method: "POST",
-        body: input,
+        body: JSON.stringify(input),
     });
 }
 
 /**
- * Deletes a document by id via Next.js proxy.
+ * Deletes a document by id through the Next.js API rewrite.
  */
 export function deleteDocument(id: string): Promise<DocumentItem> {
-    return apiRequest<DocumentItem>(`/documents/${id}`, {
+    return fetchJson<DocumentItem>(`${API_BASE_URL}/documents/${id}`, {
         method: "DELETE",
     });
+}
+
+async function fetchJson<T>(path: string, init: RequestInit): Promise<T> {
+    const response = await fetch(path, {
+        ...init,
+        headers: {
+            ...(init.body ? { "Content-Type": "application/json" } : {}),
+            ...(init.headers ?? {}),
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error("Request failed.");
+    }
+
+    return (await response.json()) as T;
 }

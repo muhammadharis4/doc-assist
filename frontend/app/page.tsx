@@ -1,50 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { InlineAlert } from "@/components/common/InlineAlert";
 import { DocumentForm } from "@/components/documents/DocumentForm";
 import { DocumentList } from "@/components/documents/DocumentList";
-import { DocumentsToolbar } from "@/components/documents/DocumentsToolbar";
 import {
     createDocument,
     deleteDocument,
     listDocuments,
 } from "@/lib/api/documents";
 import { getErrorMessage } from "@/lib/types/api";
-import type {
-    CreateDocumentInput,
-    DocumentFilters,
-    DocumentFormValues,
-    DocumentItem,
-} from "@/lib/types/documents";
-import { DEFAULT_DOCUMENT_TAKE } from "@/lib/types/documents";
-
-const INITIAL_FORM_VALUES: DocumentFormValues = {
-    filename: "",
-    mimeType: "",
-    storagePath: "",
-    extractedText: "",
-    size: "",
-    project: "",
-    category: "",
-    version: "1",
-};
-
-const INITIAL_FILTERS: DocumentFilters = {
-    skip: 0,
-    take: DEFAULT_DOCUMENT_TAKE,
-    project: "",
-    category: "",
-    keyword: "",
-};
+import type { CreateDocumentInput, DocumentItem } from "@/lib/types/documents";
 
 /**
- * Hosts the first DocAssist frontend slice: document create/list/delete.
+ * Hosts the document upload and list experience.
  */
 export default function Home() {
-    const [formValues, setFormValues] =
-        useState<DocumentFormValues>(INITIAL_FORM_VALUES);
-    const [filters, setFilters] = useState<DocumentFilters>(INITIAL_FILTERS);
     const [documents, setDocuments] = useState<DocumentItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,23 +22,19 @@ export default function Home() {
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [successMessage, setSuccessMessage] = useState<string>("");
 
-    const refreshDocuments = useCallback(
-        async (nextFilters?: DocumentFilters) => {
-            setIsLoading(true);
-            setErrorMessage("");
-            const activeFilters = nextFilters ?? filters;
+    const refreshDocuments = useCallback(async () => {
+        setIsLoading(true);
 
-            try {
-                const nextDocuments = await listDocuments(activeFilters);
-                setDocuments(nextDocuments);
-            } catch (error: unknown) {
-                setErrorMessage(getErrorMessage(error));
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        [filters],
-    );
+        try {
+            const nextDocuments = await listDocuments();
+            setDocuments(nextDocuments);
+            setErrorMessage("");
+        } catch (error: unknown) {
+            setErrorMessage(getErrorMessage(error));
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         void refreshDocuments();
@@ -82,11 +48,10 @@ export default function Home() {
 
             try {
                 await createDocument(payload);
-                setFormValues(INITIAL_FORM_VALUES);
                 setSuccessMessage("Document created successfully.");
                 await refreshDocuments();
             } catch (error: unknown) {
-                setErrorMessage(getErrorMessage(error));
+                setErrorMessage(getUserFacingError(error));
             } finally {
                 setIsSubmitting(false);
             }
@@ -105,7 +70,7 @@ export default function Home() {
                 setSuccessMessage("Document deleted successfully.");
                 await refreshDocuments();
             } catch (error: unknown) {
-                setErrorMessage(getErrorMessage(error));
+                setErrorMessage(getUserFacingError(error));
             } finally {
                 setDeletingId(null);
             }
@@ -113,57 +78,49 @@ export default function Home() {
         [refreshDocuments],
     );
 
-    const handleResetFilters = useCallback(async () => {
-        const resetFilters: DocumentFilters = { ...INITIAL_FILTERS };
-        setFilters(resetFilters);
-        setErrorMessage("");
-        setSuccessMessage("Filters reset.");
-        await refreshDocuments(resetFilters);
-    }, [refreshDocuments]);
-
     return (
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:px-8">
-            <section className="mb-6 rounded-3xl bg-zinc-900 p-6 text-white">
-                <h1 className="text-2xl font-semibold md:text-3xl">
-                    DocAssist Workspace
+        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 md:px-8">
+            <section className="rounded-3xl bg-zinc-950 px-6 py-8 text-white shadow-lg shadow-zinc-200/60">
+                <span className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
+                    DocAssist
+                </span>
+                <h1 className="mt-3 text-3xl font-semibold md:text-4xl">
+                    Documents
                 </h1>
-                <p className="mt-2 max-w-3xl text-sm text-zinc-200 md:text-base">
-                    Manage source documents for retrieval. This first slice
-                    includes create, filter, list, and delete flows with strict
-                    typing and shared API logic.
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-300 md:text-base">
+                    Upload files, attach a category, and keep a simple list of
+                    the documents stored for retrieval.
                 </p>
             </section>
 
-            <div className="grid gap-4">
-                {errorMessage ? (
-                    <InlineAlert message={errorMessage} tone="error" />
-                ) : null}
-                {successMessage ? (
-                    <InlineAlert message={successMessage} tone="success" />
-                ) : null}
+            {errorMessage ? (
+                <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {errorMessage}
+                </p>
+            ) : null}
 
-                <DocumentForm
-                    values={formValues}
-                    onChange={setFormValues}
-                    onSubmit={handleCreate}
-                    isSubmitting={isSubmitting}
-                />
+            {successMessage ? (
+                <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                    {successMessage}
+                </p>
+            ) : null}
 
-                <DocumentsToolbar
-                    filters={filters}
-                    onChange={setFilters}
-                    onApply={refreshDocuments}
-                    onReset={handleResetFilters}
-                    isBusy={isLoading || isSubmitting || Boolean(deletingId)}
-                />
+            <DocumentForm onSubmit={handleCreate} isSubmitting={isSubmitting} />
 
-                <DocumentList
-                    documents={documents}
-                    isLoading={isLoading}
-                    onDelete={handleDelete}
-                    deletingId={deletingId}
-                />
-            </div>
+            <DocumentList
+                documents={documents}
+                isLoading={isLoading}
+                onDelete={handleDelete}
+                deletingId={deletingId}
+            />
         </main>
     );
+}
+
+function getUserFacingError(error: unknown): string {
+    if (error instanceof Error && error.message.trim()) {
+        return error.message;
+    }
+
+    return "Something went wrong while handling the document.";
 }

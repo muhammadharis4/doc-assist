@@ -4,22 +4,16 @@ Next.js App Router frontend for DocAssist.
 
 ## Current Feature Slice
 
-- Document management workspace
-- Create document records
-- Filter and paginate document list
+- Document upload form
+- Document list
 - Delete documents
-- Typed API calls through Next.js route proxy
+- Typed API calls through Next.js rewrite
 
 ## Environment Setup
 
-1. Copy `.env.local.example` to `.env.local`.
-2. Set `BACKEND_API_URL` to your NestJS backend origin.
+No frontend env file is required for the current documents slice.
 
-Example:
-
-```env
-BACKEND_API_URL=http://localhost:3000
-```
+The frontend rewrites `/api/*` requests to the backend running at `http://localhost:3000`.
 
 ## Run Locally
 
@@ -31,13 +25,13 @@ App default URL: http://localhost:3000
 
 ## API Flow
 
-Browser components call Next.js route handlers:
+Browser components call the Next.js rewrite path:
 
 - `GET /api/documents`
 - `POST /api/documents`
 - `DELETE /api/documents/:id`
 
-Route handlers proxy requests to Backend:
+Next.js forwards those requests to Backend:
 
 - `GET /documents`
 - `POST /documents`
@@ -46,6 +40,6 @@ Route handlers proxy requests to Backend:
 ## Quality Goals in This Slice
 
 - Strict TypeScript on component props and API models
-- DRY request handling via shared API client
+- Minimal request handling via one documents API module
 - Clear loading, empty, success, and error states
 - Brief behavior-focused comments in component modules
