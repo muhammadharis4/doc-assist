@@ -3,7 +3,7 @@ import type { CreateDocumentInput, DocumentItem } from "@/lib/types/documents";
 const API_BASE_URL = "http://localhost:3000";
 
 /**
- * Fetches uploaded documents through the Next.js API rewrite.
+ * Fetches uploaded documents from the backend.
  */
 export async function listDocuments(): Promise<DocumentItem[]> {
     const response = await fetch(`${API_BASE_URL}/documents`, {
@@ -18,7 +18,7 @@ export async function listDocuments(): Promise<DocumentItem[]> {
 }
 
 /**
- * Creates a document record through the Next.js API rewrite.
+ * Creates a document record in the backend.
  */
 export function createDocument(
     input: CreateDocumentInput,
@@ -30,7 +30,7 @@ export function createDocument(
 }
 
 /**
- * Deletes a document by id through the Next.js API rewrite.
+ * Deletes a document by id from the backend.
  */
 export function deleteDocument(id: string): Promise<DocumentItem> {
     return fetchJson<DocumentItem>(`${API_BASE_URL}/documents/${id}`, {
@@ -42,7 +42,9 @@ async function fetchJson<T>(path: string, init: RequestInit): Promise<T> {
     const response = await fetch(path, {
         ...init,
         headers: {
-            ...(init.body ? { "Content-Type": "application/json" } : {}),
+            ...(typeof init.body === "string"
+                ? { "Content-Type": "application/json" }
+                : {}),
             ...(init.headers ?? {}),
         },
     });

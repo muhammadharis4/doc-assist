@@ -1,15 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { DocumentForm } from "@/components/documents/DocumentForm";
-import { DocumentList } from "@/components/documents/DocumentList";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import {
+    Alert,
+    Box,
+    Button,
+    Container,
+    Paper,
+    Stack,
+    Typography,
+} from "@mui/material";
+import { DocumentUploadDialog } from "@/components/documents/DocumentUploadDialog";
+import { DocumentsTable } from "@/components/documents/DocumentsTable";
 import {
     createDocument,
     deleteDocument,
     listDocuments,
 } from "@/lib/api/documents";
 import { getErrorMessage } from "@/lib/types/api";
-import type { CreateDocumentInput, DocumentItem } from "@/lib/types/documents";
+import type { DocumentItem } from "@/lib/types/documents";
 
 /**
  * Hosts the document upload and list experience.
@@ -21,6 +31,7 @@ export default function Home() {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [successMessage, setSuccessMessage] = useState<string>("");
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
 
     const refreshDocuments = useCallback(async () => {
         setIsLoading(true);
@@ -39,25 +50,6 @@ export default function Home() {
     useEffect(() => {
         void refreshDocuments();
     }, [refreshDocuments]);
-
-    const handleCreate = useCallback(
-        async (payload: CreateDocumentInput) => {
-            setIsSubmitting(true);
-            setErrorMessage("");
-            setSuccessMessage("");
-
-            try {
-                await createDocument(payload);
-                setSuccessMessage("Document created successfully.");
-                await refreshDocuments();
-            } catch (error: unknown) {
-                setErrorMessage(getUserFacingError(error));
-            } finally {
-                setIsSubmitting(false);
-            }
-        },
-        [refreshDocuments],
-    );
 
     const handleDelete = useCallback(
         async (id: string) => {
@@ -79,41 +71,101 @@ export default function Home() {
     );
 
     return (
-        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 md:px-8">
-            <section className="rounded-3xl bg-zinc-950 px-6 py-8 text-white shadow-lg shadow-zinc-200/60">
-                <span className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
-                    DocAssist
-                </span>
-                <h1 className="mt-3 text-3xl font-semibold md:text-4xl">
-                    Documents
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-300 md:text-base">
-                    Upload files, attach a category, and keep a simple list of
-                    the documents stored for retrieval.
-                </p>
-            </section>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+            <Stack spacing={3}>
+                <Paper
+                    elevation={0}
+                    sx={{
+                        p: 4,
+                        background:
+                            "linear-gradient(135deg, #eff6ff 0%, #ffffff 60%)",
+                        border: "1px solid",
+                        borderColor: "divider",
+                    }}
+                >
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexDirection: { xs: "column", sm: "row" },
+                            alignItems: { xs: "flex-start", sm: "center" },
+                            justifyContent: "space-between",
+                            gap: 2,
+                        }}
+                    >
+                        <Box>
+                            <Typography
+                                variant="overline"
+                                color="primary.main"
+                                sx={{ fontWeight: 800 }}
+                            >
+                                DocAssist
+                            </Typography>
+                            <Typography variant="h4" sx={{ mt: 0.5 }}>
+                                Documents
+                            </Typography>
+                            <Typography
+                                variant="body1"
+                                color="text.secondary"
+                                sx={{ mt: 1, maxWidth: 720 }}
+                            >
+                                Add files, keep the list simple, and delete rows
+                                when you do not need them anymore.
+                            </Typography>
+                        </Box>
 
-            {errorMessage ? (
-                <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {errorMessage}
-                </p>
-            ) : null}
+                        <Button
+                            variant="contained"
+                            size="large"
+                            startIcon={<AddRoundedIcon />}
+                            onClick={() => setIsUploadOpen(true)}
+                        >
+                            Add files
+                        </Button>
+                    </Box>
+                </Paper>
 
-            {successMessage ? (
-                <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                    {successMessage}
-                </p>
-            ) : null}
+                {errorMessage ? (
+                    <Alert severity="error">{errorMessage}</Alert>
+                ) : null}
 
-            <DocumentForm onSubmit={handleCreate} isSubmitting={isSubmitting} />
+                {successMessage ? (
+                    <Alert severity="success">{successMessage}</Alert>
+                ) : null}
 
-            <DocumentList
-                documents={documents}
-                isLoading={isLoading}
-                onDelete={handleDelete}
-                deletingId={deletingId}
+                <DocumentsTable
+                    documents={documents}
+                    isLoading={isLoading}
+                    onDelete={handleDelete}
+                    deletingId={deletingId}
+                />
+            </Stack>
+
+            <DocumentUploadDialog
+                open={isUploadOpen}
+                onClose={() => setIsUploadOpen(false)}
+                onSubmit={async (payloads) => {
+                    setIsSubmitting(true);
+                    setErrorMessage("");
+                    setSuccessMessage("");
+
+                    try {
+                        for (const payload of payloads) {
+                            await createDocument(payload);
+                        }
+
+                        setSuccessMessage(
+                            `${payloads.length} file${payloads.length > 1 ? "s" : ""} uploaded successfully.`,
+                        );
+                        await refreshDocuments();
+                    } catch (error: unknown) {
+                        setErrorMessage(getUserFacingError(error));
+                    } finally {
+                        setIsSubmitting(false);
+                    }
+                }}
+                isSubmitting={isSubmitting}
             />
-        </main>
+        </Container>
     );
 }
 
