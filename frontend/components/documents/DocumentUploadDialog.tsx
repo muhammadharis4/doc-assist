@@ -278,10 +278,9 @@ export function DocumentUploadDialog({
 function buildPayload(file: File, extractedText: string): CreateDocumentInput {
     return {
         filename: file.name,
-        mimeType: file.type || "application/octet-stream",
-        storagePath: `uploads/${file.name}`,
+        mimeType: file.type || "text/plain",
+        storagePath: `uploads/${Date.now()}-${file.name}`,
         extractedText: extractedText.trim() || file.name,
-        version: 1,
         size: file.size,
     };
 }

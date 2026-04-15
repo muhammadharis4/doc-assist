@@ -62,7 +62,7 @@ export default function Home() {
                 setSuccessMessage("Document deleted successfully.");
                 await refreshDocuments();
             } catch (error: unknown) {
-                setErrorMessage(getUserFacingError(error));
+                setErrorMessage(getErrorMessage(error));
             } finally {
                 setDeletingId(null);
             }
@@ -158,7 +158,7 @@ export default function Home() {
                         );
                         await refreshDocuments();
                     } catch (error: unknown) {
-                        setErrorMessage(getUserFacingError(error));
+                        setErrorMessage(getErrorMessage(error));
                     } finally {
                         setIsSubmitting(false);
                     }
@@ -167,12 +167,4 @@ export default function Home() {
             />
         </Container>
     );
-}
-
-function getUserFacingError(error: unknown): string {
-    if (error instanceof Error && error.message.trim()) {
-        return error.message;
-    }
-
-    return "Something went wrong while handling the document.";
 }

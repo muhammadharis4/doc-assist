@@ -1,12 +1,10 @@
 import type { CreateDocumentInput, DocumentItem } from "@/lib/types/documents";
 
-const API_BASE_URL = "http://localhost:3000";
-
 /**
- * Fetches uploaded documents from the backend.
+ * Fetches uploaded documents from the backend via proxy.
  */
 export async function listDocuments(): Promise<DocumentItem[]> {
-    const response = await fetch(`${API_BASE_URL}/documents`, {
+    const response = await fetch(`/api/documents`, {
         cache: "no-store",
     });
 
@@ -18,22 +16,22 @@ export async function listDocuments(): Promise<DocumentItem[]> {
 }
 
 /**
- * Creates a document record in the backend.
+ * Creates a document record in the backend via proxy.
  */
 export function createDocument(
     input: CreateDocumentInput,
 ): Promise<DocumentItem> {
-    return fetchJson<DocumentItem>(`${API_BASE_URL}/documents`, {
+    return fetchJson<DocumentItem>(`/api/documents`, {
         method: "POST",
         body: JSON.stringify(input),
     });
 }
 
 /**
- * Deletes a document by id from the backend.
+ * Deletes a document by id from the backend via proxy.
  */
 export function deleteDocument(id: string): Promise<DocumentItem> {
-    return fetchJson<DocumentItem>(`${API_BASE_URL}/documents/${id}`, {
+    return fetchJson<DocumentItem>(`/api/documents/${id}`, {
         method: "DELETE",
     });
 }
