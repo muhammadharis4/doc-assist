@@ -16,6 +16,7 @@ interface QueryComposerProps {
     onSubmit: () => void;
     isSubmitting: boolean;
     maxLength: number;
+    embedded?: boolean;
 }
 
 /**
@@ -27,13 +28,24 @@ export function QueryComposer({
     onSubmit,
     isSubmitting,
     maxLength,
+    embedded = false,
 }: QueryComposerProps) {
     const isEmpty = queryText.trim().length === 0;
 
     return (
-        <Paper sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
+        <Paper
+            elevation={0}
+            sx={{
+                p: embedded ? 0 : 3,
+                border: embedded ? "none" : "1px solid",
+                borderColor: embedded ? undefined : "divider",
+                backgroundColor: embedded ? "transparent" : "background.paper",
+            }}
+        >
             <Stack spacing={2}>
-                <Typography variant="h6">Ask a question</Typography>
+                {!embedded ? (
+                    <Typography variant="h6">Ask a question</Typography>
+                ) : null}
 
                 <TextField
                     label="Your question"
@@ -75,7 +87,7 @@ export function QueryComposer({
                         onClick={onSubmit}
                         disabled={isSubmitting || isEmpty}
                     >
-                        {isSubmitting ? "Running..." : "Run query"}
+                        {isSubmitting ? "Running..." : "Send"}
                     </Button>
                 </Box>
             </Stack>

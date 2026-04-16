@@ -14,7 +14,7 @@ export function executeQuery(
     return fetchJson<QueryHistoryItem>("/api/queries", {
         method: "POST",
         body: JSON.stringify(input),
-    });
+    }).then(normalizeQueryHistoryItem);
 }
 
 /**
@@ -33,7 +33,8 @@ export async function getQueryHistory(
         );
     }
 
-    return (await response.json()) as QueryHistoryItem[];
+    const payload = (await response.json()) as QueryHistoryItem[];
+    return payload.map(normalizeQueryHistoryItem);
 }
 
 /**
@@ -114,4 +115,11 @@ async function readErrorMessage(
     }
 
     return fallbackMessage;
+}
+
+function normalizeQueryHistoryItem(item: QueryHistoryItem): QueryHistoryItem {
+    return {
+        ...item,
+        sources: Array.isArray(item.sources) ? item.sources : [],
+    };
 }
