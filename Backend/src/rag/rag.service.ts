@@ -166,15 +166,25 @@ export class RagService {
       score,
     }));
 
-    const answerLines = sources.map((source, index) => {
-      const label =
-        source.filename ?? source.documentId ?? `document-${index + 1}`;
-      const snippet = source.snippet ?? '';
-      return `${index + 1}. ${label}: ${snippet}`.trim();
-    });
+    const directAnswer =
+      sources[0]?.snippet?.trim() ||
+      `No direct answer could be generated for "${query}" from matched documents.`;
+    const sourceLabels = Array.from(
+      new Set(
+        sources
+          .map((source) => source.filename ?? source.documentId)
+          .filter(
+            (label): label is string =>
+              typeof label === 'string' && label.trim().length > 0,
+          ),
+      ),
+    );
+    const sourcesSuffix = sourceLabels.length
+      ? `\n\nSources: ${sourceLabels.join(', ')}`
+      : '';
 
     return {
-      answer: [`Best matches for "${query}":`, ...answerLines].join('\n'),
+      answer: `${directAnswer}${sourcesSuffix}`,
       sources,
     };
   }
