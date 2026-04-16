@@ -9,14 +9,30 @@ class LlmService:
     def __init__(self) -> None:
         self.base_url = settings.ollama_base_url
         self.model = settings.ollama_model
+        self.use_mock = True  # Set to False when Ollama is ready
 
     async def answer(self, query: str, chunks: list) -> str:
-        """Generates an answer using Ollama given a query and retrieved chunks."""
+        """Generates an answer using Ollama or mock."""
 
         if not chunks:
             return "No relevant documents found."
 
-        # Concatenate chunk contents as context
+        if self.use_mock:
+            return self._mock_answer(query, chunks)
+
+        # Real Ollama implementation (uncomment when ready)
+        return await self._ollama_answer(query, chunks)
+
+    def _mock_answer(self, query: str, chunks: list) -> str:
+        """Mock LLM: combines chunk content into a coherent answer."""
+
+        # Take first 2 chunks and combine them
+        context = " ".join([chunk.content[:200] for chunk in chunks[:2]])
+        return f"Based on the documents: {context}. This is relevant to your question about '{query}'."
+
+    async def _ollama_answer(self, query: str, chunks: list) -> str:
+        """Real answer generation using Ollama."""
+
         context = "\n\n".join([chunk.content for chunk in chunks])
         prompt = self._build_prompt(query, context)
 
