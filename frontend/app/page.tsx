@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import {
     Alert,
     Box,
@@ -120,6 +122,15 @@ export default function Home() {
                             onClick={() => setIsUploadOpen(true)}
                         >
                             Add files
+                        </Button>
+                        <Button
+                            component={Link}
+                            href="/queries"
+                            variant="outlined"
+                            size="large"
+                            startIcon={<SearchRoundedIcon />}
+                        >
+                            Open queries
                         </Button>
                     </Box>
                 </Paper>
