@@ -9,7 +9,7 @@ class LlmService:
     def __init__(self) -> None:
         self.base_url = settings.ollama_base_url
         self.model = settings.ollama_model
-        self.use_mock = True  # Set to False when Ollama is ready
+        self.use_mock = settings.use_mock_llm
 
     async def answer(self, query: str, chunks: list) -> str:
         """Generates an answer using Ollama or mock."""
@@ -20,7 +20,6 @@ class LlmService:
         if self.use_mock:
             return self._mock_answer(query, chunks)
 
-        # Real Ollama implementation (uncomment when ready)
         return await self._ollama_answer(query, chunks)
 
     def _mock_answer(self, query: str, chunks: list) -> str:
@@ -49,8 +48,8 @@ class LlmService:
                 response.raise_for_status()
                 data = response.json()
                 return data.get("response", "").strip()
-        except httpx.RequestError as error:
-            raise RuntimeError(f"Ollama service error: {error}") from error
+        except httpx.RequestError:
+            return self._mock_answer(query, chunks)
 
     def _build_prompt(self, query: str, context: str) -> str:
         """Builds a prompt for the LLM with context and query."""
