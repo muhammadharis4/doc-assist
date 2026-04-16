@@ -9,9 +9,7 @@ import {
     Alert,
     Box,
     Button,
-    Chip,
     Container,
-    Divider,
     Paper,
     Stack,
     Typography,
@@ -231,163 +229,81 @@ export default function QueriesPage() {
                                         sx={{ mt: 0.75 }}
                                     >
                                         Ask about uploaded documents and we will
-                                        show answer + source snippets.
+                                        show a direct answer with sources.
                                     </Typography>
                                 </Paper>
                             ) : null}
 
-                            {conversation.map((item) => {
-                                const itemSources = Array.isArray(item.sources)
-                                    ? item.sources
-                                    : [];
-
-                                return (
-                                    <Stack
-                                        key={item.id}
-                                        spacing={1.25}
-                                        sx={{ mb: 2.5 }}
+                            {conversation.map((item) => (
+                                <Stack
+                                    key={item.id}
+                                    spacing={1.25}
+                                    sx={{ mb: 2.5 }}
+                                >
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            justifyContent: "flex-end",
+                                        }}
                                     >
                                         <Box
                                             sx={{
+                                                maxWidth: "85%",
+                                                borderRadius: 3,
+                                                px: 1.75,
+                                                py: 1.25,
+                                                backgroundColor: "primary.main",
+                                                color: "primary.contrastText",
                                                 display: "flex",
-                                                justifyContent: "flex-end",
+                                                gap: 1,
+                                                alignItems: "flex-start",
                                             }}
                                         >
-                                            <Box
-                                                sx={{
-                                                    maxWidth: "85%",
-                                                    borderRadius: 3,
-                                                    px: 1.75,
-                                                    py: 1.25,
-                                                    backgroundColor:
-                                                        "primary.main",
-                                                    color: "primary.contrastText",
-                                                    display: "flex",
-                                                    gap: 1,
-                                                    alignItems: "flex-start",
-                                                }}
-                                            >
-                                                <PersonRoundedIcon fontSize="small" />
-                                                <Typography variant="body2">
-                                                    {item.query}
-                                                </Typography>
-                                            </Box>
+                                            <PersonRoundedIcon fontSize="small" />
+                                            <Typography variant="body2">
+                                                {item.query}
+                                            </Typography>
                                         </Box>
+                                    </Box>
 
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            justifyContent: "flex-start",
+                                        }}
+                                    >
                                         <Box
                                             sx={{
+                                                maxWidth: "92%",
+                                                borderRadius: 3,
+                                                px: 1.75,
+                                                py: 1.25,
+                                                backgroundColor: "grey.100",
+                                                color: "text.primary",
+                                                border: "1px solid",
+                                                borderColor: "divider",
                                                 display: "flex",
-                                                justifyContent: "flex-start",
+                                                gap: 1,
+                                                alignItems: "flex-start",
                                             }}
                                         >
-                                            <Box
+                                            <SmartToyRoundedIcon
+                                                fontSize="small"
+                                                color="action"
+                                            />
+                                            <Typography
+                                                variant="body2"
                                                 sx={{
-                                                    maxWidth: "92%",
-                                                    borderRadius: 3,
-                                                    px: 1.75,
-                                                    py: 1.25,
-                                                    backgroundColor: "grey.100",
-                                                    color: "text.primary",
-                                                    border: "1px solid",
-                                                    borderColor: "divider",
-                                                    display: "flex",
-                                                    gap: 1,
-                                                    alignItems: "flex-start",
+                                                    whiteSpace: "pre-wrap",
                                                 }}
                                             >
-                                                <SmartToyRoundedIcon
-                                                    fontSize="small"
-                                                    color="action"
-                                                />
-                                                <Stack spacing={1}>
-                                                    <Typography
-                                                        variant="body2"
-                                                        sx={{
-                                                            whiteSpace:
-                                                                "pre-wrap",
-                                                        }}
-                                                    >
-                                                        {item.answer ??
-                                                            "No answer returned."}
-                                                    </Typography>
-
-                                                    {itemSources.length > 0 ? (
-                                                        <>
-                                                            <Divider />
-                                                            <Stack spacing={1}>
-                                                                {itemSources.map(
-                                                                    (
-                                                                        source,
-                                                                        index,
-                                                                    ) => (
-                                                                        <Box
-                                                                            key={
-                                                                                source.id ??
-                                                                                `${item.id}-${source.documentId ?? "source"}-${index}`
-                                                                            }
-                                                                            sx={{
-                                                                                border: "1px solid",
-                                                                                borderColor:
-                                                                                    "divider",
-                                                                                borderRadius: 2,
-                                                                                p: 1,
-                                                                                backgroundColor:
-                                                                                    "background.paper",
-                                                                            }}
-                                                                        >
-                                                                            <Stack
-                                                                                direction="row"
-                                                                                spacing={
-                                                                                    1
-                                                                                }
-                                                                                sx={{
-                                                                                    alignItems:
-                                                                                        "center",
-                                                                                    mb: 0.5,
-                                                                                }}
-                                                                            >
-                                                                                <Typography
-                                                                                    variant="caption"
-                                                                                    sx={{
-                                                                                        fontWeight: 700,
-                                                                                    }}
-                                                                                >
-                                                                                    {source.documentId ??
-                                                                                        "source"}
-                                                                                </Typography>
-                                                                                {typeof source.score ===
-                                                                                "number" ? (
-                                                                                    <Chip
-                                                                                        size="small"
-                                                                                        variant="outlined"
-                                                                                        color="primary"
-                                                                                        label={`score ${source.score.toFixed(3)}`}
-                                                                                    />
-                                                                                ) : null}
-                                                                            </Stack>
-                                                                            <Typography
-                                                                                variant="caption"
-                                                                                color="text.secondary"
-                                                                                sx={{
-                                                                                    whiteSpace:
-                                                                                        "pre-wrap",
-                                                                                }}
-                                                                            >
-                                                                                {source.snippet ||
-                                                                                    "No snippet available."}
-                                                                            </Typography>
-                                                                        </Box>
-                                                                    ),
-                                                                )}
-                                                            </Stack>
-                                                        </>
-                                                    ) : null}
-                                                </Stack>
-                                            </Box>
+                                                {item.answer ??
+                                                    "No answer returned."}
+                                            </Typography>
                                         </Box>
-                                    </Stack>
-                                );
-                            })}
+                                    </Box>
+                                </Stack>
+                            ))}
 
                             {isSubmitting ? (
                                 <Box

@@ -9,13 +9,22 @@ class EmbeddingService:
     def __init__(self) -> None:
         self._model = SentenceTransformer(settings.embedding_model)
 
-    def encode_texts(self, texts: list[str]) -> list[list[float]]:
+    def _prefix(self, text: str, is_query: bool) -> str:
+        if not settings.asymmetric_embedding:
+            return text
+
+        lead = "query: " if is_query else "passage: "
+        return f"{lead}{text}"
+
+    def encode_chunks(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
 
-        vectors = self._model.encode(texts, normalize_embeddings=True)
+        prepared = [self._prefix(text, is_query=False) for text in texts]
+        vectors = self._model.encode(prepared, normalize_embeddings=True)
         return [vector.tolist() for vector in vectors]
 
     def encode_query(self, query: str) -> list[float]:
-        vector = self._model.encode([query], normalize_embeddings=True)
+        prepared = self._prefix(query, is_query=True)
+        vector = self._model.encode([prepared], normalize_embeddings=True)
         return vector[0].tolist()

@@ -5,7 +5,6 @@ export interface RagSource {
   documentId?: string;
   filename?: string;
   snippet?: string;
-  score?: number;
 }
 
 export interface RagQueryResult {
@@ -62,7 +61,6 @@ export class RagService {
                 documentId: source.documentId,
                 filename: source.filename,
                 snippet: source.snippet,
-                score: source.score,
               }))
           : [],
       };
@@ -130,6 +128,72 @@ export class RagService {
     );
   }
 
+  private splitIntoSentences(text: string): string[] {
+    return text
+      .replace(/\s+/g, ' ')
+      .split(/(?<=[.!?])\s+/)
+      .map((sentence) => sentence.trim())
+      .filter((sentence) => sentence.length >= 24);
+  }
+
+  private sentenceRelevance(sentence: string, queryTerms: string[]): number {
+    const normalized = sentence.toLowerCase();
+    return queryTerms.reduce(
+      (score, term) => score + (normalized.includes(term) ? 1 : 0),
+      0,
+    );
+  }
+
+  private extractKeyPoints(
+    sources: RagSource[],
+    queryTerms: string[],
+  ): string[] {
+    const candidates = sources
+      .flatMap((source) => this.splitIntoSentences(source.snippet ?? ''))
+      .map((sentence) => ({
+        sentence,
+        score: this.sentenceRelevance(sentence, queryTerms),
+      }))
+      .filter((entry) => entry.score > 0)
+      .sort((left, right) => right.score - left.score)
+      .map((entry) => entry.sentence);
+
+    return Array.from(new Set(candidates)).slice(0, 4);
+  }
+
+  private buildStructuredAnswer(
+    query: string,
+    sources: RagSource[],
+    queryTerms: string[],
+  ): string {
+    const keyPoints = this.extractKeyPoints(sources, queryTerms);
+    const summary =
+      keyPoints[0] ??
+      `I could not find a precise passage that answers "${query}" in the indexed documents.`;
+
+    const details = keyPoints.slice(1, 4);
+    const detailsBlock = details.length
+      ? `\n\nKey points:\n${details.map((item) => `- ${item}`).join('\n')}`
+      : '';
+
+    const sourceLabels = Array.from(
+      new Set(
+        sources
+          .map((source) => source.filename ?? source.documentId)
+          .filter(
+            (label): label is string =>
+              typeof label === 'string' && label.trim().length > 0,
+          ),
+      ),
+    );
+
+    const sourcesBlock = sourceLabels.length
+      ? `\n\nSources: ${sourceLabels.join(', ')}`
+      : '';
+
+    return `Direct answer:\n${summary}${detailsBlock}${sourcesBlock}`;
+  }
+
   private async queryLocalService(query: string): Promise<RagQueryResult> {
     const queryTerms = this.tokenize(query);
     const documents = await this.prisma.document.findMany({
@@ -159,32 +223,14 @@ export class RagService {
       };
     }
 
-    const sources: RagSource[] = scoredDocuments.map(({ document, score }) => ({
+    const sources: RagSource[] = scoredDocuments.map(({ document }) => ({
       documentId: document.id,
       filename: document.filename,
       snippet: this.buildSnippet(document.extractedText ?? '', queryTerms),
-      score,
     }));
 
-    const directAnswer =
-      sources[0]?.snippet?.trim() ||
-      `No direct answer could be generated for "${query}" from matched documents.`;
-    const sourceLabels = Array.from(
-      new Set(
-        sources
-          .map((source) => source.filename ?? source.documentId)
-          .filter(
-            (label): label is string =>
-              typeof label === 'string' && label.trim().length > 0,
-          ),
-      ),
-    );
-    const sourcesSuffix = sourceLabels.length
-      ? `\n\nSources: ${sourceLabels.join(', ')}`
-      : '';
-
     return {
-      answer: `${directAnswer}${sourcesSuffix}`,
+      answer: this.buildStructuredAnswer(query, sources, queryTerms),
       sources,
     };
   }

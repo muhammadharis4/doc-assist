@@ -1,7 +1,7 @@
 "use client";
 
 import ArticleRoundedIcon from "@mui/icons-material/ArticleRounded";
-import { Chip, Paper, Stack, Typography } from "@mui/material";
+import { Paper, Stack, Typography } from "@mui/material";
 import type { QuerySource } from "@/lib/types/queries";
 
 interface SourcesListProps {
@@ -51,14 +51,6 @@ export function SourcesList({ sources }: SourcesListProps) {
                                 >
                                     {source.documentId ?? `source-${index + 1}`}
                                 </Typography>
-                                {typeof source.score === "number" ? (
-                                    <Chip
-                                        size="small"
-                                        label={`score ${source.score.toFixed(3)}`}
-                                        color="primary"
-                                        variant="outlined"
-                                    />
-                                ) : null}
                             </Stack>
 
                             <Typography

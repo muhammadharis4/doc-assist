@@ -52,7 +52,7 @@ export class QueriesService {
           create: result.sources.map((source) => ({
             documentId: source.documentId ?? null,
             snippet: source.snippet ?? '',
-            score: source.score ?? null,
+            score: null,
           })),
         },
       },

@@ -22,7 +22,7 @@ class RagEngine:
         category: str | None,
     ) -> None:
         chunks = chunk_text(content)
-        vectors = self._embeddings.encode_texts(chunks)
+        vectors = self._embeddings.encode_chunks(chunks)
         self._store.upsert_document(
             document_id=document_id,
             filename=filename,
@@ -37,15 +37,29 @@ class RagEngine:
 
     async def query(self, query_text: str) -> RagQueryResponse:
         query_vector = self._embeddings.encode_query(query_text)
-        chunks = self._store.query(query_vector=query_vector, top_k=settings.top_k)
+        chunks = self._store.query(
+            query_text=query_text,
+            query_vector=query_vector,
+            top_k=settings.top_k,
+        )
         answer = await self._llm.answer(query_text, chunks)
-        sources = [
-            RagSource(
-                documentId=chunk.document_id,
-                filename=chunk.filename,
-                snippet=chunk.content[:320],
-                score=chunk.score,
+
+        # Keep sources readable by collapsing repeated chunks from the same file.
+        deduped_sources: list[RagSource] = []
+        seen: set[str] = set()
+        for chunk in chunks:
+            key = f"{chunk.filename or ''}::{chunk.document_id or ''}".strip()
+            if key in seen:
+                continue
+
+            seen.add(key)
+            deduped_sources.append(
+                RagSource(
+                    documentId=chunk.document_id,
+                    filename=chunk.filename,
+                    snippet=chunk.content[:320],
+                )
             )
-            for chunk in chunks
-        ]
+
+        sources = deduped_sources
         return RagQueryResponse(answer=answer, sources=sources)

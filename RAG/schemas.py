@@ -13,7 +13,6 @@ class RagSource(BaseModel):
     documentId: str | None = None
     filename: str | None = None
     snippet: str | None = None
-    score: float | None = None
 
 
 class RagQueryResponse(BaseModel):

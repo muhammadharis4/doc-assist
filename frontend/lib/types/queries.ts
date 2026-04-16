@@ -2,7 +2,6 @@ export interface QuerySource {
     id?: string;
     documentId: string | null;
     snippet: string;
-    score: number | null;
 }
 
 export interface QueryHistoryItem {
