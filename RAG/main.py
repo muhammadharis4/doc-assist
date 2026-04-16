@@ -23,7 +23,7 @@ def health() -> dict[str, str]:
 
 
 @app.post("/documents", response_model=DocumentIndexResponse)
-def index_document(payload: DocumentIndexRequest) -> DocumentIndex.Response:
+def index_document(payload: DocumentIndexRequest) -> DocumentIndexResponse:
     """Indexes or updates a document into the vector store."""
 
     try:
