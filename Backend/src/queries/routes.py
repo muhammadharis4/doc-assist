@@ -7,10 +7,10 @@ from fastapi import APIRouter, HTTPException, Query
 from src.config import settings
 from src.constants import DEFAULT_HISTORY_LIMIT, MAX_HISTORY_LIMIT
 from src.schemas import QueryExecuteRequest, QueryResponse
-from src.services.rag import RAGService
+from src.queries.service import QueryService
 
 router = APIRouter(prefix="/queries", tags=["queries"])
-service = RAGService()
+service = QueryService()
 
 
 @router.post("", response_model=QueryResponse)
@@ -35,7 +35,7 @@ async def run_query(payload: QueryExecuteRequest) -> dict[str, object]:
             detail=f"query exceeds {settings.max_query_length} chars",
         )
 
-    return await service.query(query_text)
+    return await service.run_query(query_text)
 
 
 @router.get("/history", response_model=list[QueryResponse])

@@ -5,10 +5,10 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from src.schemas import DeleteStatusResponse, DocumentCreateRequest, DocumentResponse
-from src.services.rag import RAGService
+from src.documents.service import DocumentService
 
 router = APIRouter(prefix="/documents", tags=["documents"])
-service = RAGService()
+service = DocumentService()
 
 
 @router.get("", response_model=list[DocumentResponse])
