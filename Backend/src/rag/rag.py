@@ -1,5 +1,3 @@
-"""High-level RAG orchestration service."""
-
 from __future__ import annotations
 
 from src import db
