@@ -1,5 +1,13 @@
-node_modules/
-dist/
+# Caches
+__pycache__/
+*.pyc
+
+# Environments
+venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# Environment variables
 .env
-*.db
-/generated/prisma

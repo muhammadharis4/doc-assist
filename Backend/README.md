@@ -65,13 +65,13 @@ Response:
 
 ```json
 [
-  {
-    "id": "history-id",
-    "query": "How do I run tests?",
-    "answer": "Use npm run test --workspace=Backend",
-    "userId": null,
-    "createdAt": "2026-04-12T10:05:00.000Z"
-  }
+    {
+        "id": "history-id",
+        "query": "How do I run tests?",
+        "answer": "Use npm run test --workspace=Backend",
+        "userId": null,
+        "createdAt": "2026-04-12T10:05:00.000Z"
+    }
 ]
 ```
 
@@ -83,13 +83,13 @@ Response:
 
 ```json
 [
-  {
-    "id": "saved-id",
-    "title": "Run tests",
-    "query": "How do I run tests?",
-    "userId": null,
-    "createdAt": "2026-04-12T10:10:00.000Z"
-  }
+    {
+        "id": "saved-id",
+        "title": "Run tests",
+        "query": "How do I run tests?",
+        "userId": null,
+        "createdAt": "2026-04-12T10:10:00.000Z"
+    }
 ]
 ```
 
@@ -106,8 +106,8 @@ Request body:
 
 ```json
 {
-  "title": "Run tests",
-  "query": "How do I run tests?"
+    "title": "Run tests",
+    "query": "How do I run tests?"
 }
 ```
 

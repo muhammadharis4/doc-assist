@@ -4,7 +4,10 @@ interface RouteContext {
     params: Promise<{ id: string }>;
 }
 
-export async function DELETE(_: Request, context: RouteContext): Promise<Response> {
+export async function DELETE(
+    _: Request,
+    context: RouteContext,
+): Promise<Response> {
     const { id } = await context.params;
     return proxyRequest(`/documents/${id}`, {
         method: "DELETE",
