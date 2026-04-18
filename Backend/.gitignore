@@ -6,7 +6,7 @@ __pycache__/
 __init__.py
 
 # Environments
-venv/
+.venv/
 
 # IDEs
 .vscode/
