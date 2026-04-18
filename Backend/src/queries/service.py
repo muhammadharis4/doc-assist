@@ -5,9 +5,9 @@ from __future__ import annotations
 from src import db
 from src.config import settings
 from src.constants import SOURCE_SNIPPET_MAX_CHARS
-from src.services.embeddings import generate_query_embedding
-from src.services.llm import LlmService
-from src.services.opensearch_store import hybrid_search
+from src.rag.embeddings import generate_query_embedding
+from src.rag.llm import LlmService
+from src.rag.opensearch_store import hybrid_search
 
 
 class QueryService:

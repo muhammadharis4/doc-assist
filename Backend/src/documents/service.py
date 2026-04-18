@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from src import db
-from src.services.chunking import chunk_text
-from src.services.embeddings import generate_embeddings
-from src.services.opensearch_store import delete_document_chunks, upsert_document_chunks
+from src.rag.chunking import chunk_text
+from src.rag.embeddings import generate_embeddings
+from src.rag.opensearch_store import delete_document_chunks, upsert_document_chunks
 
 
 class DocumentService:

@@ -8,7 +8,7 @@ from fastapi import FastAPI
 
 from src import db
 from src.config import settings
-from src.services.opensearch_store import ensure_index_and_pipeline
+from src.rag.opensearch_store import ensure_index_and_pipeline
 from src.documents.routes import router as documents_router
 from src.queries.routes import router as queries_router
 from src.utils.logging import setup_logging
