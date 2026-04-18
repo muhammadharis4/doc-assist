@@ -1,222 +1,61 @@
 # DocAssist Backend
 
-NestJS API for document ingestion, query execution, and query history/source tracking.
+FastAPI backend for document ingest, hybrid retrieval (BM25 + vector), and answer generation.
 
-## Overview
+## Stack
 
-The backend currently provides:
-
-- Document ingest and lifecycle endpoints
-- Query execution via RAG service boundary (external or local fallback)
-- Query history and saved query endpoints
-- Prisma + SQLite persistence
-
-## Tech Stack
-
-- NestJS
-- TypeScript
-- Prisma ORM
-- SQLite
-- Jest
+- FastAPI
+- OpenSearch (text + vector in one engine)
+- SentenceTransformer embeddings
+- Ollama generation
+- SQLite for document/query history persistence
 
 ## Run Locally
 
 ```bash
-# From repo root
-npm install
-npm run start:dev --workspace=Backend
+cd Backend
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Backend runs at `http://localhost:3000` by default.
+Backend URL: `http://localhost:8000`
 
 ## Environment Variables
 
-- `PORT`: backend HTTP port (default `3000`)
-- `DATABASE_URL`: Prisma database URL (default sqlite file)
-- `RAG_SERVICE_URL`: optional external RAG service URL
-
-If `RAG_SERVICE_URL` is not set, backend uses local retrieval fallback.
+- `APP_DB_PATH` (default `./data/app.db`)
+- `OPENSEARCH_URL` (default `http://localhost:9200`)
+- `OPENSEARCH_INDEX_NAME` (default `docassist_chunks`)
+- `OPENSEARCH_PIPELINE_NAME` (default `nlp-search-pipeline`)
+- `CHUNK_SIZE_CHARS` (default `300`)
+- `CHUNK_OVERLAP_CHARS` (default `60`)
+- `RAG_TOP_K` (default `5`)
+- `TEXT_SCORE_WEIGHT` (default `0.3`)
+- `VECTOR_SCORE_WEIGHT` (default `0.7`)
+- `EMBEDDING_MODEL` (default `sentence-transformers/all-MiniLM-L6-v2`)
+- `OLLAMA_BASE_URL` (default `http://localhost:11434`)
+- `OLLAMA_MODEL` (default `llama3`)
+- `OLLAMA_TEMPERATURE` (default `0.2`)
 
 ## API Endpoints
 
-### Health / App
+- `GET /health`
+- `GET /documents`
+- `POST /documents`
+- `DELETE /documents/:id`
+- `POST /queries`
+- `GET /queries/history`
 
-#### `GET /`
+## App Flow
 
-Returns a simple health text.
-
-Response:
-
-```text
-Hello World!
-```
-
----
-
-### Documents
-
-#### `GET /documents`
-
-Returns documents ordered by newest first.
-
-Query params:
-
-- `skip` (optional): number of rows to skip, default `0`
-- `take` (optional): number of rows to return, default `20`, max `100`
-- `project` (optional): exact project filter
-- `category` (optional): exact category filter
-- `keyword` (optional): search term matched against filename, extracted text, project, and category
-
-Validation:
-
-- `skip` and `take` must be non-negative integers
-
-Behavior:
-
-- `project` and `category` apply exact-match filters
-- `keyword` performs a contains search across document fields
-
-Response:
-
-```json
-[
-  {
-    "id": "uuid",
-    "filename": "README.md",
-    "mimeType": "text/markdown",
-    "size": 1200,
-    "project": "DocAssist",
-    "category": "Setup",
-    "version": 1,
-    "storagePath": "./docs/README.md",
-    "extractedText": "...",
-    "createdAt": "2026-04-12T10:00:00.000Z",
-    "updatedAt": "2026-04-12T10:00:00.000Z"
-  }
-]
-```
-
-#### `POST /documents`
-
-Ingests and stores a document, then triggers RAG indexing.
-
-Request body:
-
-```json
-{
-  "filename": "README.md",
-  "mimeType": "text/markdown",
-  "storagePath": "./docs/README.md",
-  "extractedText": "# Getting Started...",
-  "size": 1200,
-  "project": "DocAssist",
-  "category": "Setup",
-  "version": 1
-}
-```
-
-Required fields:
-
-- `filename`
-- `mimeType`
-- `storagePath`
-- `extractedText`
-
-Response:
-
-```json
-{
-  "id": "uuid",
-  "filename": "README.md",
-  "mimeType": "text/markdown",
-  "size": 1200,
-  "project": "DocAssist",
-  "category": "Setup",
-  "version": 1,
-  "storagePath": "./docs/README.md",
-  "extractedText": "# Getting Started...",
-  "createdAt": "2026-04-12T10:00:00.000Z",
-  "updatedAt": "2026-04-12T10:00:00.000Z"
-}
-```
-
-#### `GET /documents/:id`
-
-Returns a single document.
-
-Path params:
-
-- `id`: document id
-
-Response: document object
-
-Errors:
-
-- `404` if document does not exist
-
-#### `DELETE /documents/:id`
-
-Deletes a document and attempts to remove its RAG index entry.
-
-Path params:
-
-- `id`: document id
-
-Response: deleted document object
-
-Errors:
-
-- `404` if document does not exist
-
----
-
-### Queries
-
-#### `POST /queries`
-
-Executes a natural-language query through RAG service and stores history/sources.
-
-Request body:
-
-```json
-{
-  "query": "How do I run tests?",
-  "userId": "optional-user-id"
-}
-```
-
-Required fields:
-
-- `query`
-
-Response:
-
-```json
-{
-  "id": "history-id",
-  "query": "How do I run tests?",
-  "answer": "Use npm run test --workspace=Backend",
-  "userId": null,
-  "createdAt": "2026-04-12T10:05:00.000Z",
-  "sources": [
-    {
-      "id": "source-id",
-      "queryHistoryId": "history-id",
-      "documentId": "doc-id",
-      "snippet": "Run npm run test --workspace=Backend",
-      "score": 0.92
-    }
-  ]
-}
-```
-
-Errors:
-
-- `400` if `query` is missing/empty
-
-#### `GET /queries/history`
-
-Returns recent query history, newest first.
+1. `POST /documents` stores a document row in SQLite.
+2. Text is chunked by character length (`CHUNK_SIZE_CHARS`).
+3. Chunks are embedded with SentenceTransformer.
+4. Chunks are indexed in OpenSearch with both text and vector fields.
+5. `POST /queries` embeds the query, runs OpenSearch hybrid search, and retrieves top chunks.
+6. Retrieved chunks are sent to Ollama for grounded answer generation.
+7. Query answer and sources are persisted to SQLite and returned.
 
 Query params:
 

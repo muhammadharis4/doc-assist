@@ -18,13 +18,5 @@ export interface ExecuteQueryInput {
     userId?: string | null;
 }
 
-export interface SavedQueryItem {
-    id: string;
-    title: string;
-    query: string;
-    userId: string | null;
-    createdAt: string;
-}
-
 export const MAX_QUERY_LENGTH = 2000;
 export const DEFAULT_HISTORY_LIMIT = 20;

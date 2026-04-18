@@ -1,0 +1,71 @@
+"""Request and response schemas for API endpoints."""
+
+from __future__ import annotations
+
+from pydantic import BaseModel, Field, model_validator
+
+from src.constants import MAX_QUERY_LENGTH
+
+
+class DocumentCreateRequest(BaseModel):
+    """Payload used to create and index a document."""
+
+    filename: str = Field(min_length=1, max_length=1024)
+    content: str = Field(min_length=1)
+    mimeType: str | None = Field(default=None, max_length=256)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_payload(cls, value: object) -> object:
+        """Accepts legacy frontend payload fields for a smooth migration."""
+
+        if not isinstance(value, dict):
+            return value
+
+        normalized = dict(value)
+        if "content" not in normalized and "extractedText" in normalized:
+            normalized["content"] = normalized.get("extractedText")
+
+        return normalized
+
+
+class DocumentResponse(BaseModel):
+    """Document response used by the frontend document list."""
+
+    id: str
+    filename: str
+    content: str
+    mimeType: str | None = None
+    createdAt: str
+
+
+class QuerySourceResponse(BaseModel):
+    """Single source snippet returned with a generated answer."""
+
+    documentId: str | None = None
+    filename: str | None = None
+    snippet: str
+    score: float | None = None
+
+
+class QueryExecuteRequest(BaseModel):
+    """Payload for running a retrieval-augmented query."""
+
+    query: str = Field(min_length=1, max_length=MAX_QUERY_LENGTH)
+
+
+class QueryResponse(BaseModel):
+    """Stored and returned query response shape for frontend history."""
+
+    id: str
+    query: str
+    answer: str
+    userId: str | None = None
+    createdAt: str
+    sources: list[QuerySourceResponse]
+
+
+class DeleteStatusResponse(BaseModel):
+    """Simple status result for delete operations."""
+
+    status: str

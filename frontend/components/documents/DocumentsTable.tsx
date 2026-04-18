@@ -94,7 +94,7 @@ export function DocumentsTable({
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            {document.mimeType}
+                                            {document.mimeType ?? "Unknown"}
                                         </TableCell>
                                         <TableCell align="right">
                                             <IconButton

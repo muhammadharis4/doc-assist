@@ -279,9 +279,7 @@ function buildPayload(file: File, extractedText: string): CreateDocumentInput {
     return {
         filename: file.name,
         mimeType: file.type || "text/plain",
-        storagePath: `uploads/${Date.now()}-${file.name}`,
-        extractedText: extractedText.trim() || file.name,
-        size: file.size,
+        content: extractedText.trim() || file.name,
     };
 }
 

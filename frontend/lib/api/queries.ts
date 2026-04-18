@@ -2,7 +2,6 @@ import {
     DEFAULT_HISTORY_LIMIT,
     type ExecuteQueryInput,
     type QueryHistoryItem,
-    type SavedQueryItem,
 } from "@/lib/types/queries";
 
 /**
@@ -35,45 +34,6 @@ export async function getQueryHistory(
 
     const payload = (await response.json()) as QueryHistoryItem[];
     return payload.map(normalizeQueryHistoryItem);
-}
-
-/**
- * Returns all saved queries.
- */
-export async function getSavedQueries(): Promise<SavedQueryItem[]> {
-    const response = await fetch("/api/queries/saved", {
-        cache: "no-store",
-    });
-
-    if (!response.ok) {
-        throw new Error(
-            await readErrorMessage(response, "Failed to load saved queries."),
-        );
-    }
-
-    return (await response.json()) as SavedQueryItem[];
-}
-
-/**
- * Saves a query for future reuse.
- */
-export function saveQuery(
-    title: string,
-    query: string,
-): Promise<SavedQueryItem> {
-    return fetchJson<SavedQueryItem>("/api/queries/saved", {
-        method: "POST",
-        body: JSON.stringify({ title, query }),
-    });
-}
-
-/**
- * Removes a saved query by id.
- */
-export function deleteSavedQuery(id: string): Promise<SavedQueryItem> {
-    return fetchJson<SavedQueryItem>(`/api/queries/saved/${id}`, {
-        method: "DELETE",
-    });
 }
 
 async function fetchJson<T>(path: string, init: RequestInit): Promise<T> {
