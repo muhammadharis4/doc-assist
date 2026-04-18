@@ -2,6 +2,9 @@
 __pycache__/
 *.pyc
 
+# initialization files
+__init__.py
+
 # Environments
 venv/
 
