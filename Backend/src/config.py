@@ -22,6 +22,17 @@ from src.constants import (
 
 
 def _as_bool(raw: str | None, default: bool = False) -> bool:
+    """
+    Converts a string environment value into a boolean.
+
+    Args:
+        raw (str | None): Raw environment value.
+        default (bool): Value returned when the input is missing.
+
+    Returns:
+        bool: Parsed boolean value.
+    """
+
     if raw is None:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
@@ -29,7 +40,12 @@ def _as_bool(raw: str | None, default: bool = False) -> bool:
 
 @dataclass(frozen=True)
 class Settings:
-    """Holds all configurable runtime settings."""
+    """
+    Holds all configurable runtime settings.
+
+    Returns:
+        Settings: Dataclass-style settings container.
+    """
 
     app_name: str = os.getenv("APP_NAME", APP_NAME)
     app_version: str = os.getenv("APP_VERSION", APP_VERSION)

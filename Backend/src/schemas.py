@@ -8,7 +8,12 @@ from src.constants import MAX_QUERY_LENGTH
 
 
 class DocumentCreateRequest(BaseModel):
-    """Payload used to create and index a document."""
+    """
+    Payload used to create and index a document.
+
+    Returns:
+        DocumentCreateRequest: Validated document create payload.
+    """
 
     filename: str = Field(min_length=1, max_length=1024)
     content: str = Field(min_length=1)
@@ -17,7 +22,15 @@ class DocumentCreateRequest(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def normalize_payload(cls, value: object) -> object:
-        """Accepts legacy frontend payload fields for a smooth migration."""
+        """
+        Accepts legacy frontend payload fields for a smooth migration.
+
+        Args:
+            value (object): Raw incoming payload.
+
+        Returns:
+            object: Normalized payload.
+        """
 
         if not isinstance(value, dict):
             return value
@@ -30,7 +43,12 @@ class DocumentCreateRequest(BaseModel):
 
 
 class DocumentResponse(BaseModel):
-    """Document response used by the frontend document list."""
+    """
+    Document response used by the frontend document list.
+
+    Returns:
+        DocumentResponse: Document response payload.
+    """
 
     id: str
     filename: str
@@ -40,7 +58,12 @@ class DocumentResponse(BaseModel):
 
 
 class QuerySourceResponse(BaseModel):
-    """Single source snippet returned with a generated answer."""
+    """
+    Single source snippet returned with a generated answer.
+
+    Returns:
+        QuerySourceResponse: Query source payload.
+    """
 
     documentId: str | None = None
     filename: str | None = None
@@ -49,13 +72,23 @@ class QuerySourceResponse(BaseModel):
 
 
 class QueryExecuteRequest(BaseModel):
-    """Payload for running a retrieval-augmented query."""
+    """
+    Payload for running a retrieval-augmented query.
+
+    Returns:
+        QueryExecuteRequest: Validated query payload.
+    """
 
     query: str = Field(min_length=1, max_length=MAX_QUERY_LENGTH)
 
 
 class QueryResponse(BaseModel):
-    """Stored and returned query response shape for frontend history."""
+    """
+    Stored and returned query response shape for frontend history.
+
+    Returns:
+        QueryResponse: Query response payload.
+    """
 
     id: str
     query: str
@@ -66,6 +99,11 @@ class QueryResponse(BaseModel):
 
 
 class DeleteStatusResponse(BaseModel):
-    """Simple status result for delete operations."""
+    """
+    Simple status result for delete operations.
+
+    Returns:
+        DeleteStatusResponse: Delete status payload.
+    """
 
     status: str

@@ -8,7 +8,15 @@ from src.config import settings
 
 
 def clean_text(text: str) -> str:
-    """Normalizes whitespace while preserving paragraph boundaries."""
+    """
+    Normalizes whitespace while preserving paragraph boundaries.
+
+    Args:
+        text (str): Raw text to normalize.
+
+    Returns:
+        str: The cleaned text.
+    """
 
     normalized = re.sub(r"(\w+)-\n(\w+)", r"\1\2", text)
     normalized = re.sub(r"(?<!\n)\n(?!\n)", " ", normalized)
@@ -18,7 +26,15 @@ def clean_text(text: str) -> str:
 
 
 def chunk_text(text: str) -> list[str]:
-    """Splits text into overlapping character chunks."""
+    """
+    Splits text into overlapping character chunks.
+
+    Args:
+        text (str): Raw document text.
+
+    Returns:
+        list[str]: The generated text chunks.
+    """
 
     normalized = clean_text(text)
     if not normalized:

@@ -14,11 +14,23 @@ from src.constants import MAX_HISTORY_LIMIT
 
 
 def _utc_now() -> str:
+    """
+    Returns the current UTC timestamp as an ISO string.
+
+    Returns:
+        str: Current UTC time in ISO 8601 format.
+    """
+
     return datetime.now(timezone.utc).isoformat()
 
 
 def init_db() -> None:
-    """Creates required tables if they do not exist."""
+    """
+    Creates required tables if they do not exist.
+
+    Returns:
+        None: This function only initializes database tables.
+    """
 
     db_file = Path(settings.db_path)
     db_file.parent.mkdir(parents=True, exist_ok=True)
@@ -56,6 +68,13 @@ def init_db() -> None:
 
 @contextmanager
 def _connection() -> Iterator[sqlite3.Connection]:
+    """
+    Yields a configured SQLite connection.
+
+    Returns:
+        Iterator[sqlite3.Connection]: Managed SQLite connection context.
+    """
+
     connection = sqlite3.connect(settings.db_path)
     connection.row_factory = sqlite3.Row
     try:
@@ -66,7 +85,17 @@ def _connection() -> Iterator[sqlite3.Connection]:
 
 
 def create_document(filename: str, content: str, mime_type: str | None) -> dict[str, str | None]:
-    """Stores one document row and returns the created row."""
+    """
+    Stores one document row and returns the created row.
+
+    Args:
+        filename (str): Document filename.
+        content (str): Document content.
+        mime_type (str | None): Optional MIME type.
+
+    Returns:
+        dict[str, str | None]: Stored document payload.
+    """
 
     document_id = str(uuid4())
     created_at = _utc_now()
@@ -90,7 +119,12 @@ def create_document(filename: str, content: str, mime_type: str | None) -> dict[
 
 
 def list_documents() -> list[dict[str, str | None]]:
-    """Returns all documents ordered from newest to oldest."""
+    """
+    Returns all documents ordered from newest to oldest.
+
+    Returns:
+        list[dict[str, str | None]]: Stored documents in recency order.
+    """
 
     with _connection() as connection:
         rows = connection.execute(
@@ -114,7 +148,15 @@ def list_documents() -> list[dict[str, str | None]]:
 
 
 def delete_document(document_id: str) -> bool:
-    """Deletes a document row and returns True when a row was removed."""
+    """
+    Deletes a document row and returns True when a row was removed.
+
+    Args:
+        document_id (str): The document identifier.
+
+    Returns:
+        bool: True when the document existed and was deleted.
+    """
 
     with _connection() as connection:
         result = connection.execute(
@@ -125,7 +167,17 @@ def delete_document(document_id: str) -> bool:
 
 
 def store_query(query: str, answer: str, sources: list[dict[str, str | float | None]]) -> dict[str, object]:
-    """Stores query history and source rows, then returns the saved shape."""
+    """
+    Stores query history and source rows, then returns the saved shape.
+
+    Args:
+        query (str): The user query text.
+        answer (str): The generated answer text.
+        sources (list[dict[str, str | float | None]]): Source rows to persist.
+
+    Returns:
+        dict[str, object]: Stored query history payload.
+    """
 
     query_id = str(uuid4())
     created_at = _utc_now()
@@ -166,7 +218,15 @@ def store_query(query: str, answer: str, sources: list[dict[str, str | float | N
 
 
 def list_query_history(limit: int) -> list[dict[str, object]]:
-    """Returns query history with attached sources, newest first."""
+    """
+    Returns query history with attached sources, newest first.
+
+    Args:
+        limit (int): Maximum number of rows to return.
+
+    Returns:
+        list[dict[str, object]]: Query history rows with source snippets.
+    """
 
     safe_limit = max(1, min(limit, MAX_HISTORY_LIMIT))
 

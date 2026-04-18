@@ -18,7 +18,16 @@ class LlmService:
         self._client = ollama.AsyncClient(host=settings.ollama_base_url)
 
     async def answer(self, query: str, chunks: list[dict[str, object]]) -> str:
-        """Returns an answer synthesized from retrieved context chunks."""
+        """
+        Returns an answer synthesized from retrieved context chunks.
+
+        Args:
+            query (str): The user question.
+            chunks (list[dict[str, object]]): Retrieved context chunks.
+
+        Returns:
+            str: The generated answer.
+        """
 
         if not chunks:
             return "No relevant documents found."
@@ -52,7 +61,15 @@ class LlmService:
         return response["message"]["content"].strip()
 
     def _mock_answer(self, chunks: list[dict[str, object]]) -> str:
-        """Returns a deterministic answer for local testing."""
+        """
+        Returns a deterministic answer for local testing.
+
+        Args:
+            chunks (list[dict[str, object]]): Retrieved context chunks.
+
+        Returns:
+            str: A deterministic mock answer.
+        """
 
         top = chunks[0].get("content", "") if chunks else ""
         return f"Mock answer based on source: {str(top)[:180]}"

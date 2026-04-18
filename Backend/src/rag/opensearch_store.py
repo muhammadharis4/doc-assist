@@ -15,13 +15,23 @@ logger = logging.getLogger(__name__)
 
 @lru_cache(maxsize=1)
 def get_client() -> OpenSearch:
-    """Creates and caches an OpenSearch client."""
+    """
+    Creates and caches an OpenSearch client.
+
+    Returns:
+        OpenSearch: The cached OpenSearch client.
+    """
 
     return OpenSearch(hosts=[settings.opensearch_url])
 
 
 def ensure_index_and_pipeline() -> None:
-    """Creates index and hybrid pipeline if they do not exist yet."""
+    """
+    Creates index and hybrid pipeline if they do not exist yet.
+
+    Returns:
+        None: This function only performs setup.
+    """
 
     client = get_client()
 
@@ -85,7 +95,19 @@ def upsert_document_chunks(
     embeddings: list[list[float]],
     created_at: str,
 ) -> None:
-    """Indexes all chunks for a document in one bulk request."""
+    """
+    Indexes all chunks for a document in one bulk request.
+
+    Args:
+        document_id (str): The document identifier.
+        filename (str): The source filename.
+        chunks (list[str]): Chunked document text.
+        embeddings (list[list[float]]): Embedding vectors for each chunk.
+        created_at (str): Document creation timestamp.
+
+    Returns:
+        None: This function only writes to OpenSearch.
+    """
 
     if not chunks:
         return
@@ -117,7 +139,15 @@ def upsert_document_chunks(
 
 
 def delete_document_chunks(document_id: str) -> None:
-    """Removes all indexed chunks that belong to one document id."""
+    """
+    Removes all indexed chunks that belong to one document id.
+
+    Args:
+        document_id (str): The document identifier.
+
+    Returns:
+        None: This function only deletes from OpenSearch.
+    """
 
     client = get_client()
     client.delete_by_query(
@@ -128,7 +158,17 @@ def delete_document_chunks(document_id: str) -> None:
 
 
 def hybrid_search(query: str, query_embedding: list[float], top_k: int) -> list[dict[str, object]]:
-    """Runs OpenSearch hybrid search (BM25 + KNN) through the search pipeline."""
+    """
+    Runs OpenSearch hybrid search (BM25 + KNN) through the search pipeline.
+
+    Args:
+        query (str): The user query text.
+        query_embedding (list[float]): The query embedding vector.
+        top_k (int): Maximum number of hits to return.
+
+    Returns:
+        list[dict[str, object]]: Ranked hybrid search hits.
+    """
 
     client = get_client()
 
