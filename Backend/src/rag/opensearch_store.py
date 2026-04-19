@@ -77,7 +77,7 @@ def ensure_index_and_pipeline() -> None:
                     "method": {
                         "name": "hnsw",
                         "space_type": "cosinesimil",
-                        "engine": "nmslib",
+                        "engine": "faiss",
                     },
                 },
                 "created_at": {"type": "date"},
