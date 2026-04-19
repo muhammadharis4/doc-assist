@@ -15,6 +15,7 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
+import { extractPdfText } from "@/lib/api/documents";
 import type { CreateDocumentInput } from "@/lib/types/documents";
 
 interface DocumentUploadDialogProps {
@@ -284,6 +285,14 @@ function buildPayload(file: File, extractedText: string): CreateDocumentInput {
 }
 
 async function readFileText(file: File): Promise<string> {
+    const isPdf =
+        file.type === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf");
+
+    if (isPdf) {
+        return (await extractPdfText(file)).trim() || file.name;
+    }
+
     try {
         const content = await file.text();
         return content.trim() || file.name;

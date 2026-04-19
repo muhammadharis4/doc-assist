@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from src.schemas import DeleteStatusResponse, DocumentCreateRequest, DocumentResponse
 from src.documents.service import DocumentService
@@ -44,6 +44,29 @@ def create_document(payload: DocumentCreateRequest) -> dict[str, str | None]:
         content=content,
         mime_type=payload.mimeType.strip() if payload.mimeType else None,
     )
+
+
+@router.post("/extract")
+async def extract_pdf(file: UploadFile = File(...)) -> dict[str, str]:
+    """
+    Extracts text from an uploaded PDF file.
+
+    Args:
+        file (UploadFile): PDF file upload.
+
+    Returns:
+        dict[str, str]: Extracted text payload.
+    """
+
+    filename = file.filename or ""
+    is_pdf_name = filename.lower().endswith(".pdf")
+    is_pdf_mime = (file.content_type or "").lower() == "application/pdf"
+    if not (is_pdf_name or is_pdf_mime):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    file_bytes = await file.read()
+    text = service.extract_pdf_text(file_bytes=file_bytes, filename=file.filename)
+    return {"text": text}
 
 
 @router.delete("/{document_id}", response_model=DeleteStatusResponse)

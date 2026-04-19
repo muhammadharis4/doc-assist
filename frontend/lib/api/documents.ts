@@ -28,6 +28,26 @@ export function createDocument(
 }
 
 /**
+ * Extracts text from one PDF through the backend OCR endpoint.
+ */
+export async function extractPdfText(file: File): Promise<string> {
+    const form = new FormData();
+    form.append("file", file, file.name);
+
+    const response = await fetch(`/api/documents/extract`, {
+        method: "POST",
+        body: form,
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to extract PDF text.");
+    }
+
+    const payload = (await response.json()) as { text?: string };
+    return typeof payload.text === "string" ? payload.text : "";
+}
+
+/**
  * Deletes a document by id from the backend via proxy.
  */
 export function deleteDocument(id: string): Promise<DocumentItem> {

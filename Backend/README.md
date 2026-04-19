@@ -43,6 +43,7 @@ Backend URL: `http://localhost:8000`
 - `GET /health`
 - `GET /documents`
 - `POST /documents`
+- `POST /documents/extract`
 - `DELETE /documents/:id`
 - `POST /queries`
 - `POST /queries/stream`

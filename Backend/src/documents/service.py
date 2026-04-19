@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from fastapi import HTTPException
+
 from src import db
+from src.documents.pdf_extractor import extract_text_from_pdf_bytes
 from src.rag.chunking import chunk_text
 from src.rag.embeddings import generate_embeddings
 from src.rag.opensearch_store import delete_document_chunks, upsert_document_chunks
@@ -65,3 +68,27 @@ class DocumentService:
         deleted = db.delete_document(document_id)
         delete_document_chunks(document_id)
         return deleted
+
+    def extract_pdf_text(self, file_bytes: bytes, filename: str | None) -> str:
+        """
+        Extracts searchable text from an uploaded PDF file.
+
+        Args:
+            file_bytes (bytes): Raw PDF bytes.
+            filename (str | None): Original filename for diagnostics.
+
+        Returns:
+            str: Extracted PDF text.
+        """
+
+        if not file_bytes:
+            raise HTTPException(status_code=400, detail="file is empty")
+
+        text = extract_text_from_pdf_bytes(file_bytes=file_bytes, source_name=filename)
+        if not text.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="No readable text found in PDF. If this is scanned, ensure Tesseract is installed.",
+            )
+
+        return text
