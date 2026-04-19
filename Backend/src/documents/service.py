@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import HTTPException
 
 from src import db
@@ -9,6 +11,8 @@ from src.documents.pdf_extractor import extract_text_from_pdf_bytes
 from src.rag.chunking import chunk_text
 from src.rag.embeddings import generate_embeddings
 from src.rag.opensearch_store import delete_document_chunks, upsert_document_chunks
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentService:
@@ -19,9 +23,9 @@ class DocumentService:
         filename: str,
         content: str,
         mime_type: str | None,
-    ) -> dict[str, str | None]:
+    ) -> dict[str, object]:
         """
-        Stores a document and indexes its chunks in OpenSearch.
+        Stores a document and marks it pending for background indexing.
 
         Args:
             filename (str): Document filename.
@@ -29,27 +33,64 @@ class DocumentService:
             mime_type (str | None): Optional MIME type for the document.
 
         Returns:
-            dict[str, str | None]: The stored document payload.
+            dict[str, object]: The stored document payload.
         """
 
-        document = db.create_document(filename=filename, content=content, mime_type=mime_type)
-        chunks = chunk_text(content)
-        vectors = generate_embeddings(chunks)
-        upsert_document_chunks(
-            document_id=str(document["id"]),
-            filename=str(document["filename"]),
-            chunks=chunks,
-            embeddings=vectors,
-            created_at=str(document["createdAt"]),
+        return db.create_document(
+            filename=filename,
+            content=content,
+            mime_type=mime_type,
+            status="pending",
         )
-        return document
 
-    def list_documents(self) -> list[dict[str, str | None]]:
+    def process_document(self, document_id: str) -> None:
+        """
+        Runs chunking, embedding, and indexing for one stored document.
+
+        Args:
+            document_id (str): The document identifier.
+
+        Returns:
+            None: This function only updates indexing state.
+        """
+
+        document = db.get_document(document_id)
+        if document is None:
+            logger.warning("Document not found for background processing: %s", document_id)
+            return
+
+        db.update_document_status(document_id=document_id, status="processing", error_message=None, indexed_at=None)
+
+        try:
+            content = str(document.get("content", ""))
+            chunks = chunk_text(content)
+            if not chunks:
+                raise ValueError("Document has no indexable text")
+
+            vectors = generate_embeddings(chunks)
+            upsert_document_chunks(
+                document_id=str(document["id"]),
+                filename=str(document["filename"]),
+                chunks=chunks,
+                embeddings=vectors,
+                created_at=str(document["createdAt"]),
+            )
+            db.update_document_status(document_id=document_id, status="ready", error_message=None)
+        except Exception as error:  # pragma: no cover - model/index failures are environment-dependent
+            logger.exception("Failed to process document %s", document_id)
+            db.update_document_status(
+                document_id=document_id,
+                status="failed",
+                error_message=str(error),
+                indexed_at=None,
+            )
+
+    def list_documents(self) -> list[dict[str, object]]:
         """
         Returns all stored documents.
 
         Returns:
-            list[dict[str, str | None]]: The stored document rows ordered by recency.
+            list[dict[str, object]]: The stored document rows ordered by recency.
         """
 
         return db.list_documents()

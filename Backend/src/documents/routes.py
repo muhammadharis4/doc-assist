@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 
 from src.schemas import DeleteStatusResponse, DocumentCreateRequest, DocumentResponse
 from src.documents.service import DocumentService
@@ -12,19 +12,22 @@ service = DocumentService()
 
 
 @router.get("", response_model=list[DocumentResponse])
-def list_documents() -> list[dict[str, str | None]]:
+def list_documents() -> list[dict[str, object]]:
     """
     Returns all indexed documents ordered by most recent.
 
     Returns:
-        list[dict[str, str | None]]: Stored document rows.
+        list[dict[str, object]]: Stored document rows.
     """
 
     return service.list_documents()
 
 
 @router.post("", response_model=DocumentResponse)
-def create_document(payload: DocumentCreateRequest) -> dict[str, str | None]:
+def create_document(
+    payload: DocumentCreateRequest,
+    background_tasks: BackgroundTasks,
+) -> dict[str, object]:
     """
     Stores and indexes a document for retrieval.
 
@@ -32,18 +35,20 @@ def create_document(payload: DocumentCreateRequest) -> dict[str, str | None]:
         payload (DocumentCreateRequest): Document create payload.
 
     Returns:
-        dict[str, str | None]: Stored document payload.
+        dict[str, object]: Stored document payload.
     """
 
     content = payload.content.strip()
     if not content:
         raise HTTPException(status_code=400, detail="content is required")
 
-    return service.create_document(
+    document = service.create_document(
         filename=payload.filename.strip(),
         content=content,
         mime_type=payload.mimeType.strip() if payload.mimeType else None,
     )
+    background_tasks.add_task(service.process_document, str(document["id"]))
+    return document
 
 
 @router.post("/extract")

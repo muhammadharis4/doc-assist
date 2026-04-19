@@ -55,6 +55,9 @@ class DocumentResponse(BaseModel):
     content: str
     mimeType: str | None = None
     createdAt: str
+    status: str
+    errorMessage: str | None = None
+    indexedAt: str | None = None
 
 
 class QuerySourceResponse(BaseModel):

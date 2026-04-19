@@ -3,6 +3,7 @@
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import InsertDriveFileRoundedIcon from "@mui/icons-material/InsertDriveFileRounded";
 import {
+    Chip,
     CircularProgress,
     IconButton,
     Paper,
@@ -47,8 +48,9 @@ export function DocumentsTable({
                     <TableHead>
                         <TableRow>
                             <TableCell width="44%">File name</TableCell>
-                            <TableCell width="24%">Uploaded date</TableCell>
-                            <TableCell width="24%">Type</TableCell>
+                            <TableCell width="20%">Uploaded date</TableCell>
+                            <TableCell width="20%">Type</TableCell>
+                            <TableCell width="12%">Status</TableCell>
                             <TableCell align="right" width="8%">
                                 Delete
                             </TableCell>
@@ -57,7 +59,7 @@ export function DocumentsTable({
                     <TableBody>
                         {documents.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={4}>
+                                <TableCell colSpan={5}>
                                     <Typography
                                         variant="body2"
                                         color="text.secondary"
@@ -96,6 +98,35 @@ export function DocumentsTable({
                                         <TableCell>
                                             {document.mimeType ?? "Unknown"}
                                         </TableCell>
+                                        <TableCell>
+                                            <Chip
+                                                size="small"
+                                                label={getStatusLabel(
+                                                    document.status,
+                                                )}
+                                                color={getStatusColor(
+                                                    document.status,
+                                                )}
+                                                variant={
+                                                    document.status === "ready"
+                                                        ? "filled"
+                                                        : "outlined"
+                                                }
+                                            />
+                                            {document.status === "failed" &&
+                                            document.errorMessage ? (
+                                                <Typography
+                                                    variant="caption"
+                                                    color="error"
+                                                    sx={{
+                                                        display: "block",
+                                                        mt: 0.5,
+                                                    }}
+                                                >
+                                                    {document.errorMessage}
+                                                </Typography>
+                                            ) : null}
+                                        </TableCell>
                                         <TableCell align="right">
                                             <IconButton
                                                 aria-label={`Delete ${document.filename}`}
@@ -127,4 +158,38 @@ function formatUploadedDate(value: string): string {
         day: "numeric",
         timeZone: "UTC",
     }).format(date);
+}
+
+function getStatusLabel(status: DocumentItem["status"]): string {
+    if (status === "pending") {
+        return "Pending";
+    }
+
+    if (status === "processing") {
+        return "Processing";
+    }
+
+    if (status === "failed") {
+        return "Failed";
+    }
+
+    return "Ready";
+}
+
+function getStatusColor(
+    status: DocumentItem["status"],
+): "default" | "primary" | "error" | "success" | "warning" {
+    if (status === "pending") {
+        return "warning";
+    }
+
+    if (status === "processing") {
+        return "primary";
+    }
+
+    if (status === "failed") {
+        return "error";
+    }
+
+    return "success";
 }

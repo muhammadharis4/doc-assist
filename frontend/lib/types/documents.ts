@@ -4,6 +4,9 @@ export interface DocumentItem {
     content: string;
     mimeType: string | null;
     createdAt: string;
+    status: "pending" | "processing" | "ready" | "failed";
+    errorMessage: string | null;
+    indexedAt: string | null;
 }
 
 export interface CreateDocumentInput {

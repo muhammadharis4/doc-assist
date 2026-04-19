@@ -51,10 +51,10 @@ Backend URL: `http://localhost:8000`
 
 ## App Flow
 
-1. `POST /documents` stores a document row in SQLite.
-2. Text is chunked by character length (`CHUNK_SIZE_CHARS`).
-3. Chunks are embedded with SentenceTransformer.
-4. Chunks are indexed in OpenSearch with both text and vector fields.
+1. `POST /documents` stores a document row in SQLite with `status=pending`.
+2. Background processing updates status to `processing`, then runs chunking and embedding.
+3. Chunks are indexed in OpenSearch with both text and vector fields.
+4. On success status becomes `ready`; on failure status becomes `failed` with an error message.
 5. `POST /queries` embeds the query, runs OpenSearch hybrid search, and retrieves top chunks.
 6. Retrieved chunks are sent to Ollama for grounded answer generation.
 7. Query answer and sources are persisted to SQLite and returned.

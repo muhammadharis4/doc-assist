@@ -43,7 +43,10 @@ def init_db() -> None:
                 filename TEXT NOT NULL,
                 content TEXT NOT NULL,
                 mime_type TEXT,
-                created_at TEXT NOT NULL
+                created_at TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'ready',
+                error_message TEXT,
+                indexed_at TEXT
             );
 
             CREATE TABLE IF NOT EXISTS query_history (
@@ -65,6 +68,34 @@ def init_db() -> None:
             """
         )
 
+        _ensure_document_columns(connection)
+
+
+def _ensure_document_columns(connection: sqlite3.Connection) -> None:
+    """
+    Ensures the documents table includes async processing columns.
+
+    Args:
+        connection (sqlite3.Connection): Active SQLite connection.
+
+    Returns:
+        None: This function only applies schema compatibility updates.
+    """
+
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(documents)").fetchall()
+    }
+
+    if "status" not in columns:
+        connection.execute(
+            "ALTER TABLE documents ADD COLUMN status TEXT NOT NULL DEFAULT 'ready'"
+        )
+    if "error_message" not in columns:
+        connection.execute("ALTER TABLE documents ADD COLUMN error_message TEXT")
+    if "indexed_at" not in columns:
+        connection.execute("ALTER TABLE documents ADD COLUMN indexed_at TEXT")
+
 
 @contextmanager
 def _connection() -> Iterator[sqlite3.Connection]:
@@ -84,7 +115,12 @@ def _connection() -> Iterator[sqlite3.Connection]:
         connection.close()
 
 
-def create_document(filename: str, content: str, mime_type: str | None) -> dict[str, str | None]:
+def create_document(
+    filename: str,
+    content: str,
+    mime_type: str | None,
+    status: str = "pending",
+) -> dict[str, object]:
     """
     Stores one document row and returns the created row.
 
@@ -94,7 +130,7 @@ def create_document(filename: str, content: str, mime_type: str | None) -> dict[
         mime_type (str | None): Optional MIME type.
 
     Returns:
-        dict[str, str | None]: Stored document payload.
+        dict[str, object]: Stored document payload.
     """
 
     document_id = str(uuid4())
@@ -103,10 +139,10 @@ def create_document(filename: str, content: str, mime_type: str | None) -> dict[
     with _connection() as connection:
         connection.execute(
             """
-            INSERT INTO documents (id, filename, content, mime_type, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO documents (id, filename, content, mime_type, created_at, status, error_message, indexed_at)
+            VALUES (?, ?, ?, ?, ?, ?, NULL, NULL)
             """,
-            (document_id, filename, content, mime_type, created_at),
+            (document_id, filename, content, mime_type, created_at, status),
         )
 
     return {
@@ -115,21 +151,23 @@ def create_document(filename: str, content: str, mime_type: str | None) -> dict[
         "content": content,
         "mimeType": mime_type,
         "createdAt": created_at,
+        "status": status,
+        "errorMessage": None,
+        "indexedAt": None,
     }
 
-
-def list_documents() -> list[dict[str, str | None]]:
+def list_documents() -> list[dict[str, object]]:
     """
     Returns all documents ordered from newest to oldest.
 
     Returns:
-        list[dict[str, str | None]]: Stored documents in recency order.
+        list[dict[str, object]]: Stored documents in recency order.
     """
 
     with _connection() as connection:
         rows = connection.execute(
             """
-            SELECT id, filename, content, mime_type, created_at
+            SELECT id, filename, content, mime_type, created_at, status, error_message, indexed_at
             FROM documents
             ORDER BY created_at DESC
             """
@@ -142,9 +180,81 @@ def list_documents() -> list[dict[str, str | None]]:
             "content": row["content"],
             "mimeType": row["mime_type"],
             "createdAt": row["created_at"],
+            "status": row["status"],
+            "errorMessage": row["error_message"],
+            "indexedAt": row["indexed_at"],
         }
         for row in rows
     ]
+
+
+def get_document(document_id: str) -> dict[str, object] | None:
+    """
+    Returns one document row by id.
+
+    Args:
+        document_id (str): The document identifier.
+
+    Returns:
+        dict[str, object] | None: Document row if found.
+    """
+
+    with _connection() as connection:
+        row = connection.execute(
+            """
+            SELECT id, filename, content, mime_type, created_at, status, error_message, indexed_at
+            FROM documents
+            WHERE id = ?
+            """,
+            (document_id,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    return {
+        "id": row["id"],
+        "filename": row["filename"],
+        "content": row["content"],
+        "mimeType": row["mime_type"],
+        "createdAt": row["created_at"],
+        "status": row["status"],
+        "errorMessage": row["error_message"],
+        "indexedAt": row["indexed_at"],
+    }
+
+
+def update_document_status(
+    document_id: str,
+    status: str,
+    error_message: str | None = None,
+    indexed_at: str | None = None,
+) -> None:
+    """
+    Updates async processing status fields for one document.
+
+    Args:
+        document_id (str): The document identifier.
+        status (str): New processing status.
+        error_message (str | None): Optional failure reason.
+        indexed_at (str | None): Optional indexing completion timestamp.
+
+    Returns:
+        None: This function only updates one document row.
+    """
+
+    if status == "ready" and indexed_at is None:
+        indexed_at = _utc_now()
+
+    with _connection() as connection:
+        connection.execute(
+            """
+            UPDATE documents
+            SET status = ?, error_message = ?, indexed_at = ?
+            WHERE id = ?
+            """,
+            (status, error_message, indexed_at, document_id),
+        )
 
 
 def delete_document(document_id: str) -> bool:

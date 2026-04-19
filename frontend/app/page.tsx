@@ -35,23 +35,50 @@ export default function Home() {
     const [successMessage, setSuccessMessage] = useState<string>("");
     const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-    const refreshDocuments = useCallback(async () => {
-        setIsLoading(true);
+    const refreshDocuments = useCallback(
+        async (options?: { silent?: boolean }) => {
+            if (!options?.silent) {
+                setIsLoading(true);
+            }
 
-        try {
-            const nextDocuments = await listDocuments();
-            setDocuments(nextDocuments);
-            setErrorMessage("");
-        } catch (error: unknown) {
-            setErrorMessage(getErrorMessage(error));
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+            try {
+                const nextDocuments = await listDocuments();
+                setDocuments(nextDocuments);
+                setErrorMessage("");
+            } catch (error: unknown) {
+                setErrorMessage(getErrorMessage(error));
+            } finally {
+                if (!options?.silent) {
+                    setIsLoading(false);
+                }
+            }
+        },
+        [],
+    );
 
     useEffect(() => {
         void refreshDocuments();
     }, [refreshDocuments]);
+
+    useEffect(() => {
+        const hasRunningWork = documents.some(
+            (document) =>
+                document.status === "pending" ||
+                document.status === "processing",
+        );
+
+        if (!hasRunningWork) {
+            return;
+        }
+
+        const intervalId = window.setInterval(() => {
+            void refreshDocuments({ silent: true });
+        }, 2500);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [documents, refreshDocuments]);
 
     const handleDelete = useCallback(
         async (id: string) => {
@@ -165,7 +192,7 @@ export default function Home() {
                         }
 
                         setSuccessMessage(
-                            `${payloads.length} file${payloads.length > 1 ? "s" : ""} uploaded successfully.`,
+                            `${payloads.length} file${payloads.length > 1 ? "s" : ""} uploaded. Processing started in background.`,
                         );
                         await refreshDocuments();
                     } catch (error: unknown) {
