@@ -35,8 +35,9 @@ class LlmService:
             for idx, chunk in enumerate(chunks)
         )
         prompt = (
-            "Answer the user question using only the provided context. "
-            "If the context is insufficient, say you do not know.\n\n"
+            "Use the provided context as the primary source of truth. "
+            "If context is partial, provide a practical best-effort answer and clearly call out assumptions. "
+            "Do not refuse unless the question is unrelated to the context and no safe best-effort guidance is possible.\n\n"
             f"Question: {query}\n\n"
             f"Context:\n{context}"
         )

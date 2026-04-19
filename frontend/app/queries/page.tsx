@@ -75,6 +75,7 @@ export default function QueriesPage() {
             setErrorMessage("");
             setStreamingQuery(trimmedQuery);
             setStreamingAnswer("");
+            setQueryText("");
 
             try {
                 await streamQuery(
@@ -93,7 +94,6 @@ export default function QueriesPage() {
                         },
                     },
                 );
-                setQueryText("");
             } catch (error: unknown) {
                 setErrorMessage(getErrorMessage(error));
             } finally {
