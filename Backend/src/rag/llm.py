@@ -17,6 +17,28 @@ class LlmService:
     def __init__(self) -> None:
         self._client = ollama.AsyncClient(host=settings.ollama_base_url)
 
+    async def warmup(self) -> None:
+        """
+        Warms the Ollama client and target model at startup.
+
+        Returns:
+            None: This function only performs a warmup request.
+        """
+
+        if settings.use_mock_llm:
+            return
+
+        await self._client.chat(
+            model=settings.ollama_model,
+            options={"temperature": 0},
+            messages=[
+                {
+                    "role": "user",
+                    "content": "Reply with the single word ready.",
+                }
+            ],
+        )
+
     async def answer(self, query: str, chunks: list[dict[str, object]]) -> str:
         """
         Returns an answer synthesized from retrieved context chunks.

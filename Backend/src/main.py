@@ -11,6 +11,7 @@ from src.config import settings
 from src.rag.opensearch_store import ensure_index_and_pipeline
 from src.documents.routes import router as documents_router
 from src.queries.routes import router as queries_router
+from src.warmup import warmup_runtime
 from src.utils.logging import setup_logging
 
 setup_logging()
@@ -22,6 +23,7 @@ async def lifespan(_: FastAPI):
 
     db.init_db()
     ensure_index_and_pipeline()
+    await warmup_runtime()
     yield
 
 

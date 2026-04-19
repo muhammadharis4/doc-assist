@@ -68,7 +68,7 @@ class Settings:
     default_history_limit: int = int(os.getenv("DEFAULT_HISTORY_LIMIT", str(DEFAULT_HISTORY_LIMIT)))
 
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3")
+    ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
     ollama_temperature: float = float(os.getenv("OLLAMA_TEMPERATURE", "0.2"))
     use_mock_llm: bool = _as_bool(os.getenv("USE_MOCK_LLM"), default=False)
 

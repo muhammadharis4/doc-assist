@@ -28,14 +28,14 @@ Backend URL: `http://localhost:8000`
 - `OPENSEARCH_URL` (default `http://localhost:9200`)
 - `OPENSEARCH_INDEX_NAME` (default `docassist_chunks`)
 - `OPENSEARCH_PIPELINE_NAME` (default `nlp-search-pipeline`)
-- `CHUNK_SIZE_CHARS` (default `300`)
-- `CHUNK_OVERLAP_CHARS` (default `60`)
-- `RAG_TOP_K` (default `5`)
+- `CHUNK_SIZE_CHARS` (default `220`)
+- `CHUNK_OVERLAP_CHARS` (default `40`)
+- `RAG_TOP_K` (default `3`)
 - `TEXT_SCORE_WEIGHT` (default `0.3`)
 - `VECTOR_SCORE_WEIGHT` (default `0.7`)
 - `EMBEDDING_MODEL` (default `sentence-transformers/all-MiniLM-L6-v2`)
 - `OLLAMA_BASE_URL` (default `http://localhost:11434`)
-- `OLLAMA_MODEL` (default `llama3`)
+- `OLLAMA_MODEL` (default `llama3.2:1b`)
 - `OLLAMA_TEMPERATURE` (default `0.2`)
 
 ## API Endpoints
