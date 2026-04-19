@@ -16,6 +16,71 @@ export function executeQuery(
     }).then(normalizeQueryHistoryItem);
 }
 
+interface StreamQueryHandlers {
+    onToken?: (delta: string) => void;
+    onDone?: (item: QueryHistoryItem) => void;
+}
+
+/**
+ * Streams a natural-language query through the backend.
+ */
+export async function streamQuery(
+    input: ExecuteQueryInput,
+    handlers: StreamQueryHandlers,
+): Promise<void> {
+    const response = await fetch("/api/queries/stream", {
+        method: "POST",
+        body: JSON.stringify(input),
+        headers: {
+            "Content-Type": "application/json",
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(response, "Request failed."));
+    }
+
+    if (!response.body) {
+        throw new Error("Streaming is not supported in this browser.");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+            break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+
+        let separatorIndex = buffer.indexOf("\n\n");
+        while (separatorIndex >= 0) {
+            const rawEvent = buffer.slice(0, separatorIndex);
+            buffer = buffer.slice(separatorIndex + 2);
+            const event = parseSseEvent(rawEvent);
+
+            if (event?.event === "token") {
+                handlers.onToken?.(String(event.data.delta ?? ""));
+            } else if (event?.event === "done") {
+                handlers.onDone?.(
+                    normalizeQueryHistoryItem(event.data as QueryHistoryItem),
+                );
+            } else if (event?.event === "error") {
+                throw new Error(
+                    typeof event.data?.message === "string"
+                        ? event.data.message
+                        : "Streaming query failed.",
+                );
+            }
+
+            separatorIndex = buffer.indexOf("\n\n");
+        }
+    }
+}
+
 /**
  * Returns recent query history.
  */
@@ -82,4 +147,38 @@ function normalizeQueryHistoryItem(item: QueryHistoryItem): QueryHistoryItem {
         ...item,
         sources: Array.isArray(item.sources) ? item.sources : [],
     };
+}
+
+function parseSseEvent(
+    rawEvent: string,
+): { event: string; data: Record<string, unknown> } | null {
+    const lines = rawEvent.split(/\r?\n/);
+    let event = "message";
+    const dataLines: string[] = [];
+
+    for (const line of lines) {
+        if (line.startsWith("event:")) {
+            event = line.slice(6).trim();
+        } else if (line.startsWith("data:")) {
+            dataLines.push(line.slice(5).trimStart());
+        }
+    }
+
+    if (dataLines.length === 0) {
+        return null;
+    }
+
+    const rawData = dataLines.join("\n");
+
+    try {
+        return {
+            event,
+            data: JSON.parse(rawData) as Record<string, unknown>,
+        };
+    } catch {
+        return {
+            event,
+            data: { message: rawData },
+        };
+    }
 }

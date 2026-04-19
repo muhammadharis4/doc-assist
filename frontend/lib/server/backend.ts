@@ -21,12 +21,11 @@ export async function proxyRequest(
         cache: "no-store",
     });
 
-    const body = await response.text();
-    return new Response(body, {
+    return new Response(response.body, {
         status: response.status,
+        statusText: response.statusText,
         headers: {
-            "Content-Type":
-                response.headers.get("content-type") ?? "application/json",
+            ...Object.fromEntries(response.headers.entries()),
         },
     });
 }

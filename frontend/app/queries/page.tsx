@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import { HistoryList } from "@/components/queries/HistoryList";
 import { QueryComposer } from "@/components/queries/QueryComposer";
-import { executeQuery, getQueryHistory } from "@/lib/api/queries";
+import { getQueryHistory, streamQuery } from "@/lib/api/queries";
 import { getErrorMessage } from "@/lib/types/api";
 import { MAX_QUERY_LENGTH, type QueryHistoryItem } from "@/lib/types/queries";
 
@@ -29,6 +29,8 @@ export default function QueriesPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [streamingQuery, setStreamingQuery] = useState("");
+    const [streamingAnswer, setStreamingAnswer] = useState("");
 
     const refreshHistory = useCallback(async () => {
         setIsLoadingHistory(true);
@@ -71,18 +73,33 @@ export default function QueriesPage() {
 
             setIsSubmitting(true);
             setErrorMessage("");
+            setStreamingQuery(trimmedQuery);
+            setStreamingAnswer("");
 
             try {
-                const result = await executeQuery({ query: trimmedQuery });
-                setHistory((current) => [
-                    result,
-                    ...current.filter((item) => item.id !== result.id),
-                ]);
+                await streamQuery(
+                    { query: trimmedQuery },
+                    {
+                        onToken: (delta) => {
+                            setStreamingAnswer((current) => current + delta);
+                        },
+                        onDone: (result) => {
+                            setHistory((current) => [
+                                result,
+                                ...current.filter(
+                                    (item) => item.id !== result.id,
+                                ),
+                            ]);
+                        },
+                    },
+                );
                 setQueryText("");
             } catch (error: unknown) {
                 setErrorMessage(getErrorMessage(error));
             } finally {
                 setIsSubmitting(false);
+                setStreamingQuery("");
+                setStreamingAnswer("");
             }
         },
         [isSubmitting],
@@ -305,6 +322,35 @@ export default function QueriesPage() {
                                 </Stack>
                             ))}
 
+                            {streamingQuery ? (
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        justifyContent: "flex-end",
+                                        mb: 1.5,
+                                    }}
+                                >
+                                    <Box
+                                        sx={{
+                                            maxWidth: "85%",
+                                            borderRadius: 3,
+                                            px: 1.75,
+                                            py: 1.25,
+                                            backgroundColor: "primary.main",
+                                            color: "primary.contrastText",
+                                            display: "flex",
+                                            gap: 1,
+                                            alignItems: "flex-start",
+                                        }}
+                                    >
+                                        <PersonRoundedIcon fontSize="small" />
+                                        <Typography variant="body2">
+                                            {streamingQuery}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            ) : null}
+
                             {isSubmitting ? (
                                 <Box
                                     sx={{
@@ -333,7 +379,8 @@ export default function QueriesPage() {
                                             variant="body2"
                                             color="text.secondary"
                                         >
-                                            Thinking...
+                                            {streamingAnswer ||
+                                                "Thinking through your question..."}
                                         </Typography>
                                     </Box>
                                 </Box>

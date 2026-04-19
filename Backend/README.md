@@ -45,6 +45,7 @@ Backend URL: `http://localhost:8000`
 - `POST /documents`
 - `DELETE /documents/:id`
 - `POST /queries`
+- `POST /queries/stream`
 - `GET /queries/history`
 
 ## App Flow
