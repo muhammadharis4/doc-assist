@@ -1,7 +1,7 @@
-fastapi==0.115.9
-uvicorn[standard]==0.34.0
-sentence-transformers==3.4.1
-opensearch-py==2.8.0
-ollama==0.4.7
-pydantic==2.11.3
-numpy==1.26.4
+fastapi==0.136.0
+uvicorn[standard]==0.44.0
+sentence-transformers==5.4.1
+opensearch-py==3.1.0
+ollama==0.6.1
+pydantic==2.13.2
+numpy==2.4.4
