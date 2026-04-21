@@ -79,6 +79,7 @@ class Settings:
 
     telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     telegram_webhook_secret: str = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
+    telegram_webhook_url: str = os.getenv("TELEGRAM_WEBHOOK_URL", "")
 
 
 settings = Settings()

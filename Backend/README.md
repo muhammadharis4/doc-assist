@@ -39,6 +39,7 @@ Backend URL: `http://localhost:8000`
 - `OLLAMA_TEMPERATURE` (default `0.2`)
 - `TELEGRAM_BOT_TOKEN` (default empty / disabled)
 - `TELEGRAM_WEBHOOK_SECRET` (default empty / no secret validation)
+- `TELEGRAM_WEBHOOK_URL` (default empty / auto-register webhook target)
 
 ## API Endpoints
 

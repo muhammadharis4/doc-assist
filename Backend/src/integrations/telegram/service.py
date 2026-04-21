@@ -51,6 +51,25 @@ class TelegramService:
 
         return (secret_token or "") == self._secret
 
+    async def register_webhook(self) -> bool:
+        """
+        Registers the configured Telegram webhook when a public URL is available.
+
+        Returns:
+            bool: True when a webhook URL is configured and registration was attempted.
+        """
+
+        webhook_url = settings.telegram_webhook_url.strip()
+        if not self._bot or not webhook_url:
+            return False
+
+        await self._bot.set_webhook(
+            url=webhook_url,
+            secret_token=self._secret or None,
+        )
+        logger.info("Telegram webhook registered for %s", webhook_url)
+        return True
+
     async def handle_update(self, payload: dict[str, object]) -> None:
         """
         Handles a Telegram update payload.
