@@ -1,0 +1,185 @@
+"""Telegram webhook service that bridges chat messages to query execution."""
+
+from __future__ import annotations
+
+import logging
+
+from telegram import Bot, Update
+from telegram.constants import ChatAction
+
+from src import db
+from src.config import settings
+from src.constants import TELEGRAM_MAX_MESSAGE_CHARS, TELEGRAM_SOURCE_LIMIT
+from src.queries.service import QueryService
+
+logger = logging.getLogger(__name__)
+
+
+class TelegramService:
+    """Handles Telegram update processing and response delivery."""
+
+    def __init__(self) -> None:
+        self._token = settings.telegram_bot_token.strip()
+        self._secret = settings.telegram_webhook_secret.strip()
+        self._bot = Bot(self._token) if self._token else None
+        self._query_service = QueryService()
+
+    @property
+    def enabled(self) -> bool:
+        """
+        Returns whether Telegram integration is configured.
+
+        Returns:
+            bool: True when a bot token is configured.
+        """
+
+        return self._bot is not None
+
+    def validate_secret(self, secret_token: str | None) -> bool:
+        """
+        Validates Telegram webhook secret token when configured.
+
+        Args:
+            secret_token (str | None): Incoming webhook secret header.
+
+        Returns:
+            bool: True when the secret is valid or not required.
+        """
+
+        if not self._secret:
+            return True
+
+        return (secret_token or "") == self._secret
+
+    async def handle_update(self, payload: dict[str, object]) -> None:
+        """
+        Handles a Telegram update payload.
+
+        Args:
+            payload (dict[str, object]): Raw Telegram update payload.
+
+        Returns:
+            None: This function only handles side effects.
+        """
+
+        if not self._bot:
+            logger.info("Telegram update ignored because integration is disabled")
+            return
+
+        update = Update.de_json(payload, self._bot)
+        message = update.effective_message
+        if message is None:
+            return
+
+        text = (message.text or "").strip()
+        if not text:
+            return
+
+        chat_id = message.chat_id
+
+        if text.startswith("/start"):
+            await self._bot.send_message(
+                chat_id=chat_id,
+                text=(
+                    "Welcome to DocAssist.\n\n"
+                    "Send me a question about your indexed documents.\n"
+                    "Use /help for commands."
+                ),
+            )
+            return
+
+        if text.startswith("/help"):
+            await self._bot.send_message(
+                chat_id=chat_id,
+                text=(
+                    "Commands:\n"
+                    "/start - Start the bot\n"
+                    "/help - Show this help\n"
+                    "/status - Show document processing status\n\n"
+                    "Or just send a plain question."
+                ),
+            )
+            return
+
+        if text.startswith("/status"):
+            await self._bot.send_message(chat_id=chat_id, text=self._build_status_message())
+            return
+
+        query_text = text
+        if len(query_text) > settings.max_query_length:
+            await self._bot.send_message(
+                chat_id=chat_id,
+                text=f"Question is too long. Max length is {settings.max_query_length} characters.",
+            )
+            return
+
+        try:
+            await self._bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+            result = await self._query_service.run_query(query_text)
+            await self._bot.send_message(chat_id=chat_id, text=self._format_query_response(result))
+        except Exception as error:  # pragma: no cover - network/runtime dependent
+            logger.exception("Telegram query handling failed")
+            await self._bot.send_message(
+                chat_id=chat_id,
+                text=f"Something went wrong while processing your question: {error}",
+            )
+
+    def _build_status_message(self) -> str:
+        """
+        Builds a compact status summary for indexed documents.
+
+        Returns:
+            str: Human-readable document status summary.
+        """
+
+        documents = db.list_documents()
+        if not documents:
+            return "No documents uploaded yet."
+
+        pending = sum(1 for item in documents if item.get("status") == "pending")
+        processing = sum(1 for item in documents if item.get("status") == "processing")
+        ready = sum(1 for item in documents if item.get("status") == "ready")
+        failed = sum(1 for item in documents if item.get("status") == "failed")
+
+        return (
+            f"Documents: {len(documents)}\n"
+            f"Ready: {ready}\n"
+            f"Pending: {pending}\n"
+            f"Processing: {processing}\n"
+            f"Failed: {failed}"
+        )
+
+    def _format_query_response(self, result: dict[str, object]) -> str:
+        """
+        Formats a query response payload into a Telegram message.
+
+        Args:
+            result (dict[str, object]): Query result payload.
+
+        Returns:
+            str: Telegram-ready answer message.
+        """
+
+        answer = str(result.get("answer", "No answer generated.")).strip() or "No answer generated."
+        sources = result.get("sources")
+        source_lines: list[str] = []
+
+        if isinstance(sources, list):
+            for source in sources[:TELEGRAM_SOURCE_LIMIT]:
+                if not isinstance(source, dict):
+                    continue
+                filename = str(source.get("filename") or "Unknown source")
+                snippet = str(source.get("snippet") or "").strip()
+                if snippet:
+                    source_lines.append(f"- {filename}: {snippet}")
+                else:
+                    source_lines.append(f"- {filename}")
+
+        message = answer
+        if source_lines:
+            message += "\n\nSources:\n" + "\n".join(source_lines)
+
+        if len(message) > TELEGRAM_MAX_MESSAGE_CHARS:
+            message = message[: TELEGRAM_MAX_MESSAGE_CHARS - 3].rstrip() + "..."
+
+        return message

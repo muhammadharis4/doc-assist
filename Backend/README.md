@@ -37,6 +37,8 @@ Backend URL: `http://localhost:8000`
 - `OLLAMA_BASE_URL` (default `http://localhost:11434`)
 - `OLLAMA_MODEL` (default `llama3.2:1b`)
 - `OLLAMA_TEMPERATURE` (default `0.2`)
+- `TELEGRAM_BOT_TOKEN` (default empty / disabled)
+- `TELEGRAM_WEBHOOK_SECRET` (default empty / no secret validation)
 
 ## API Endpoints
 
@@ -48,6 +50,8 @@ Backend URL: `http://localhost:8000`
 - `POST /queries`
 - `POST /queries/stream`
 - `GET /queries/history`
+- `GET /integrations/telegram/health`
+- `POST /integrations/telegram/webhook`
 
 ## App Flow
 

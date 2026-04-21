@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from dotenv import load_dotenv
+
 from src.constants import (
     APP_NAME,
     APP_VERSION,
@@ -19,6 +21,9 @@ from src.constants import (
     TOP_K,
     VECTOR_SCORE_WEIGHT,
 )
+
+
+load_dotenv()
 
 
 def _as_bool(raw: str | None, default: bool = False) -> bool:
@@ -71,6 +76,9 @@ class Settings:
     ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
     ollama_temperature: float = float(os.getenv("OLLAMA_TEMPERATURE", "0.2"))
     use_mock_llm: bool = _as_bool(os.getenv("USE_MOCK_LLM"), default=False)
+
+    telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    telegram_webhook_secret: str = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
 
 
 settings = Settings()

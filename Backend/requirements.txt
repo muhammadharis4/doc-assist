@@ -9,3 +9,5 @@ PyPDF2==3.0.1
 pytesseract==0.3.13
 Pillow==12.2.0
 python-multipart==0.0.26
+python-telegram-bot==22.7
+python-dotenv==1.2.2
