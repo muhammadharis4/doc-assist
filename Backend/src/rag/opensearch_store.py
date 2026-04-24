@@ -203,7 +203,12 @@ def delete_document_chunks(document_id: str) -> None:
     )
 
 
-def hybrid_search(query: str, query_embedding: list[float], top_k: int) -> list[dict[str, object]]:
+def hybrid_search(
+    query: str,
+    query_embedding: list[float],
+    top_k: int,
+    document_ids: list[str] | None = None,
+) -> list[dict[str, object]]:
     """
     Runs OpenSearch hybrid search (BM25 + KNN) through the search pipeline.
 
@@ -221,38 +226,55 @@ def hybrid_search(query: str, query_embedding: list[float], top_k: int) -> list[
     candidate_multiplier = max(2, settings.rag_candidate_multiplier)
     candidate_size = max(top_k * candidate_multiplier, top_k)
 
+    base_query: dict[str, object] = {
+        "hybrid": {
+            "queries": [
+                {
+                    "match": {
+                        "chunk_text": {
+                            "query": query,
+                            "operator": "and",
+                        }
+                    }
+                },
+                {
+                    "match": {
+                        "chunk_text": {
+                            "query": query,
+                            "operator": "or",
+                        }
+                    }
+                },
+                {
+                    "knn": {
+                        "embedding": {
+                            "vector": query_embedding,
+                            "k": candidate_size,
+                        }
+                    }
+                },
+            ]
+        }
+    }
+
+    final_query: dict[str, object] = base_query
+    if document_ids:
+        final_query = {
+            "bool": {
+                "must": [base_query],
+                "filter": [
+                    {
+                        "terms": {
+                            "document_id": document_ids,
+                        }
+                    }
+                ],
+            }
+        }
+
     body = {
         "size": candidate_size,
-        "query": {
-            "hybrid": {
-                "queries": [
-                    {
-                        "match": {
-                            "chunk_text": {
-                                "query": query,
-                                "operator": "and",
-                            }
-                        }
-                    },
-                    {
-                        "match": {
-                            "chunk_text": {
-                                "query": query,
-                                "operator": "or",
-                            }
-                        }
-                    },
-                    {
-                        "knn": {
-                            "embedding": {
-                                "vector": query_embedding,
-                                "k": candidate_size,
-                            }
-                        }
-                    },
-                ]
-            }
-        },
+        "query": final_query,
         "_source": ["document_id", "filename", "document_type", "chunk_text", "chunk_index"],
     }
 

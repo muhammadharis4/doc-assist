@@ -37,7 +37,11 @@ class QueryService:
     def __init__(self) -> None:
         self._llm = LlmService()
 
-    def _prepare_query(self, query_text: str) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    def _prepare_query(
+        self,
+        query_text: str,
+        document_ids: list[str] | None = None,
+    ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
         """
         Builds retrieval hits and source records for one query.
 
@@ -49,7 +53,12 @@ class QueryService:
         """
 
         query_embedding = generate_query_embedding(query_text)
-        hits = hybrid_search(query=query_text, query_embedding=query_embedding, top_k=settings.top_k)
+        hits = hybrid_search(
+            query=query_text,
+            query_embedding=query_embedding,
+            top_k=settings.top_k,
+            document_ids=document_ids,
+        )
         sources = [
             {
                 "documentId": hit.get("documentId"),
@@ -62,7 +71,11 @@ class QueryService:
         ]
         return hits, sources
 
-    async def run_query(self, query_text: str) -> dict[str, object]:
+    async def run_query(
+        self,
+        query_text: str,
+        document_ids: list[str] | None = None,
+    ) -> dict[str, object]:
         """
         Runs hybrid retrieval and returns a persisted query response.
 
@@ -73,12 +86,16 @@ class QueryService:
             dict[str, object]: The persisted query response with answer and sources.
         """
 
-        hits, sources = self._prepare_query(query_text)
+        hits, sources = self._prepare_query(query_text, document_ids=document_ids)
 
         answer = await self._llm.answer(query_text, hits)
         return db.store_query(query=query_text, answer=answer, sources=sources)
 
-    async def stream_query(self, query_text: str) -> AsyncIterator[str]:
+    async def stream_query(
+        self,
+        query_text: str,
+        document_ids: list[str] | None = None,
+    ) -> AsyncIterator[str]:
         """
         Streams hybrid retrieval output and persists the final answer.
 
@@ -89,7 +106,7 @@ class QueryService:
             AsyncIterator[str]: SSE-formatted events for the frontend.
         """
 
-        hits, sources = self._prepare_query(query_text)
+        hits, sources = self._prepare_query(query_text, document_ids=document_ids)
         answer_parts: list[str] = []
 
         try:

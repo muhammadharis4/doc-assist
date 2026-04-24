@@ -23,6 +23,7 @@ class TelegramService:
         self._secret = settings.telegram_webhook_secret.strip()
         self._bot = Bot(self._token) if self._token else None
         self._query_service = QueryService()
+        self._chat_document_scope: dict[int, str] = {}
 
     @property
     def enabled(self) -> bool:
@@ -114,9 +115,52 @@ class TelegramService:
                     "Commands:\n"
                     "/start - Start the bot\n"
                     "/help - Show this help\n"
+                    "/docs - List ready documents\n"
+                    "/use <id|name> - Focus one document\n"
+                    "/clear - Clear focused document\n"
                     "/status - Show document processing status\n\n"
                     "Or just send a plain question."
                 ),
+            )
+            return
+
+        if text.startswith("/docs"):
+            await self._bot.send_message(chat_id=chat_id, text=self._build_docs_message())
+            return
+
+        if text.startswith("/use"):
+            arg = text[4:].strip()
+            if not arg:
+                await self._bot.send_message(
+                    chat_id=chat_id,
+                    text="Usage: /use <document id or filename>",
+                )
+                return
+
+            selected_document = self._resolve_document(arg)
+            if selected_document is None:
+                await self._bot.send_message(
+                    chat_id=chat_id,
+                    text="Document not found. Use /docs to list available files.",
+                )
+                return
+
+            self._chat_document_scope[chat_id] = str(selected_document.get("id", ""))
+            await self._bot.send_message(
+                chat_id=chat_id,
+                text=(
+                    "Using document: "
+                    f"{selected_document.get('filename', 'Unknown')} "
+                    f"({str(selected_document.get('id', ''))[:8]})"
+                ),
+            )
+            return
+
+        if text.startswith("/clear"):
+            self._chat_document_scope.pop(chat_id, None)
+            await self._bot.send_message(
+                chat_id=chat_id,
+                text="Cleared document focus. Queries now use all documents.",
             )
             return
 
@@ -134,7 +178,11 @@ class TelegramService:
 
         try:
             await self._bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-            result = await self._query_service.run_query(query_text)
+            scoped_document_id = self._chat_document_scope.get(chat_id)
+            result = await self._query_service.run_query(
+                query_text,
+                document_ids=[scoped_document_id] if scoped_document_id else None,
+            )
             await self._bot.send_message(chat_id=chat_id, text=self._format_query_response(result))
         except Exception as error:  # pragma: no cover - network/runtime dependent
             logger.exception("Telegram query handling failed")
@@ -142,6 +190,81 @@ class TelegramService:
                 chat_id=chat_id,
                 text=f"Something went wrong while processing your question: {error}",
             )
+
+    def _build_docs_message(self) -> str:
+        """
+        Builds a compact list of ready documents for Telegram users.
+
+        Returns:
+            str: Human-readable document list.
+        """
+
+        documents = db.list_documents()
+        ready_documents = [item for item in documents if item.get("status") == "ready"]
+        if not ready_documents:
+            return "No ready documents found."
+
+        lines = ["Ready documents:"]
+        for item in ready_documents[:20]:
+            document_id = str(item.get("id", ""))
+            filename = str(item.get("filename") or "Unknown")
+            document_type = str(item.get("documentType") or "other")
+            lines.append(f"- {document_id[:8]} | {filename} | {document_type}")
+
+        extra_count = len(ready_documents) - 20
+        if extra_count > 0:
+            lines.append(f"... and {extra_count} more")
+
+        return "\n".join(lines)
+
+    def _resolve_document(self, query: str) -> dict[str, object] | None:
+        """
+        Resolves one document from a user identifier or filename fragment.
+
+        Args:
+            query (str): User-provided document id or name fragment.
+
+        Returns:
+            dict[str, object] | None: Matching ready document row.
+        """
+
+        normalized = query.strip().lower()
+        if not normalized:
+            return None
+
+        documents = db.list_documents()
+        ready_documents = [item for item in documents if item.get("status") == "ready"]
+
+        exact_id_match = next(
+            (
+                item
+                for item in ready_documents
+                if str(item.get("id", "")).lower() == normalized
+            ),
+            None,
+        )
+        if exact_id_match is not None:
+            return exact_id_match
+
+        prefix_id_match = next(
+            (
+                item
+                for item in ready_documents
+                if str(item.get("id", "")).lower().startswith(normalized)
+            ),
+            None,
+        )
+        if prefix_id_match is not None:
+            return prefix_id_match
+
+        return next(
+            (
+                item
+                for item in ready_documents
+                if normalized in str(item.get("filename", "")).lower()
+            ),
+            None,
+        )
 
     def _build_status_message(self) -> str:
         """
