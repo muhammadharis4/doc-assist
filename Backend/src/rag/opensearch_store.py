@@ -8,9 +8,51 @@ from functools import lru_cache
 from opensearchpy import OpenSearch
 
 from src.config import settings
-from src.constants import EMBEDDING_DIMENSIONS
+from src.constants import DOC_TYPE_SCORE_BOOST, EMBEDDING_DIMENSIONS
 
 logger = logging.getLogger(__name__)
+
+
+def _infer_document_types_for_query(query: str) -> set[str]:
+    """
+    Infers likely target document types from user query keywords.
+
+    Args:
+        query (str): Raw user query text.
+
+    Returns:
+        set[str]: Candidate document type labels.
+    """
+
+    lowered = query.lower()
+    inferred: set[str] = set()
+
+    if any(token in lowered for token in {"miet", "rent", "wohnung", "kaltmiete", "warmmiete"}):
+        inferred.add("rental_contract")
+    if any(
+        token in lowered
+        for token in {
+            "arbeits",
+            "employment",
+            "arbeitgeber",
+            "arbeitnehmer",
+            "vertrag",
+        }
+    ):
+        inferred.add("work_contract")
+    if any(token in lowered for token in {"gehalt", "salary", "lohn", "abrechnung", "brutto", "netto"}):
+        inferred.add("salary_slip")
+    if any(
+        token in lowered
+        for token in {"versicherung", "insurance", "renten", "krankenkasse", "sozialversicherung"}
+    ):
+        inferred.add("insurance")
+    if any(token in lowered for token in {"steuer", "tax", "steuer-id", "steuerid", "finanzamt"}):
+        inferred.add("tax")
+    if any(token in lowered for token in {"anmeldung", "meldung", "wohnsitz", "register", "registration"}):
+        inferred.add("registration")
+
+    return inferred
 
 
 @lru_cache(maxsize=1)
@@ -69,6 +111,7 @@ def ensure_index_and_pipeline() -> None:
             "properties": {
                 "document_id": {"type": "keyword"},
                 "filename": {"type": "keyword"},
+                "document_type": {"type": "keyword"},
                 "chunk_text": {"type": "text"},
                 "chunk_index": {"type": "integer"},
                 "embedding": {
@@ -91,6 +134,7 @@ def ensure_index_and_pipeline() -> None:
 def upsert_document_chunks(
     document_id: str,
     filename: str,
+    document_type: str,
     chunks: list[str],
     embeddings: list[list[float]],
     created_at: str,
@@ -101,6 +145,7 @@ def upsert_document_chunks(
     Args:
         document_id (str): The document identifier.
         filename (str): The source filename.
+        document_type (str): The document category.
         chunks (list[str]): Chunked document text.
         embeddings (list[list[float]]): Embedding vectors for each chunk.
         created_at (str): Document creation timestamp.
@@ -128,6 +173,7 @@ def upsert_document_chunks(
             {
                 "document_id": document_id,
                 "filename": filename,
+                "document_type": document_type,
                 "chunk_text": chunk,
                 "chunk_index": index,
                 "embedding": embeddings[index],
@@ -207,7 +253,7 @@ def hybrid_search(query: str, query_embedding: list[float], top_k: int) -> list[
                 ]
             }
         },
-        "_source": ["document_id", "filename", "chunk_text", "chunk_index"],
+        "_source": ["document_id", "filename", "document_type", "chunk_text", "chunk_index"],
     }
 
     response = client.search(
@@ -218,11 +264,29 @@ def hybrid_search(query: str, query_embedding: list[float], top_k: int) -> list[
 
     hits = response.get("hits", {}).get("hits", [])
     max_per_document = max(1, settings.rag_max_results_per_document)
+    inferred_types = _infer_document_types_for_query(query)
+
+    prepared_hits: list[dict[str, object]] = []
+    for hit in hits:
+        source = hit.get("_source", {})
+        document_type = str(source.get("document_type") or "other")
+        adjusted_score = float(hit.get("_score", 0.0))
+        if document_type in inferred_types:
+            adjusted_score += DOC_TYPE_SCORE_BOOST
+
+        prepared_hits.append(
+            {
+                "_source": source,
+                "_score": adjusted_score,
+            }
+        )
+
+    prepared_hits.sort(key=lambda item: float(item.get("_score", 0.0)), reverse=True)
 
     ranked_hits: list[dict[str, object]] = []
     per_document_counts: dict[str, int] = {}
 
-    for hit in hits:
+    for hit in prepared_hits:
         source = hit.get("_source", {})
         document_id = str(source.get("document_id") or "")
         if not document_id:
@@ -235,6 +299,7 @@ def hybrid_search(query: str, query_embedding: list[float], top_k: int) -> list[
             {
                 "documentId": document_id,
                 "filename": source.get("filename"),
+                "documentType": source.get("document_type") or "other",
                 "content": source.get("chunk_text", ""),
                 "chunkIndex": source.get("chunk_index"),
                 "score": float(hit.get("_score", 0.0)),

@@ -46,6 +46,7 @@ def create_document(
         filename=payload.filename.strip(),
         content=content,
         mime_type=payload.mimeType.strip() if payload.mimeType else None,
+        document_type=payload.documentType,
     )
     background_tasks.add_task(service.process_document, str(document["id"]))
     return document

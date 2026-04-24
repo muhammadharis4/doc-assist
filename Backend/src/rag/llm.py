@@ -33,10 +33,11 @@ class LlmService:
         context_parts: list[str] = []
         for idx, chunk in enumerate(chunks):
             filename = str(chunk.get("filename") or "unknown")
+            document_type = str(chunk.get("documentType") or "other")
             chunk_index = chunk.get("chunkIndex")
             location = f"chunk {chunk_index}" if chunk_index is not None else "chunk ?"
             context_parts.append(
-                f"[{idx + 1}] Source: {filename} ({location})\n{chunk.get('content', '')}"
+                f"[{idx + 1}] Source: {filename} [{document_type}] ({location})\n{chunk.get('content', '')}"
             )
 
         context = "\n\n".join(context_parts)

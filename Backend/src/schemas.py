@@ -2,9 +2,30 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
-from src.constants import MAX_QUERY_LENGTH
+from src.constants import (
+    DOCUMENT_TYPE_INSURANCE,
+    DOCUMENT_TYPE_OTHER,
+    DOCUMENT_TYPE_REGISTRATION,
+    DOCUMENT_TYPE_RENTAL_CONTRACT,
+    DOCUMENT_TYPE_SALARY_SLIP,
+    DOCUMENT_TYPE_TAX,
+    DOCUMENT_TYPE_WORK_CONTRACT,
+    MAX_QUERY_LENGTH,
+)
+
+DocumentType = Literal[
+    DOCUMENT_TYPE_RENTAL_CONTRACT,
+    DOCUMENT_TYPE_WORK_CONTRACT,
+    DOCUMENT_TYPE_SALARY_SLIP,
+    DOCUMENT_TYPE_INSURANCE,
+    DOCUMENT_TYPE_TAX,
+    DOCUMENT_TYPE_REGISTRATION,
+    DOCUMENT_TYPE_OTHER,
+]
 
 
 class DocumentCreateRequest(BaseModel):
@@ -18,6 +39,7 @@ class DocumentCreateRequest(BaseModel):
     filename: str = Field(min_length=1, max_length=1024)
     content: str = Field(min_length=1)
     mimeType: str | None = Field(default=None, max_length=256)
+    documentType: DocumentType = DOCUMENT_TYPE_OTHER
 
     @model_validator(mode="before")
     @classmethod
@@ -54,6 +76,7 @@ class DocumentResponse(BaseModel):
     filename: str
     content: str
     mimeType: str | None = None
+    documentType: DocumentType = DOCUMENT_TYPE_OTHER
     createdAt: str
     status: str
     errorMessage: str | None = None
@@ -70,6 +93,7 @@ class QuerySourceResponse(BaseModel):
 
     documentId: str | None = None
     filename: str | None = None
+    documentType: DocumentType = DOCUMENT_TYPE_OTHER
     snippet: str
     score: float | None = None
 

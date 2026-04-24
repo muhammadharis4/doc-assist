@@ -15,7 +15,11 @@ import {
     TableRow,
     Typography,
 } from "@mui/material";
-import type { DocumentItem } from "@/lib/types/documents";
+import {
+    DOCUMENT_TYPE_OPTIONS,
+    type DocumentItem,
+    type DocumentType,
+} from "@/lib/types/documents";
 
 interface DocumentsTableProps {
     documents: DocumentItem[];
@@ -96,7 +100,17 @@ export function DocumentsTable({
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            {document.mimeType ?? "Unknown"}
+                                            <Typography variant="body2">
+                                                {getDocumentTypeLabel(
+                                                    document.documentType,
+                                                )}
+                                            </Typography>
+                                            <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                            >
+                                                {document.mimeType ?? "Unknown"}
+                                            </Typography>
                                         </TableCell>
                                         <TableCell>
                                             <Chip
@@ -192,4 +206,9 @@ function getStatusColor(
     }
 
     return "success";
+}
+
+function getDocumentTypeLabel(value: DocumentType): string {
+    const option = DOCUMENT_TYPE_OPTIONS.find((item) => item.value === value);
+    return option?.label ?? "Other";
 }

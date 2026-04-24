@@ -54,6 +54,7 @@ class QueryService:
             {
                 "documentId": hit.get("documentId"),
                 "filename": hit.get("filename"),
+                "documentType": hit.get("documentType") or "other",
                 "snippet": str(hit.get("content", ""))[:SOURCE_SNIPPET_MAX_CHARS],
                 "score": float(hit.get("score", 0.0)),
             }

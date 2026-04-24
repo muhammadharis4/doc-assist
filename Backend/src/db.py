@@ -43,6 +43,7 @@ def init_db() -> None:
                 filename TEXT NOT NULL,
                 content TEXT NOT NULL,
                 mime_type TEXT,
+                document_type TEXT NOT NULL DEFAULT 'other',
                 created_at TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'ready',
                 error_message TEXT,
@@ -61,6 +62,7 @@ def init_db() -> None:
                 query_history_id TEXT NOT NULL,
                 document_id TEXT,
                 filename TEXT,
+                document_type TEXT NOT NULL DEFAULT 'other',
                 snippet TEXT NOT NULL,
                 score REAL,
                 FOREIGN KEY (query_history_id) REFERENCES query_history(id)
@@ -69,6 +71,7 @@ def init_db() -> None:
         )
 
         _ensure_document_columns(connection)
+        _ensure_query_source_columns(connection)
 
 
 def _ensure_document_columns(connection: sqlite3.Connection) -> None:
@@ -95,6 +98,32 @@ def _ensure_document_columns(connection: sqlite3.Connection) -> None:
         connection.execute("ALTER TABLE documents ADD COLUMN error_message TEXT")
     if "indexed_at" not in columns:
         connection.execute("ALTER TABLE documents ADD COLUMN indexed_at TEXT")
+    if "document_type" not in columns:
+        connection.execute(
+            "ALTER TABLE documents ADD COLUMN document_type TEXT NOT NULL DEFAULT 'other'"
+        )
+
+
+def _ensure_query_source_columns(connection: sqlite3.Connection) -> None:
+    """
+    Ensures query_sources includes optional metadata columns.
+
+    Args:
+        connection (sqlite3.Connection): Active SQLite connection.
+
+    Returns:
+        None: This function only applies schema compatibility updates.
+    """
+
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(query_sources)").fetchall()
+    }
+
+    if "document_type" not in columns:
+        connection.execute(
+            "ALTER TABLE query_sources ADD COLUMN document_type TEXT NOT NULL DEFAULT 'other'"
+        )
 
 
 @contextmanager
@@ -119,6 +148,7 @@ def create_document(
     filename: str,
     content: str,
     mime_type: str | None,
+    document_type: str,
     status: str = "pending",
 ) -> dict[str, object]:
     """
@@ -128,6 +158,7 @@ def create_document(
         filename (str): Document filename.
         content (str): Document content.
         mime_type (str | None): Optional MIME type.
+        document_type (str): User-selected document category.
 
     Returns:
         dict[str, object]: Stored document payload.
@@ -139,10 +170,20 @@ def create_document(
     with _connection() as connection:
         connection.execute(
             """
-            INSERT INTO documents (id, filename, content, mime_type, created_at, status, error_message, indexed_at)
-            VALUES (?, ?, ?, ?, ?, ?, NULL, NULL)
+            INSERT INTO documents (
+                id,
+                filename,
+                content,
+                mime_type,
+                document_type,
+                created_at,
+                status,
+                error_message,
+                indexed_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL)
             """,
-            (document_id, filename, content, mime_type, created_at, status),
+            (document_id, filename, content, mime_type, document_type, created_at, status),
         )
 
     return {
@@ -150,6 +191,7 @@ def create_document(
         "filename": filename,
         "content": content,
         "mimeType": mime_type,
+        "documentType": document_type,
         "createdAt": created_at,
         "status": status,
         "errorMessage": None,
@@ -167,7 +209,7 @@ def list_documents() -> list[dict[str, object]]:
     with _connection() as connection:
         rows = connection.execute(
             """
-            SELECT id, filename, content, mime_type, created_at, status, error_message, indexed_at
+            SELECT id, filename, content, mime_type, document_type, created_at, status, error_message, indexed_at
             FROM documents
             ORDER BY created_at DESC
             """
@@ -179,6 +221,7 @@ def list_documents() -> list[dict[str, object]]:
             "filename": row["filename"],
             "content": row["content"],
             "mimeType": row["mime_type"],
+            "documentType": row["document_type"] or "other",
             "createdAt": row["created_at"],
             "status": row["status"],
             "errorMessage": row["error_message"],
@@ -202,7 +245,7 @@ def get_document(document_id: str) -> dict[str, object] | None:
     with _connection() as connection:
         row = connection.execute(
             """
-            SELECT id, filename, content, mime_type, created_at, status, error_message, indexed_at
+            SELECT id, filename, content, mime_type, document_type, created_at, status, error_message, indexed_at
             FROM documents
             WHERE id = ?
             """,
@@ -217,6 +260,7 @@ def get_document(document_id: str) -> dict[str, object] | None:
         "filename": row["filename"],
         "content": row["content"],
         "mimeType": row["mime_type"],
+        "documentType": row["document_type"] or "other",
         "createdAt": row["created_at"],
         "status": row["status"],
         "errorMessage": row["error_message"],
@@ -304,14 +348,23 @@ def store_query(query: str, answer: str, sources: list[dict[str, str | float | N
         for source in sources:
             connection.execute(
                 """
-                INSERT INTO query_sources (id, query_history_id, document_id, filename, snippet, score)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO query_sources (
+                    id,
+                    query_history_id,
+                    document_id,
+                    filename,
+                    document_type,
+                    snippet,
+                    score
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(uuid4()),
                     query_id,
                     source.get("documentId"),
                     source.get("filename"),
+                    source.get("documentType") or "other",
                     source.get("snippet"),
                     source.get("score"),
                 ),
@@ -355,7 +408,7 @@ def list_query_history(limit: int) -> list[dict[str, object]]:
         for history in history_rows:
             source_rows = connection.execute(
                 """
-                SELECT document_id, filename, snippet, score
+                SELECT document_id, filename, document_type, snippet, score
                 FROM query_sources
                 WHERE query_history_id = ?
                 """,
@@ -373,6 +426,7 @@ def list_query_history(limit: int) -> list[dict[str, object]]:
                         {
                             "documentId": row["document_id"],
                             "filename": row["filename"],
+                            "documentType": row["document_type"] or "other",
                             "snippet": row["snippet"],
                             "score": row["score"],
                         }

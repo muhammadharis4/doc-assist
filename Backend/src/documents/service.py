@@ -23,6 +23,7 @@ class DocumentService:
         filename: str,
         content: str,
         mime_type: str | None,
+        document_type: str,
     ) -> dict[str, object]:
         """
         Stores a document and marks it pending for background indexing.
@@ -31,6 +32,7 @@ class DocumentService:
             filename (str): Document filename.
             content (str): Document content.
             mime_type (str | None): Optional MIME type for the document.
+            document_type (str): Document category for retrieval.
 
         Returns:
             dict[str, object]: The stored document payload.
@@ -40,6 +42,7 @@ class DocumentService:
             filename=filename,
             content=content,
             mime_type=mime_type,
+            document_type=document_type,
             status="pending",
         )
 
@@ -71,6 +74,7 @@ class DocumentService:
             upsert_document_chunks(
                 document_id=str(document["id"]),
                 filename=str(document["filename"]),
+                document_type=str(document.get("documentType") or "other"),
                 chunks=chunks,
                 embeddings=vectors,
                 created_at=str(document["createdAt"]),

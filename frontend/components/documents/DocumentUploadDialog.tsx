@@ -12,11 +12,17 @@ import {
     DialogContent,
     DialogTitle,
     IconButton,
+    MenuItem,
+    Select,
     Stack,
     Typography,
 } from "@mui/material";
 import { extractPdfText } from "@/lib/api/documents";
-import type { CreateDocumentInput } from "@/lib/types/documents";
+import {
+    DOCUMENT_TYPE_OPTIONS,
+    type CreateDocumentInput,
+    type DocumentType,
+} from "@/lib/types/documents";
 
 interface DocumentUploadDialogProps {
     open: boolean;
@@ -28,6 +34,7 @@ interface DocumentUploadDialogProps {
 interface PendingFile {
     file: File;
     extractedText: string;
+    documentType: DocumentType;
 }
 
 /**
@@ -80,6 +87,7 @@ export function DocumentUploadDialog({
             selectedFiles.map(async (file) => ({
                 file,
                 extractedText: await readFileText(file),
+                documentType: "other" as DocumentType,
             })),
         );
 
@@ -96,7 +104,7 @@ export function DocumentUploadDialog({
         setErrorMessage("");
         await onSubmit(
             pendingFiles.map((item) =>
-                buildPayload(item.file, item.extractedText),
+                buildPayload(item.file, item.extractedText, item.documentType),
             ),
         );
         resetDialog();
@@ -237,6 +245,55 @@ export function DocumentUploadDialog({
                                                 {item.file.type ||
                                                     "application/octet-stream"}
                                             </Typography>
+                                            <Box sx={{ mt: 1, maxWidth: 240 }}>
+                                                <Select
+                                                    size="small"
+                                                    fullWidth
+                                                    value={item.documentType}
+                                                    onChange={(event) => {
+                                                        const value = event
+                                                            .target
+                                                            .value as DocumentType;
+                                                        setPendingFiles(
+                                                            (current) =>
+                                                                current.map(
+                                                                    (
+                                                                        candidate,
+                                                                    ) => {
+                                                                        const candidateKey = `${candidate.file.name}-${candidate.file.lastModified}`;
+                                                                        const itemKey = `${item.file.name}-${item.file.lastModified}`;
+                                                                        if (
+                                                                            candidateKey !==
+                                                                            itemKey
+                                                                        ) {
+                                                                            return candidate;
+                                                                        }
+                                                                        return {
+                                                                            ...candidate,
+                                                                            documentType:
+                                                                                value,
+                                                                        };
+                                                                    },
+                                                                ),
+                                                        );
+                                                    }}
+                                                >
+                                                    {DOCUMENT_TYPE_OPTIONS.map(
+                                                        (option) => (
+                                                            <MenuItem
+                                                                key={
+                                                                    option.value
+                                                                }
+                                                                value={
+                                                                    option.value
+                                                                }
+                                                            >
+                                                                {option.label}
+                                                            </MenuItem>
+                                                        ),
+                                                    )}
+                                                </Select>
+                                            </Box>
                                         </Box>
                                     </Box>
                                     <IconButton
@@ -276,11 +333,16 @@ export function DocumentUploadDialog({
     );
 }
 
-function buildPayload(file: File, extractedText: string): CreateDocumentInput {
+function buildPayload(
+    file: File,
+    extractedText: string,
+    documentType: DocumentType,
+): CreateDocumentInput {
     return {
         filename: file.name,
         mimeType: file.type || "text/plain",
         content: extractedText.trim() || file.name,
+        documentType,
     };
 }
 
