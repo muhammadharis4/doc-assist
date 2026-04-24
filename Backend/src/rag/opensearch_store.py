@@ -172,17 +172,42 @@ def hybrid_search(query: str, query_embedding: list[float], top_k: int) -> list[
 
     client = get_client()
 
+    candidate_multiplier = max(2, settings.rag_candidate_multiplier)
+    candidate_size = max(top_k * candidate_multiplier, top_k)
+
     body = {
-        "size": top_k,
+        "size": candidate_size,
         "query": {
             "hybrid": {
                 "queries": [
-                    {"match": {"chunk_text": {"query": query}}},
-                    {"knn": {"embedding": {"vector": query_embedding, "k": max(top_k * 3, top_k)}}},
+                    {
+                        "match": {
+                            "chunk_text": {
+                                "query": query,
+                                "operator": "and",
+                            }
+                        }
+                    },
+                    {
+                        "match": {
+                            "chunk_text": {
+                                "query": query,
+                                "operator": "or",
+                            }
+                        }
+                    },
+                    {
+                        "knn": {
+                            "embedding": {
+                                "vector": query_embedding,
+                                "k": candidate_size,
+                            }
+                        }
+                    },
                 ]
             }
         },
-        "_source": ["document_id", "filename", "chunk_text"],
+        "_source": ["document_id", "filename", "chunk_text", "chunk_index"],
     }
 
     response = client.search(
@@ -192,12 +217,32 @@ def hybrid_search(query: str, query_embedding: list[float], top_k: int) -> list[
     )
 
     hits = response.get("hits", {}).get("hits", [])
-    return [
-        {
-            "documentId": hit.get("_source", {}).get("document_id"),
-            "filename": hit.get("_source", {}).get("filename"),
-            "content": hit.get("_source", {}).get("chunk_text", ""),
-            "score": float(hit.get("_score", 0.0)),
-        }
-        for hit in hits
-    ]
+    max_per_document = max(1, settings.rag_max_results_per_document)
+
+    ranked_hits: list[dict[str, object]] = []
+    per_document_counts: dict[str, int] = {}
+
+    for hit in hits:
+        source = hit.get("_source", {})
+        document_id = str(source.get("document_id") or "")
+        if not document_id:
+            continue
+
+        if per_document_counts.get(document_id, 0) >= max_per_document:
+            continue
+
+        ranked_hits.append(
+            {
+                "documentId": document_id,
+                "filename": source.get("filename"),
+                "content": source.get("chunk_text", ""),
+                "chunkIndex": source.get("chunk_index"),
+                "score": float(hit.get("_score", 0.0)),
+            }
+        )
+        per_document_counts[document_id] = per_document_counts.get(document_id, 0) + 1
+
+        if len(ranked_hits) >= top_k:
+            break
+
+    return ranked_hits

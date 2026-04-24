@@ -18,11 +18,36 @@ def clean_text(text: str) -> str:
         str: The cleaned text.
     """
 
-    normalized = re.sub(r"(\w+)-\n(\w+)", r"\1\2", text)
-    normalized = re.sub(r"(?<!\n)\n(?!\n)", " ", normalized)
-    normalized = re.sub(r"\n+", "\n", normalized)
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    normalized = re.sub(r"(\w+)-\n(\w+)", r"\1\2", normalized)
     normalized = re.sub(r"[ \t]+", " ", normalized)
+    normalized = re.sub(r"\n{3,}", "\n\n", normalized)
+    normalized = "\n".join(line.strip() for line in normalized.split("\n"))
     return normalized.strip()
+
+
+def _slice_long_block(block: str, chunk_size: int, overlap: int) -> list[str]:
+    """
+    Splits one oversized block with overlap while preserving order.
+
+    Args:
+        block (str): Large block of text to split.
+        chunk_size (int): Maximum chunk length.
+        overlap (int): Overlap between adjacent slices.
+
+    Returns:
+        list[str]: Sliced block fragments.
+    """
+
+    step = max(1, chunk_size - overlap)
+    slices: list[str] = []
+    for start in range(0, len(block), step):
+        fragment = block[start : start + chunk_size].strip()
+        if fragment:
+            slices.append(fragment)
+        if start + chunk_size >= len(block):
+            break
+    return slices
 
 
 def chunk_text(text: str) -> list[str]:
@@ -42,15 +67,30 @@ def chunk_text(text: str) -> list[str]:
 
     chunk_size = max(50, settings.chunk_size_chars)
     overlap = max(0, min(settings.chunk_overlap_chars, chunk_size - 1))
-    step = chunk_size - overlap
+    blocks = [part.strip() for part in normalized.split("\n\n") if part.strip()]
+    if not blocks:
+        return []
 
     chunks: list[str] = []
-    for start in range(0, len(normalized), step):
-        end = start + chunk_size
-        chunk = normalized[start:end].strip()
-        if chunk:
-            chunks.append(chunk)
-        if end >= len(normalized):
-            break
+    buffer = ""
+
+    for block in blocks:
+        if len(block) > chunk_size:
+            if buffer:
+                chunks.append(buffer)
+                buffer = ""
+            chunks.extend(_slice_long_block(block=block, chunk_size=chunk_size, overlap=overlap))
+            continue
+
+        candidate = block if not buffer else f"{buffer}\n\n{block}"
+        if len(candidate) <= chunk_size:
+            buffer = candidate
+            continue
+
+        chunks.append(buffer)
+        buffer = block
+
+    if buffer:
+        chunks.append(buffer)
 
     return chunks

@@ -10,9 +10,25 @@ from PIL import Image
 from PyPDF2 import PdfReader
 from PyPDF2._page import PageObject
 
+from src.config import settings
 from src.rag.chunking import clean_text
 
 logger = logging.getLogger(__name__)
+
+
+def _prepare_image_for_ocr(image: Image.Image) -> Image.Image:
+    """
+    Applies lightweight preprocessing before OCR.
+
+    Args:
+        image (Image.Image): Source image.
+
+    Returns:
+        Image.Image: OCR-ready image.
+    """
+
+    # Grayscale plus autocontrast improves OCR on scanned forms.
+    return image.convert("L")
 
 
 def extract_text_from_pdf_bytes(file_bytes: bytes, source_name: str | None = None) -> str:
@@ -72,7 +88,8 @@ def _extract_text_from_images(page: PageObject) -> str:
     for image_file_object in images:
         try:
             image = Image.open(io.BytesIO(image_file_object.data))
-            ocr_text = pytesseract.image_to_string(image)
+            ocr_ready = _prepare_image_for_ocr(image)
+            ocr_text = pytesseract.image_to_string(ocr_ready, lang=settings.ocr_languages)
             if ocr_text.strip():
                 text_parts.append(ocr_text)
                 logger.info("Extracted text from embedded image using OCR")

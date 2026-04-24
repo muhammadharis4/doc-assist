@@ -15,8 +15,11 @@ from src.constants import (
     DEFAULT_HISTORY_LIMIT,
     EMBEDDING_MODEL_PATH,
     MAX_QUERY_LENGTH,
+    OCR_LANGUAGES,
     OPENSEARCH_INDEX_NAME,
     OPENSEARCH_PIPELINE_NAME,
+    RAG_CANDIDATE_MULTIPLIER,
+    RAG_MAX_RESULTS_PER_DOCUMENT,
     TEXT_SCORE_WEIGHT,
     TOP_K,
     VECTOR_SCORE_WEIGHT,
@@ -66,8 +69,15 @@ class Settings:
     chunk_overlap_chars: int = int(os.getenv("CHUNK_OVERLAP_CHARS", str(CHUNK_OVERLAP_CHARS)))
 
     top_k: int = int(os.getenv("RAG_TOP_K", str(TOP_K)))
+    rag_candidate_multiplier: int = int(
+        os.getenv("RAG_CANDIDATE_MULTIPLIER", str(RAG_CANDIDATE_MULTIPLIER))
+    )
+    rag_max_results_per_document: int = int(
+        os.getenv("RAG_MAX_RESULTS_PER_DOCUMENT", str(RAG_MAX_RESULTS_PER_DOCUMENT))
+    )
     text_score_weight: float = float(os.getenv("TEXT_SCORE_WEIGHT", str(TEXT_SCORE_WEIGHT)))
     vector_score_weight: float = float(os.getenv("VECTOR_SCORE_WEIGHT", str(VECTOR_SCORE_WEIGHT)))
+    ocr_languages: str = os.getenv("OCR_LANGUAGES", OCR_LANGUAGES)
 
     max_query_length: int = int(os.getenv("MAX_QUERY_LENGTH", str(MAX_QUERY_LENGTH)))
     default_history_limit: int = int(os.getenv("DEFAULT_HISTORY_LIMIT", str(DEFAULT_HISTORY_LIMIT)))

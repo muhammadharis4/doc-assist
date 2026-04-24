@@ -30,13 +30,20 @@ class LlmService:
             list[dict[str, str]]: Messages sent to Ollama.
         """
 
-        context = "\n\n".join(
-            f"[{idx + 1}] {chunk.get('content', '')}"
-            for idx, chunk in enumerate(chunks)
-        )
+        context_parts: list[str] = []
+        for idx, chunk in enumerate(chunks):
+            filename = str(chunk.get("filename") or "unknown")
+            chunk_index = chunk.get("chunkIndex")
+            location = f"chunk {chunk_index}" if chunk_index is not None else "chunk ?"
+            context_parts.append(
+                f"[{idx + 1}] Source: {filename} ({location})\n{chunk.get('content', '')}"
+            )
+
+        context = "\n\n".join(context_parts)
         prompt = (
             "Use the provided context as the primary source of truth. "
             "If context is partial, provide a practical best-effort answer and clearly call out assumptions. "
+            "When possible, cite the strongest source using the source label number. "
             "Do not refuse unless the question is unrelated to the context and no safe best-effort guidance is possible.\n\n"
             f"Question: {query}\n\n"
             f"Context:\n{context}"
