@@ -179,11 +179,32 @@ class TelegramService:
         try:
             await self._bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
             scoped_document_id = self._chat_document_scope.get(chat_id)
+            scope_label = "all documents"
+
+            document_ids: list[str] | None = None
+            if scoped_document_id:
+                scoped_document = self._resolve_document(scoped_document_id)
+                if scoped_document is None:
+                    self._chat_document_scope.pop(chat_id, None)
+                    await self._bot.send_message(
+                        chat_id=chat_id,
+                        text=(
+                            "Your selected document is no longer ready/available. "
+                            "Scope was cleared automatically."
+                        ),
+                    )
+                else:
+                    document_ids = [scoped_document_id]
+                    scope_label = f"selected {scoped_document.get('filename', 'Unknown')}"
+
             result = await self._query_service.run_query(
                 query_text,
-                document_ids=[scoped_document_id] if scoped_document_id else None,
+                document_ids=document_ids,
             )
-            await self._bot.send_message(chat_id=chat_id, text=self._format_query_response(result))
+            await self._bot.send_message(
+                chat_id=chat_id,
+                text=self._format_query_response(result, scope_label=scope_label),
+            )
         except Exception as error:  # pragma: no cover - network/runtime dependent
             logger.exception("Telegram query handling failed")
             await self._bot.send_message(
@@ -291,7 +312,7 @@ class TelegramService:
             f"Failed: {failed}"
         )
 
-    def _format_query_response(self, result: dict[str, object]) -> str:
+    def _format_query_response(self, result: dict[str, object], scope_label: str | None = None) -> str:
         """
         Formats a query response payload into a Telegram message.
 
@@ -320,6 +341,9 @@ class TelegramService:
         message = answer
         if source_lines:
             message += "\n\nSources:\n" + "\n".join(source_lines)
+
+        if scope_label:
+            message += f"\n\nScope: {scope_label}"
 
         if len(message) > TELEGRAM_MAX_MESSAGE_CHARS:
             message = message[: TELEGRAM_MAX_MESSAGE_CHARS - 3].rstrip() + "..."
