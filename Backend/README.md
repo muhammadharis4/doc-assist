@@ -24,31 +24,34 @@ Backend URL: `http://localhost:8000`
 
 ## Environment Variables
 
-- `APP_DB_PATH` (default `./data/app.db`)
-- `OPENSEARCH_URL` (default `http://localhost:9200`)
-- `OPENSEARCH_INDEX_NAME` (default `docassist_chunks`)
-- `OPENSEARCH_PIPELINE_NAME` (default `nlp-search-pipeline`)
-- `CHUNK_SIZE_CHARS` (default `500`)
-- `CHUNK_OVERLAP_CHARS` (default `120`)
-- `RAG_TOP_K` (default `8`)
-- `RAG_CANDIDATE_MULTIPLIER` (default `6`)
-- `RAG_MAX_RESULTS_PER_DOCUMENT` (default `3`)
-- `SOURCE_SNIPPET_MAX_CHARS` (default `500`)
-- `DOC_TYPE_SCORE_BOOST` (default `0.2`)
-- `TEXT_SCORE_WEIGHT` (default `0.6`)
-- `VECTOR_SCORE_WEIGHT` (default `0.4`)
-- `EMBEDDING_MODEL` (default `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`)
-- `OCR_LANGUAGES` (default `deu+eng`)
-- `OLLAMA_BASE_URL` (default `http://localhost:11434`)
-- `OLLAMA_MODEL` (default `llama3.2:1b`)
-- `OLLAMA_TEMPERATURE` (default `0.2`)
-- `TELEGRAM_BOT_TOKEN` (default empty / disabled)
-- `TELEGRAM_WEBHOOK_SECRET` (default empty / no secret validation)
-- `TELEGRAM_WEBHOOK_URL` (default empty / auto-register webhook target)
-- `TELEGRAM_SOURCE_LIMIT` (default `3`)
-- `TELEGRAM_MAX_MESSAGE_CHARS` (default `3500`)
-- `TELEGRAM_DOCS_LIST_LIMIT` (default `20`)
-- `TELEGRAM_SCOPE_LABEL_ENABLED` (default `true`)
+- `APP_DB_PATH`: SQLite file path for documents/query history. Default `./data/app.db`.
+- `OPENSEARCH_URL`: OpenSearch endpoint URL. Default `http://localhost:9200`.
+- `OPENSEARCH_INDEX_NAME`: Index name for stored chunks. Default `docassist_chunks`.
+- `OPENSEARCH_PIPELINE_NAME`: Hybrid search pipeline name. Default `nlp-search-pipeline`.
+
+- `CHUNK_SIZE_CHARS`: Max chars per indexed chunk. Default `500`.
+- `CHUNK_OVERLAP_CHARS`: Overlap chars between chunks. Default `120`.
+- `RAG_TOP_K`: Final number of chunks returned to answer. Default `8`.
+- `RAG_CANDIDATE_MULTIPLIER`: Candidate expansion before reranking. Default `6`.
+- `RAG_MAX_RESULTS_PER_DOCUMENT`: Per-document cap in final hits. Default `3`.
+- `SOURCE_SNIPPET_MAX_CHARS`: Max snippet length returned in sources/history. Default `500`.
+- `DOC_TYPE_SCORE_BOOST`: Score bonus when query-intent type matches document type. Default `0.2`.
+- `TEXT_SCORE_WEIGHT`: Lexical match weight in hybrid scoring. Default `0.6`.
+- `VECTOR_SCORE_WEIGHT`: Embedding similarity weight in hybrid scoring. Default `0.4`.
+- `EMBEDDING_MODEL`: Sentence-transformers model name/path. Default `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`.
+- `OCR_LANGUAGES`: OCR language codes for scanned PDFs. Default `deu+eng`.
+
+- `OLLAMA_BASE_URL`: Ollama API base URL. Default `http://localhost:11434`.
+- `OLLAMA_MODEL`: Ollama model used for generation. Default `llama3.2:1b`.
+- `OLLAMA_TEMPERATURE`: LLM generation temperature. Default `0.2`.
+
+- `TELEGRAM_BOT_TOKEN`: Bot token to enable Telegram integration. Default empty (disabled).
+- `TELEGRAM_WEBHOOK_SECRET`: Optional webhook secret header validator. Default empty (no secret check).
+- `TELEGRAM_WEBHOOK_URL`: Public HTTPS webhook target for auto-registration. Default empty.
+- `TELEGRAM_SOURCE_LIMIT`: Number of sources shown in Telegram replies. Default `3`.
+- `TELEGRAM_MAX_MESSAGE_CHARS`: Max Telegram reply length before truncation. Default `3500`.
+- `TELEGRAM_DOCS_LIST_LIMIT`: Max docs shown by `/docs`. Default `20`.
+- `TELEGRAM_SCOPE_LABEL_ENABLED`: Include scope label in Telegram answers. Default `true`.
 
 ## API Endpoints
 

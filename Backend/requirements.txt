@@ -1,13 +1,30 @@
+# API framework
 fastapi==0.136.0
+# ASGI server for FastAPI
 uvicorn[standard]==0.44.0
+
+# Embedding model loading/inference
 sentence-transformers==5.4.1
+# OpenSearch client for indexing and hybrid search
 opensearch-py==3.1.0
+# Ollama client for local LLM generation
 ollama==0.6.1
+
+# Data validation and typed request/response models
 pydantic==2.13.2
+# Numeric operations used by embedding stack
 numpy==2.4.4
+
+# PDF text extraction
 PyPDF2==3.0.1
+# OCR engine bridge for scanned PDFs
 pytesseract==0.3.13
+# Image processing for OCR pre-processing
 Pillow==12.2.0
+# Multipart form-data upload handling
 python-multipart==0.0.26
+
+# Telegram bot/webhook integration
 python-telegram-bot==22.7
+# Load environment variables from .env
 python-dotenv==1.2.2
