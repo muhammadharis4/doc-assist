@@ -13,6 +13,7 @@ from src.constants import (
     CHUNK_OVERLAP_CHARS,
     CHUNK_SIZE_CHARS,
     DEFAULT_HISTORY_LIMIT,
+    DOC_TYPE_SCORE_BOOST,
     EMBEDDING_MODEL_PATH,
     MAX_QUERY_LENGTH,
     OCR_LANGUAGES,
@@ -20,6 +21,11 @@ from src.constants import (
     OPENSEARCH_PIPELINE_NAME,
     RAG_CANDIDATE_MULTIPLIER,
     RAG_MAX_RESULTS_PER_DOCUMENT,
+    SOURCE_SNIPPET_MAX_CHARS,
+    TELEGRAM_DOCS_LIST_LIMIT,
+    TELEGRAM_MAX_MESSAGE_CHARS,
+    TELEGRAM_SCOPE_LABEL_ENABLED,
+    TELEGRAM_SOURCE_LIMIT,
     TEXT_SCORE_WEIGHT,
     TOP_K,
     VECTOR_SCORE_WEIGHT,
@@ -75,6 +81,12 @@ class Settings:
     rag_max_results_per_document: int = int(
         os.getenv("RAG_MAX_RESULTS_PER_DOCUMENT", str(RAG_MAX_RESULTS_PER_DOCUMENT))
     )
+    source_snippet_max_chars: int = int(
+        os.getenv("SOURCE_SNIPPET_MAX_CHARS", str(SOURCE_SNIPPET_MAX_CHARS))
+    )
+    doc_type_score_boost: float = float(
+        os.getenv("DOC_TYPE_SCORE_BOOST", str(DOC_TYPE_SCORE_BOOST))
+    )
     text_score_weight: float = float(os.getenv("TEXT_SCORE_WEIGHT", str(TEXT_SCORE_WEIGHT)))
     vector_score_weight: float = float(os.getenv("VECTOR_SCORE_WEIGHT", str(VECTOR_SCORE_WEIGHT)))
     ocr_languages: str = os.getenv("OCR_LANGUAGES", OCR_LANGUAGES)
@@ -90,6 +102,19 @@ class Settings:
     telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     telegram_webhook_secret: str = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
     telegram_webhook_url: str = os.getenv("TELEGRAM_WEBHOOK_URL", "")
+    telegram_source_limit: int = int(
+        os.getenv("TELEGRAM_SOURCE_LIMIT", str(TELEGRAM_SOURCE_LIMIT))
+    )
+    telegram_max_message_chars: int = int(
+        os.getenv("TELEGRAM_MAX_MESSAGE_CHARS", str(TELEGRAM_MAX_MESSAGE_CHARS))
+    )
+    telegram_docs_list_limit: int = int(
+        os.getenv("TELEGRAM_DOCS_LIST_LIMIT", str(TELEGRAM_DOCS_LIST_LIMIT))
+    )
+    telegram_scope_label_enabled: bool = _as_bool(
+        os.getenv("TELEGRAM_SCOPE_LABEL_ENABLED"),
+        default=TELEGRAM_SCOPE_LABEL_ENABLED,
+    )
 
 
 settings = Settings()

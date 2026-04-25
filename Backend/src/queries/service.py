@@ -8,7 +8,6 @@ from collections.abc import AsyncIterator
 
 from src import db
 from src.config import settings
-from src.constants import SOURCE_SNIPPET_MAX_CHARS
 from src.rag.embeddings import generate_query_embedding
 from src.rag.llm import LlmService
 from src.rag.opensearch_store import hybrid_search
@@ -64,7 +63,7 @@ class QueryService:
                 "documentId": hit.get("documentId"),
                 "filename": hit.get("filename"),
                 "documentType": hit.get("documentType") or "other",
-                "snippet": str(hit.get("content", ""))[:SOURCE_SNIPPET_MAX_CHARS],
+                "snippet": str(hit.get("content", ""))[: settings.source_snippet_max_chars],
                 "score": float(hit.get("score", 0.0)),
             }
             for hit in hits

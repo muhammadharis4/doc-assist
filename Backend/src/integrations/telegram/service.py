@@ -9,7 +9,6 @@ from telegram.constants import ChatAction
 
 from src import db
 from src.config import settings
-from src.constants import TELEGRAM_MAX_MESSAGE_CHARS, TELEGRAM_SOURCE_LIMIT
 from src.queries.service import QueryService
 
 logger = logging.getLogger(__name__)
@@ -226,13 +225,14 @@ class TelegramService:
             return "No ready documents found."
 
         lines = ["Ready documents:"]
-        for item in ready_documents[:20]:
+        docs_list_limit = max(1, settings.telegram_docs_list_limit)
+        for item in ready_documents[:docs_list_limit]:
             document_id = str(item.get("id", ""))
             filename = str(item.get("filename") or "Unknown")
             document_type = str(item.get("documentType") or "other")
             lines.append(f"- {document_id[:8]} | {filename} | {document_type}")
 
-        extra_count = len(ready_documents) - 20
+        extra_count = len(ready_documents) - docs_list_limit
         if extra_count > 0:
             lines.append(f"... and {extra_count} more")
 
@@ -328,7 +328,8 @@ class TelegramService:
         source_lines: list[str] = []
 
         if isinstance(sources, list):
-            for source in sources[:TELEGRAM_SOURCE_LIMIT]:
+            source_limit = max(1, settings.telegram_source_limit)
+            for source in sources[:source_limit]:
                 if not isinstance(source, dict):
                     continue
                 filename = str(source.get("filename") or "Unknown source")
@@ -342,10 +343,11 @@ class TelegramService:
         if source_lines:
             message += "\n\nSources:\n" + "\n".join(source_lines)
 
-        if scope_label:
+        if scope_label and settings.telegram_scope_label_enabled:
             message += f"\n\nScope: {scope_label}"
 
-        if len(message) > TELEGRAM_MAX_MESSAGE_CHARS:
-            message = message[: TELEGRAM_MAX_MESSAGE_CHARS - 3].rstrip() + "..."
+        max_message_chars = max(100, settings.telegram_max_message_chars)
+        if len(message) > max_message_chars:
+            message = message[: max_message_chars - 3].rstrip() + "..."
 
         return message

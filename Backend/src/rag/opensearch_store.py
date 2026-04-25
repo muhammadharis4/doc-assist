@@ -8,7 +8,7 @@ from functools import lru_cache
 from opensearchpy import OpenSearch
 
 from src.config import settings
-from src.constants import DOC_TYPE_SCORE_BOOST, EMBEDDING_DIMENSIONS
+from src.constants import EMBEDDING_DIMENSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -294,7 +294,7 @@ def hybrid_search(
         document_type = str(source.get("document_type") or "other")
         adjusted_score = float(hit.get("_score", 0.0))
         if document_type in inferred_types:
-            adjusted_score += DOC_TYPE_SCORE_BOOST
+            adjusted_score += settings.doc_type_score_boost
 
         prepared_hits.append(
             {

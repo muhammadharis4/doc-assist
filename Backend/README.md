@@ -33,6 +33,8 @@ Backend URL: `http://localhost:8000`
 - `RAG_TOP_K` (default `8`)
 - `RAG_CANDIDATE_MULTIPLIER` (default `6`)
 - `RAG_MAX_RESULTS_PER_DOCUMENT` (default `3`)
+- `SOURCE_SNIPPET_MAX_CHARS` (default `500`)
+- `DOC_TYPE_SCORE_BOOST` (default `0.2`)
 - `TEXT_SCORE_WEIGHT` (default `0.6`)
 - `VECTOR_SCORE_WEIGHT` (default `0.4`)
 - `EMBEDDING_MODEL` (default `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`)
@@ -43,6 +45,10 @@ Backend URL: `http://localhost:8000`
 - `TELEGRAM_BOT_TOKEN` (default empty / disabled)
 - `TELEGRAM_WEBHOOK_SECRET` (default empty / no secret validation)
 - `TELEGRAM_WEBHOOK_URL` (default empty / auto-register webhook target)
+- `TELEGRAM_SOURCE_LIMIT` (default `3`)
+- `TELEGRAM_MAX_MESSAGE_CHARS` (default `3500`)
+- `TELEGRAM_DOCS_LIST_LIMIT` (default `20`)
+- `TELEGRAM_SCOPE_LABEL_ENABLED` (default `true`)
 
 ## API Endpoints
 
