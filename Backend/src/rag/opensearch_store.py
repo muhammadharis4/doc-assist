@@ -11,6 +11,7 @@ from src.config import settings
 from src.constants import EMBEDDING_DIMENSIONS
 
 logger = logging.getLogger(__name__)
+MAX_RETRIEVAL_CANDIDATE_SIZE = 200
 
 
 def _infer_document_types_for_query(query: str) -> set[str]:
@@ -181,7 +182,7 @@ def upsert_document_chunks(
             }
         )
 
-    client.bulk(body=bulk_lines, refresh=True)
+    client.bulk(body=bulk_lines, refresh=False)
 
 
 def delete_document_chunks(document_id: str) -> None:
@@ -199,7 +200,7 @@ def delete_document_chunks(document_id: str) -> None:
     client.delete_by_query(
         index=settings.opensearch_index_name,
         body={"query": {"term": {"document_id": document_id}}},
-        refresh=True,
+        refresh=False,
     )
 
 
@@ -224,7 +225,8 @@ def hybrid_search(
     client = get_client()
 
     candidate_multiplier = max(2, settings.rag_candidate_multiplier)
-    candidate_size = max(top_k * candidate_multiplier, top_k)
+    raw_candidate_size = max(top_k * candidate_multiplier, top_k)
+    candidate_size = min(MAX_RETRIEVAL_CANDIDATE_SIZE, raw_candidate_size)
 
     base_query: dict[str, object] = {
         "hybrid": {

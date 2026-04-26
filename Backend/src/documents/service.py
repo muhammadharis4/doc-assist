@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from time import perf_counter
 
 from fastapi import HTTPException
 
@@ -65,12 +66,19 @@ class DocumentService:
         db.update_document_status(document_id=document_id, status="processing", error_message=None, indexed_at=None)
 
         try:
+            total_start = perf_counter()
             content = str(document.get("content", ""))
+            chunk_start = perf_counter()
             chunks = chunk_text(content)
             if not chunks:
                 raise ValueError("Document has no indexable text")
+            chunk_ms = (perf_counter() - chunk_start) * 1000
 
+            embedding_start = perf_counter()
             vectors = generate_embeddings(chunks)
+            embedding_ms = (perf_counter() - embedding_start) * 1000
+
+            index_start = perf_counter()
             upsert_document_chunks(
                 document_id=str(document["id"]),
                 filename=str(document["filename"]),
@@ -79,7 +87,18 @@ class DocumentService:
                 embeddings=vectors,
                 created_at=str(document["createdAt"]),
             )
+            index_ms = (perf_counter() - index_start) * 1000
             db.update_document_status(document_id=document_id, status="ready", error_message=None)
+            total_ms = (perf_counter() - total_start) * 1000
+            logger.info(
+                "Document processing timing total_ms=%.2f chunk_ms=%.2f embedding_ms=%.2f index_ms=%.2f chunks=%d document_id=%s",
+                total_ms,
+                chunk_ms,
+                embedding_ms,
+                index_ms,
+                len(chunks),
+                document_id,
+            )
         except Exception as error:  # pragma: no cover - model/index failures are environment-dependent
             logger.exception("Failed to process document %s", document_id)
             db.update_document_status(

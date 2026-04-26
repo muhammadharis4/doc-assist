@@ -137,6 +137,9 @@ def _connection() -> Iterator[sqlite3.Connection]:
 
     connection = sqlite3.connect(settings.db_path)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.execute("PRAGMA busy_timeout=5000")
+    connection.execute("PRAGMA foreign_keys=ON")
     try:
         yield connection
         connection.commit()
@@ -209,7 +212,7 @@ def list_documents() -> list[dict[str, object]]:
     with _connection() as connection:
         rows = connection.execute(
             """
-            SELECT id, filename, content, mime_type, document_type, created_at, status, error_message, indexed_at
+            SELECT id, filename, mime_type, document_type, created_at, status, error_message, indexed_at
             FROM documents
             ORDER BY created_at DESC
             """
@@ -219,7 +222,8 @@ def list_documents() -> list[dict[str, object]]:
         {
             "id": row["id"],
             "filename": row["filename"],
-            "content": row["content"],
+            # Keep response shape stable while avoiding large content payloads on list calls.
+            "content": "",
             "mimeType": row["mime_type"],
             "documentType": row["document_type"] or "other",
             "createdAt": row["created_at"],
@@ -429,33 +433,44 @@ def list_query_history(limit: int) -> list[dict[str, object]]:
         ).fetchall()
 
         result: list[dict[str, object]] = []
-        for history in history_rows:
+        history_ids = [str(history["id"]) for history in history_rows]
+        sources_by_history_id: dict[str, list[dict[str, object]]] = {
+            history_id: [] for history_id in history_ids
+        }
+
+        if history_ids:
+            placeholders = ", ".join("?" for _ in history_ids)
             source_rows = connection.execute(
-                """
-                SELECT document_id, filename, document_type, snippet, score
+                f"""
+                SELECT query_history_id, document_id, filename, document_type, snippet, score
                 FROM query_sources
-                WHERE query_history_id = ?
+                WHERE query_history_id IN ({placeholders})
                 """,
-                (history["id"],),
+                history_ids,
             ).fetchall()
 
+            for row in source_rows:
+                history_id = str(row["query_history_id"])
+                sources_by_history_id.setdefault(history_id, []).append(
+                    {
+                        "documentId": row["document_id"],
+                        "filename": row["filename"],
+                        "documentType": row["document_type"] or "other",
+                        "snippet": row["snippet"],
+                        "score": row["score"],
+                    }
+                )
+
+        for history in history_rows:
+            history_id = str(history["id"])
             result.append(
                 {
-                    "id": history["id"],
+                    "id": history_id,
                     "query": history["query"],
                     "answer": history["answer"],
                     "userId": None,
                     "createdAt": history["created_at"],
-                    "sources": [
-                        {
-                            "documentId": row["document_id"],
-                            "filename": row["filename"],
-                            "documentType": row["document_type"] or "other",
-                            "snippet": row["snippet"],
-                            "score": row["score"],
-                        }
-                        for row in source_rows
-                    ],
+                    "sources": sources_by_history_id.get(history_id, []),
                 }
             )
 

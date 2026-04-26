@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
+from time import perf_counter
 
 from src import db
 from src.config import settings
@@ -85,10 +87,29 @@ class QueryService:
             dict[str, object]: The persisted query response with answer and sources.
         """
 
-        hits, sources = self._prepare_query(query_text, document_ids=document_ids)
+        retrieval_start = perf_counter()
+        hits, sources = await asyncio.to_thread(
+            self._prepare_query, query_text, document_ids
+        )
+        retrieval_ms = (perf_counter() - retrieval_start) * 1000
 
+        llm_start = perf_counter()
         answer = await self._llm.answer(query_text, hits)
-        return db.store_query(query=query_text, answer=answer, sources=sources)
+        llm_ms = (perf_counter() - llm_start) * 1000
+
+        db_start = perf_counter()
+        stored = await asyncio.to_thread(
+            db.store_query, query=query_text, answer=answer, sources=sources
+        )
+        db_ms = (perf_counter() - db_start) * 1000
+        logger.info(
+            "Query timing retrieval_ms=%.2f llm_ms=%.2f db_ms=%.2f hits=%d",
+            retrieval_ms,
+            llm_ms,
+            db_ms,
+            len(hits),
+        )
+        return stored
 
     async def stream_query(
         self,
@@ -105,21 +126,38 @@ class QueryService:
             AsyncIterator[str]: SSE-formatted events for the frontend.
         """
 
-        hits, sources = self._prepare_query(query_text, document_ids=document_ids)
+        retrieval_start = perf_counter()
+        hits, sources = await asyncio.to_thread(
+            self._prepare_query, query_text, document_ids
+        )
+        retrieval_ms = (perf_counter() - retrieval_start) * 1000
         answer_parts: list[str] = []
 
         try:
+            llm_start = perf_counter()
             async for delta in self._llm.stream_answer(query_text, hits):
                 if delta:
                     answer_parts.append(delta)
                     yield _serialize_sse_event("token", {"delta": delta})
+            llm_ms = (perf_counter() - llm_start) * 1000
         except Exception as error:  # pragma: no cover - upstream/network failures
             logger.exception("Streaming query failed")
             yield _serialize_sse_event("error", {"message": str(error)})
             return
 
         answer = "".join(answer_parts).strip() or "No relevant documents found."
-        stored = db.store_query(query=query_text, answer=answer, sources=sources)
+        db_start = perf_counter()
+        stored = await asyncio.to_thread(
+            db.store_query, query=query_text, answer=answer, sources=sources
+        )
+        db_ms = (perf_counter() - db_start) * 1000
+        logger.info(
+            "Stream query timing retrieval_ms=%.2f llm_ms=%.2f db_ms=%.2f hits=%d",
+            retrieval_ms,
+            llm_ms,
+            db_ms,
+            len(hits),
+        )
         yield _serialize_sse_event("done", stored)
 
     def get_history(self, limit: int) -> list[dict[str, object]]:
