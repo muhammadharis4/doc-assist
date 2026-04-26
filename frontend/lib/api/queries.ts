@@ -101,6 +101,21 @@ export async function getQueryHistory(
     return payload.map(normalizeQueryHistoryItem);
 }
 
+/**
+ * Deletes one chat history entry through the backend via proxy.
+ */
+export async function deleteQueryHistory(id: string): Promise<void> {
+    const response = await fetch(`/api/queries/history/${id}`, {
+        method: "DELETE",
+    });
+
+    if (!response.ok) {
+        throw new Error(
+            await readErrorMessage(response, "Failed to delete chat history."),
+        );
+    }
+}
+
 async function fetchJson<T>(path: string, init: RequestInit): Promise<T> {
     const response = await fetch(path, {
         ...init,

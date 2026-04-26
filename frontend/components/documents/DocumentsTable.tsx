@@ -4,9 +4,9 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import InsertDriveFileRoundedIcon from "@mui/icons-material/InsertDriveFileRounded";
 import {
     Chip,
-    CircularProgress,
     IconButton,
     Paper,
+    Skeleton,
     Table,
     TableBody,
     TableCell,
@@ -39,8 +39,48 @@ export function DocumentsTable({
 }: DocumentsTableProps) {
     if (isLoading) {
         return (
-            <Paper sx={{ p: 4, display: "flex", justifyContent: "center" }}>
-                <CircularProgress />
+            <Paper sx={{ overflow: "hidden" }}>
+                <TableContainer>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell width="44%">File name</TableCell>
+                                <TableCell width="20%">Uploaded date</TableCell>
+                                <TableCell width="20%">Type</TableCell>
+                                <TableCell width="12%">Status</TableCell>
+                                <TableCell align="right" width="8%">
+                                    Delete
+                                </TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {Array.from({ length: 5 }).map((_, index) => (
+                                <TableRow key={index}>
+                                    <TableCell>
+                                        <Skeleton width="72%" />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Skeleton width="65%" />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Skeleton width="58%" />
+                                        <Skeleton width="42%" />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Skeleton width={74} height={28} />
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <Skeleton
+                                            width={36}
+                                            height={36}
+                                            sx={{ ml: "auto" }}
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
             </Paper>
         );
     }

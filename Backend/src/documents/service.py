@@ -10,7 +10,7 @@ from src import db
 from src.documents.pdf_extractor import extract_text_from_pdf_bytes
 from src.rag.chunking import chunk_text
 from src.rag.embeddings import generate_embeddings
-from src.rag.opensearch_store import delete_document_chunks, upsert_document_chunks
+from src.rag.opensearch_store import upsert_document_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ class DocumentService:
 
     def delete_document(self, document_id: str) -> bool:
         """
-        Removes one document from SQLite and OpenSearch.
+        Removes one document from SQLite.
 
         Args:
             document_id (str): The document identifier.
@@ -110,9 +110,7 @@ class DocumentService:
             bool: True when the document existed and was removed.
         """
 
-        deleted = db.delete_document(document_id)
-        delete_document_chunks(document_id)
-        return deleted
+        return db.delete_document(document_id)
 
     def extract_pdf_text(self, file_bytes: bytes, filename: str | None) -> str:
         """

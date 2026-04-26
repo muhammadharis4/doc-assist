@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 
 from src.config import settings
 from src.constants import DEFAULT_HISTORY_LIMIT, MAX_HISTORY_LIMIT
-from src.schemas import QueryExecuteRequest, QueryResponse
+from src.schemas import DeleteStatusResponse, QueryExecuteRequest, QueryResponse
 from src.queries.service import QueryService
 
 router = APIRouter(prefix="/queries", tags=["queries"])
@@ -92,3 +92,25 @@ def query_history(
     """
 
     return service.get_history(limit)
+
+
+@router.delete("/history/{query_id}", response_model=DeleteStatusResponse)
+def delete_query_history(query_id: str) -> DeleteStatusResponse:
+    """
+    Deletes one query history entry and its stored sources.
+
+    Args:
+        query_id (str): The query history identifier.
+
+    Returns:
+        DeleteStatusResponse: Delete result payload.
+    """
+
+    if not query_id.strip():
+        raise HTTPException(status_code=400, detail="query_id is required")
+
+    deleted = service.delete_history_item(query_id.strip())
+    if not deleted:
+        raise HTTPException(status_code=404, detail="query history not found")
+
+    return DeleteStatusResponse(status="deleted")

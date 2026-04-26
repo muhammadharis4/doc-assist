@@ -6,6 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 
 from src.schemas import DeleteStatusResponse, DocumentCreateRequest, DocumentResponse
 from src.documents.service import DocumentService
+from src.rag.opensearch_store import delete_document_chunks
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 service = DocumentService()
@@ -76,7 +77,10 @@ async def extract_pdf(file: UploadFile = File(...)) -> dict[str, str]:
 
 
 @router.delete("/{document_id}", response_model=DeleteStatusResponse)
-def remove_document(document_id: str) -> DeleteStatusResponse:
+def remove_document(
+    document_id: str,
+    background_tasks: BackgroundTasks,
+) -> DeleteStatusResponse:
     """
     Deletes one document and all indexed chunks.
 
@@ -93,5 +97,7 @@ def remove_document(document_id: str) -> DeleteStatusResponse:
     deleted = service.delete_document(document_id.strip())
     if not deleted:
         raise HTTPException(status_code=404, detail="document not found")
+
+    background_tasks.add_task(delete_document_chunks, document_id.strip())
 
     return DeleteStatusResponse(status="deleted")

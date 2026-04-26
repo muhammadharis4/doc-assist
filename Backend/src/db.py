@@ -320,6 +320,30 @@ def delete_document(document_id: str) -> bool:
     return result.rowcount > 0
 
 
+def delete_query_history(query_id: str) -> bool:
+    """
+    Deletes one query history row and its attached source rows.
+
+    Args:
+        query_id (str): The query history identifier.
+
+    Returns:
+        bool: True when the query history existed and was deleted.
+    """
+
+    with _connection() as connection:
+        connection.execute(
+            "DELETE FROM query_sources WHERE query_history_id = ?",
+            (query_id,),
+        )
+        result = connection.execute(
+            "DELETE FROM query_history WHERE id = ?",
+            (query_id,),
+        )
+
+    return result.rowcount > 0
+
+
 def store_query(query: str, answer: str, sources: list[dict[str, str | float | None]]) -> dict[str, object]:
     """
     Stores query history and source rows, then returns the saved shape.

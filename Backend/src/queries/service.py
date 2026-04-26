@@ -134,3 +134,16 @@ class QueryService:
         """
 
         return db.list_query_history(limit)
+
+    def delete_history_item(self, query_id: str) -> bool:
+        """
+        Removes one stored query history item and its sources.
+
+        Args:
+            query_id (str): The query history identifier.
+
+        Returns:
+            bool: True when the history item existed and was removed.
+        """
+
+        return db.delete_query_history(query_id)

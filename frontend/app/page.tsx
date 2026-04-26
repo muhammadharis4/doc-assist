@@ -46,7 +46,9 @@ export default function Home() {
                 setDocuments(nextDocuments);
                 setErrorMessage("");
             } catch (error: unknown) {
-                setErrorMessage(getErrorMessage(error));
+                if (!options?.silent) {
+                    setErrorMessage(getErrorMessage(error));
+                }
             } finally {
                 if (!options?.silent) {
                     setIsLoading(false);
@@ -82,30 +84,36 @@ export default function Home() {
 
     const handleDelete = useCallback(
         async (id: string) => {
+            const snapshot = documents.find((document) => document.id === id);
+            if (!snapshot) {
+                return;
+            }
+
             setDeletingId(id);
             setErrorMessage("");
-            setSuccessMessage("");
+            setDocuments((current) =>
+                current.filter((document) => document.id !== id),
+            );
 
             try {
                 await deleteDocument(id);
-                setSuccessMessage("Document deleted successfully.");
-                await refreshDocuments();
             } catch (error: unknown) {
+                setDocuments((current) => [snapshot, ...current]);
                 setErrorMessage(getErrorMessage(error));
             } finally {
                 setDeletingId(null);
             }
         },
-        [refreshDocuments],
+        [documents],
     );
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ py: 3 }}>
             <Stack spacing={3}>
                 <Paper
                     elevation={0}
                     sx={{
-                        p: 4,
+                        p: { xs: 2.5, md: 3.5 },
                         background:
                             "linear-gradient(135deg, #eff6ff 0%, #ffffff 60%)",
                         border: "1px solid",
@@ -167,7 +175,18 @@ export default function Home() {
                 ) : null}
 
                 {successMessage ? (
-                    <Alert severity="success">{successMessage}</Alert>
+                    <Paper
+                        variant="outlined"
+                        sx={{
+                            p: 1.5,
+                            borderColor: "success.light",
+                            color: "success.dark",
+                        }}
+                    >
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            {successMessage}
+                        </Typography>
+                    </Paper>
                 ) : null}
 
                 <DocumentsTable

@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
+import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
 import {
     Alert,
     Box,
@@ -16,7 +16,11 @@ import {
 } from "@mui/material";
 import { HistoryList } from "@/components/queries/HistoryList";
 import { QueryComposer } from "@/components/queries/QueryComposer";
-import { getQueryHistory, streamQuery } from "@/lib/api/queries";
+import {
+    deleteQueryHistory,
+    getQueryHistory,
+    streamQuery,
+} from "@/lib/api/queries";
 import { getErrorMessage } from "@/lib/types/api";
 import { MAX_QUERY_LENGTH, type QueryHistoryItem } from "@/lib/types/queries";
 
@@ -28,9 +32,13 @@ export default function QueriesPage() {
     const [history, setHistory] = useState<QueryHistoryItem[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(
+        null,
+    );
     const [errorMessage, setErrorMessage] = useState("");
     const [streamingQuery, setStreamingQuery] = useState("");
     const [streamingAnswer, setStreamingAnswer] = useState("");
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     const refreshHistory = useCallback(async () => {
         setIsLoadingHistory(true);
@@ -38,6 +46,7 @@ export default function QueriesPage() {
         try {
             const nextHistory = await getQueryHistory();
             setHistory(nextHistory);
+            setErrorMessage("");
         } catch (error: unknown) {
             setErrorMessage(getErrorMessage(error));
         } finally {
@@ -110,14 +119,45 @@ export default function QueriesPage() {
     const pageSubtitle = useMemo(
         () =>
             isLoadingHistory
-                ? "Loading your conversation history..."
+                ? "Loading your chat history..."
                 : "Ask questions about your uploaded documents and get grounded answers.",
         [isLoadingHistory],
     );
 
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [history, streamingQuery, streamingAnswer]);
+
+    const handleDeleteHistory = useCallback(
+        async (id: string) => {
+            const snapshot = history.find((item) => item.id === id);
+            if (!snapshot) {
+                return;
+            }
+
+            setDeletingHistoryId(id);
+            setErrorMessage("");
+            setHistory((current) => current.filter((item) => item.id !== id));
+
+            try {
+                await deleteQueryHistory(id);
+            } catch (error: unknown) {
+                setHistory((current) => [snapshot, ...current]);
+                setErrorMessage(getErrorMessage(error));
+            } finally {
+                setDeletingHistoryId(null);
+            }
+        },
+        [history],
+    );
+
     return (
-        <Container maxWidth="xl" sx={{ py: 3 }}>
-            <Stack spacing={2.5}>
+        <Container
+            maxWidth={false}
+            disableGutters
+            sx={{ px: { xs: 1, md: 2 }, py: 2 }}
+        >
+            <Stack spacing={2}>
                 <Box
                     sx={{
                         display: "flex",
@@ -136,7 +176,7 @@ export default function QueriesPage() {
                             DocAssist
                         </Typography>
                         <Typography variant="h4" sx={{ mt: 0.5 }}>
-                            Queries
+                            Chat
                         </Typography>
                         <Typography
                             variant="body1"
@@ -164,7 +204,7 @@ export default function QueriesPage() {
                 <Box
                     sx={{
                         display: "grid",
-                        gridTemplateColumns: { xs: "1fr", lg: "320px 1fr" },
+                        gridTemplateColumns: { xs: "1fr", lg: "300px 1fr" },
                         gap: 2,
                         alignItems: "stretch",
                     }}
@@ -172,10 +212,13 @@ export default function QueriesPage() {
                     <Box>
                         <HistoryList
                             history={history}
+                            isLoading={isLoadingHistory}
                             onReuseQuery={(query) => {
                                 setQueryText(query);
                                 void runQuery(query);
                             }}
+                            onDeleteHistory={handleDeleteHistory}
+                            deletingHistoryId={deletingHistoryId}
                         />
                         <Button
                             variant="text"
@@ -190,8 +233,8 @@ export default function QueriesPage() {
 
                     <Paper
                         sx={{
-                            minHeight: { xs: "70vh", lg: "74vh" },
-                            maxHeight: { xs: "78vh", lg: "78vh" },
+                            minHeight: { xs: "68vh", lg: "74vh" },
+                            maxHeight: { xs: "78vh", lg: "80vh" },
                             display: "flex",
                             flexDirection: "column",
                             border: "1px solid",
@@ -201,7 +244,7 @@ export default function QueriesPage() {
                     >
                         <Box
                             sx={{
-                                p: 2,
+                                p: 1.75,
                                 borderBottom: "1px solid",
                                 borderColor: "divider",
                                 background:
@@ -218,12 +261,12 @@ export default function QueriesPage() {
                                 variant="caption"
                                 color="text.secondary"
                             >
-                                Conversation-style view using your existing
-                                query history.
+                                Conversation-style chat built from your saved
+                                questions and answers.
                             </Typography>
                         </Box>
 
-                        <Box sx={{ p: 2, overflowY: "auto", flex: 1 }}>
+                        <Box sx={{ p: 1.75, overflowY: "auto", flex: 1 }}>
                             {conversation.length === 0 && !isSubmitting ? (
                                 <Paper
                                     elevation={0}
@@ -310,9 +353,7 @@ export default function QueriesPage() {
                                             />
                                             <Typography
                                                 variant="body2"
-                                                sx={{
-                                                    whiteSpace: "pre-wrap",
-                                                }}
+                                                sx={{ whiteSpace: "pre-wrap" }}
                                             >
                                                 {item.answer ??
                                                     "No answer returned."}
@@ -385,11 +426,13 @@ export default function QueriesPage() {
                                     </Box>
                                 </Box>
                             ) : null}
+
+                            <Box ref={messagesEndRef} />
                         </Box>
 
                         <Box
                             sx={{
-                                p: 2,
+                                p: 1.75,
                                 borderTop: "1px solid",
                                 borderColor: "divider",
                                 backgroundColor: "background.paper",
