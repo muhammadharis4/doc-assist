@@ -16,6 +16,7 @@ import {
     Tooltip,
     Typography,
 } from "@mui/material";
+import { NavHomeButton } from "@/components/NavHomeButton";
 import { HistoryList } from "@/components/queries/HistoryList";
 import { QueryComposer } from "@/components/queries/QueryComposer";
 import {
@@ -246,6 +247,7 @@ export default function ChatPage() {
                             <Box
                                 sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
                             >
+                                <NavHomeButton size="small" />
                                 <Tooltip title="New chat">
                                     <IconButton
                                         size="small"

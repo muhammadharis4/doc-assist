@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { DocumentUploadDialog } from "@/components/documents/DocumentUploadDialog";
 import { DocumentsTable } from "@/components/documents/DocumentsTable";
+import { NavHomeButton } from "@/components/NavHomeButton";
 import {
     createDocument,
     deleteDocument,
@@ -138,6 +139,7 @@ export default function DocumentsPage() {
                         </Box>
 
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                            <NavHomeButton />
                             <Tooltip title="Add files">
                                 <IconButton
                                     color="primary"
