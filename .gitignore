@@ -43,11 +43,7 @@ Thumbs.db
 tmp/
 temp/
 
-# Github
+# Agents
+.cursor/*
 .github/*.md
 
-# Agent files (keep local-only)
-AGENT.md
-AGENTS.md
-frontend/AGENTS.md
-frontend/CLAUDE.md
