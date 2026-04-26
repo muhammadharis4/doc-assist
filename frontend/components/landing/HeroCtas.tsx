@@ -6,14 +6,20 @@ import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import { Button, Stack } from "@mui/material";
 
 type HeroCtasProps = {
+    /** Next `Link` href for the “documents” (primary) button. */
     documentsHref: string;
+    /** Next `Link` href for the “chat” (secondary) button. */
     chatHref: string;
+    /** Primary button text (e.g. “Add documents”). */
     primaryLabel: string;
+    /** Outlined button text (e.g. “Start chatting”). */
     secondaryLabel: string;
 };
 
 /**
  * Primary / secondary calls-to-action under the hero message.
+ * @param props - `HeroCtasProps` (hrefs and labels for both buttons).
+ * @returns A responsive `Stack` of two MUI `Button` links.
  */
 export function HeroCtas({
     documentsHref,

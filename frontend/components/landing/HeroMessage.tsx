@@ -6,13 +6,18 @@ const ACCENT =
     "linear-gradient(90deg, transparent, rgba(122, 162, 255, 0.8), transparent)";
 
 type HeroMessageProps = {
+    /** e.g. “DocAssist” (overline). */
     brand: string;
+    /** Main H1 string. */
     headline: string;
+    /** One short paragraph under the title. */
     lede: string;
 };
 
 /**
  * Top-of-hero: product name, accent bar, H1, and short supporting line.
+ * @param props - `HeroMessageProps` (`brand`, `headline`, `lede`).
+ * @returns A fragment of `Typography` / `Box` elements (centered by the parent).
  */
 export function HeroMessage({ brand, headline, lede }: HeroMessageProps) {
     return (

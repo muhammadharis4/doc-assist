@@ -5,11 +5,14 @@ import { Paper, Stack, Typography } from "@mui/material";
 import type { QuerySource } from "@/lib/types/queries";
 
 interface SourcesListProps {
+    /** RAG source chunks (document + excerpt) for the current answer. */
     sources: QuerySource[];
 }
 
 /**
- * Displays source snippets that contributed to the latest answer.
+ * Lists each source chunk in a small card (title, snippet, metadata if present).
+ * @param props - See `SourcesListProps`.
+ * @returns A `Paper` with a per-source `Stack`, or a “no sources” line.
  */
 export function SourcesList({ sources }: SourcesListProps) {
     return (

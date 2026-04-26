@@ -6,6 +6,7 @@ import { ProblemCard } from "./ProblemCard";
 
 /**
  * Two-up layout: problem + flow cards (stacks on small screens).
+ * @returns A MUI `Grid` with `ProblemCard` and `FlowCard` at `md=6` each.
  */
 export function ProblemAndFlowGrid() {
     return (

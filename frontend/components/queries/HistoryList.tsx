@@ -20,19 +20,30 @@ import {
 import type { QueryHistoryItem } from "@/lib/types/queries";
 
 interface HistoryListProps {
+    /** Newest items first is typical; list is re-rendered from parent. */
     history: QueryHistoryItem[];
+    /** Fills the composer (and may auto-submit) with a past question. */
     onReuseQuery: (query: string) => void;
+    /** Permanently removes a history item after confirmation. */
     onDeleteHistory: (id: string) => void;
+    /** Clears streaming / draft state for a fresh turn. */
     onNewChat: () => void;
+    /** Navigates to the documents view (uploaded files). */
     onOpenDocuments: () => void;
+    /** When set, shows loading state on the matching row’s delete control. */
     deletingHistoryId: string | null;
+    /** Replaces the list with skeletons while the initial fetch runs. */
     isLoading: boolean;
+    /** Narrow rail mode vs expanded history. */
     isCollapsed: boolean;
+    /** Toggles `isCollapsed`. */
     onToggleCollapsed: () => void;
 }
 
 /**
- * Renders recent chat history with rerun and delete actions.
+ * Collapsible left rail: chat history, quick actions, and per-row delete.
+ * @param props - See `HistoryListProps`.
+ * @returns A `Paper` column or slim icon strip when `isCollapsed`.
  */
 export function HistoryList({
     history,

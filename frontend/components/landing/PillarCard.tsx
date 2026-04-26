@@ -5,13 +5,18 @@ import { Box, Paper, Typography } from "@mui/material";
 import { surfaceCardSx } from "./surface";
 
 type PillarCardProps = {
+    /** Primary line (bold). */
     label: string;
+    /** Secondary caption. */
     sub: string;
+    /** Left icon (typically MUI icon). */
     icon: ReactNode;
 };
 
 /**
  * Single feature tile in the hero pillar row.
+ * @param props - `PillarCardProps`.
+ * @returns A `Paper` with icon chip and two text lines.
  */
 export function PillarCard({ label, sub, icon }: PillarCardProps) {
     return (

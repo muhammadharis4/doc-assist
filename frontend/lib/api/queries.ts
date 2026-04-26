@@ -5,7 +5,10 @@ import {
 } from "@/lib/types/queries";
 
 /**
- * Executes a natural-language query through the backend.
+ * Runs one full RAG query and returns the completed answer (no streaming).
+ * Uses `POST /api/queries` and normalizes the history row you get back.
+ * @param input - User question and optional model flags (see `ExecuteQueryInput`).
+ * @returns A resolved `QueryHistoryItem` including the answer and `sources` (normalized to an array).
  */
 export function executeQuery(
     input: ExecuteQueryInput,
@@ -16,13 +19,22 @@ export function executeQuery(
     }).then(normalizeQueryHistoryItem);
 }
 
+/**
+ * Optional callbacks for `streamQuery` SSE events.
+ */
 interface StreamQueryHandlers {
+    /** Fired for each `token` event with a text delta. */
     onToken?: (delta: string) => void;
+    /** Fired when the server sends `done` with the final `QueryHistoryItem`. */
     onDone?: (item: QueryHistoryItem) => void;
 }
 
 /**
- * Streams a natural-language query through the backend.
+ * POSTs a streaming query to `/api/queries/stream` and parses `text/event-stream` chunks.
+ * Invokes `onToken` for streamed answer text and `onDone` with the final history row.
+ * @param input - User question and options (see `ExecuteQueryInput`).
+ * @param handlers - Optional `onToken` / `onDone` hooks.
+ * @returns Resolves when the stream ends; throws if the request fails or an `error` event is received.
  */
 export async function streamQuery(
     input: ExecuteQueryInput,
@@ -84,7 +96,10 @@ export async function streamQuery(
 }
 
 /**
- * Returns recent query history.
+ * Loads past questions and answers for the chat history UI.
+ * Calls `GET /api/queries/history` and normalizes each row’s `sources` field.
+ * @param limit - Max number of items (defaults to `DEFAULT_HISTORY_LIMIT` from types).
+ * @returns Normalized `QueryHistoryItem` rows, each with a safe `sources` array.
  */
 export async function getQueryHistory(
     limit = DEFAULT_HISTORY_LIMIT,
@@ -104,7 +119,10 @@ export async function getQueryHistory(
 }
 
 /**
- * Deletes one chat history entry through the backend via proxy.
+ * Permanently removes one history entry from the server (sidebar “delete” action).
+ * Issues `DELETE /api/queries/history/{id}`.
+ * @param id - History row id.
+ * @returns Resolves on success; throws with a best-effort message on HTTP error.
  */
 export async function deleteQueryHistory(id: string): Promise<void> {
     const response = await fetch(`/api/queries/history/${id}`, {
@@ -118,6 +136,12 @@ export async function deleteQueryHistory(id: string): Promise<void> {
     }
 }
 
+/**
+ * Internal helper: typed JSON `fetch` to an app route, with JSON content-type for string bodies.
+ * @param path - App-relative path (e.g. `/api/queries`).
+ * @param init - Standard `RequestInit` (e.g. `method`, `body`).
+ * @returns Parsed JSON cast to `T`, or throws if the response is not OK.
+ */
 async function fetchJson<T>(path: string, init: RequestInit): Promise<T> {
     const response = await fetch(path, {
         ...init,
@@ -136,6 +160,12 @@ async function fetchJson<T>(path: string, init: RequestInit): Promise<T> {
     return (await response.json()) as T;
 }
 
+/**
+ * Extracts an error message from a failed HTTP response’s JSON body when the server sends one.
+ * @param response - Failed `Response` from `fetch`.
+ * @param fallbackMessage - String used if JSON is missing or invalid.
+ * @returns A single user-facing string.
+ */
 async function readErrorMessage(
     response: Response,
     fallbackMessage: string,
@@ -159,6 +189,11 @@ async function readErrorMessage(
     return fallbackMessage;
 }
 
+/**
+ * Hardens API data before the UI uses it: always provide an array for `sources`, even if missing.
+ * @param item - Raw or partial `QueryHistoryItem`.
+ * @returns A copy of `item` with `sources` as an array.
+ */
 function normalizeQueryHistoryItem(item: QueryHistoryItem): QueryHistoryItem {
     return {
         ...item,
@@ -166,6 +201,11 @@ function normalizeQueryHistoryItem(item: QueryHistoryItem): QueryHistoryItem {
     };
 }
 
+/**
+ * Parses one SSE `event:` + `data:` block (as used in `streamQuery`).
+ * @param rawEvent - Text between double newlines in the stream.
+ * @returns `{ event, data }` with `data` as parsed JSON, or `null` if empty; non-JSON `data` becomes `{ message: raw }`.
+ */
 function parseSseEvent(
     rawEvent: string,
 ): { event: string; data: Record<string, unknown> } | null {

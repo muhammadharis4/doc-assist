@@ -22,14 +22,20 @@ import {
 } from "@/lib/types/documents";
 
 interface DocumentsTableProps {
+    /** Current rows; empty shows an empty state (after loading). */
     documents: DocumentItem[];
+    /** True while the parent is fetching the first page. */
     isLoading: boolean;
+    /** Deletes by id; parent handles optimistic UI and errors. */
     onDelete: (id: string) => Promise<void>;
+    /** If set, that row’s delete control is in a loading state. */
     deletingId: string | null;
 }
 
 /**
- * Shows uploaded files in a compact table with delete actions at row end.
+ * Sortable table of uploads with name, date, type, status, and delete.
+ * @param props - See `DocumentsTableProps`.
+ * @returns A `TableContainer` (or full-width skeletons while `isLoading`).
  */
 export function DocumentsTable({
     documents,

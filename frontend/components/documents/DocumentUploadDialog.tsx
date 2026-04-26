@@ -25,12 +25,17 @@ import {
 } from "@/lib/types/documents";
 
 interface DocumentUploadDialogProps {
+    /** Controls MUI `Dialog` visibility. */
     open: boolean;
+    /** Fired when the dialog is dismissed (and reset) without blocking submit. */
     onClose: () => void;
+    /** Persists all staged files; parent runs API calls. */
     onSubmit: (payload: CreateDocumentInput[]) => Promise<void>;
+    /** Disables close / upload UI while a batch is in progress. */
     isSubmitting: boolean;
 }
 
+/** In-memory row before the user commits upload. */
 interface PendingFile {
     file: File;
     extractedText: string;
@@ -38,7 +43,9 @@ interface PendingFile {
 }
 
 /**
- * Lets users add one or more files through drag-and-drop or the file picker.
+ * Multi-file upload dialog: pick/drop PDFs, optional OCR, type per row, then submit.
+ * @param props - See `DocumentUploadDialogProps`.
+ * @returns A MUI `Dialog` with a dropzone, file list, and confirm action.
  */
 export function DocumentUploadDialog({
     open,
@@ -63,12 +70,14 @@ export function DocumentUploadDialog({
         return "Drag files here or choose from your device";
     }, [hasFiles, isDragging, pendingFiles.length]);
 
+    /** Clears local staging when closing or after a successful submit. */
     function resetDialog() {
         setPendingFiles([]);
         setErrorMessage("");
         setIsDragging(false);
     }
 
+    /** Closes the dialog and resets unless a submit is in progress. */
     function handleClose() {
         if (isSubmitting) {
             return;
@@ -78,6 +87,10 @@ export function DocumentUploadDialog({
         onClose();
     }
 
+    /**
+     * Appends selected/dropped files; extracts text (PDFs via `extractPdfText`, else UTF-8).
+     * @param selectedFiles - Picked or dropped `File` list.
+     */
     async function handleFiles(selectedFiles: File[]) {
         if (selectedFiles.length === 0) {
             return;
@@ -95,6 +108,10 @@ export function DocumentUploadDialog({
         setErrorMessage("");
     }
 
+    /**
+     * Builds `CreateDocumentInput[]` and delegates to the parent; resets on success.
+     * @returns Promise that resolves when `onSubmit` finishes.
+     */
     async function handleSubmit() {
         if (!hasFiles) {
             setErrorMessage("Choose at least one file.");
@@ -333,6 +350,13 @@ export function DocumentUploadDialog({
     );
 }
 
+/**
+ * Maps a staged file + type into the create-document API body.
+ * @param file - Original file.
+ * @param extractedText - Plain text (or filename fallback).
+ * @param documentType - User-chosen `DocumentType`.
+ * @returns `CreateDocumentInput` for the backend.
+ */
 function buildPayload(
     file: File,
     extractedText: string,
@@ -346,6 +370,11 @@ function buildPayload(
     };
 }
 
+/**
+ * Reads `File` contents: PDFs go through `extractPdfText`, other types use `file.text()`.
+ * @param file - User-selected file.
+ * @returns Text used as document `content` (at least the filename on failure).
+ */
 async function readFileText(file: File): Promise<string> {
     const isPdf =
         file.type === "application/pdf" ||

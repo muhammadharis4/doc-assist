@@ -27,7 +27,8 @@ import { getErrorMessage } from "@/lib/types/api";
 import type { DocumentItem } from "@/lib/types/documents";
 
 /**
- * Document upload and list.
+ * Documents hub: list uploads, status, delete; open upload dialog; link to chat and home.
+ * @returns Full client page with header actions, table, and `DocumentUploadDialog`.
  */
 export default function DocumentsPage() {
     const [documents, setDocuments] = useState<DocumentItem[]>([]);

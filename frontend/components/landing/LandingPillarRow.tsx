@@ -6,6 +6,7 @@ import { PillarCard } from "./PillarCard";
 
 /**
  * Responsive row of three value props (files, language, verified sources).
+ * @returns A `Stack` of `PillarCard` from `PILLAR_ITEMS`.
  */
 export function LandingPillarRow() {
     return (

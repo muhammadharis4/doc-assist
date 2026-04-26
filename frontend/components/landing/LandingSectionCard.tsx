@@ -11,11 +11,14 @@ export type LandingSectionCardProps = {
     title: string;
     /** Optional block between title and children (e.g. lists). */
     underTitle?: ReactNode;
+    /** Main body (typically paragraphs or stacks). */
     children: ReactNode;
 };
 
 /**
- * Rounded, glassy `Paper` with kicker, title, and a slot for body content.
+ * Rounded, glassy `Paper` with kicker, title, and slots for body content.
+ * @param props - `LandingSectionCardProps`.
+ * @returns MUI `Paper` applying `surfaceCardSx`.
  */
 export function LandingSectionCard({
     kicker,

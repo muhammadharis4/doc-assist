@@ -7,6 +7,7 @@ import { LandingSectionCard } from "./LandingSectionCard";
 
 /**
  * Left column: paperwork pain point + example document types.
+ * @returns A `LandingSectionCard` with `DocumentExampleList` and the problem blurb.
  */
 export function ProblemCard() {
     return (

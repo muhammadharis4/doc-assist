@@ -28,7 +28,8 @@ import { getErrorMessage } from "@/lib/types/api";
 import { MAX_QUERY_LENGTH, type QueryHistoryItem } from "@/lib/types/queries";
 
 /**
- * Chat view: query, streaming answer, and recent history.
+ * Chat UI: sidebar history, streaming Q&A, composer, and links to documents / home.
+ * @returns Full client page with `HistoryList`, conversation area, and `QueryComposer`.
  */
 export default function ChatPage() {
     const [queryText, setQueryText] = useState("");

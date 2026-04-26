@@ -8,6 +8,7 @@ import { createTheme } from "@mui/material";
 /** Base background token; avoids pure `#000` strips next to the gradient. */
 const darkShell = "#050508";
 
+/** Stacked background applied to `body` in dark mode (fixed attachment). */
 const appBodyBackground = {
     backgroundColor: darkShell,
     backgroundImage: [
@@ -18,8 +19,9 @@ const appBodyBackground = {
 };
 
 /**
- * Builds the app MUI theme. Only `"dark"` is used in production today;
- * `"light"` is kept for future use or Storybook.
+ * Builds the app MUI theme (palette, typography, `MuiCssBaseline` body styles).
+ * @param mode - `"dark"` (current app default) or `"light"` (reserved).
+ * @returns A MUI `Theme` from `createTheme`.
  */
 export function createAppTheme(mode: "light" | "dark") {
     return createTheme({

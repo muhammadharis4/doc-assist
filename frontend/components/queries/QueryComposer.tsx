@@ -13,16 +13,24 @@ import {
 } from "@mui/material";
 
 interface QueryComposerProps {
+    /** Controlled value of the multiline field. */
     queryText: string;
+    /** Updates `queryText` on each keystroke. */
     onQueryTextChange: (value: string) => void;
+    /** Fires when the user sends (or Ctrl/Cmd+Enter from the field). */
     onSubmit: () => void;
+    /** Disables the send action while a request is in flight. */
     isSubmitting: boolean;
+    /** Max characters allowed in the text field. */
     maxLength: number;
+    /** Hides the “Ask a question” heading and some chrome for the chat area. */
     embedded?: boolean;
 }
 
 /**
- * Collects and submits a query string.
+ * Multiline input + send control for RAG questions (Ctrl+Enter to submit when not embedded).
+ * @param props - See `QueryComposerProps`.
+ * @returns A `Paper` with text field, character limit, and send button.
  */
 export function QueryComposer({
     queryText,

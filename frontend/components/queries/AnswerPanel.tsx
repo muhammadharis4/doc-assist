@@ -3,12 +3,16 @@
 import { CircularProgress, Paper, Stack, Typography } from "@mui/material";
 
 interface AnswerPanelProps {
+    /** Assistant answer text, or `null` if none. */
     answer: string | null;
+    /** Shows a progress state instead of the answer body. */
     isLoading: boolean;
 }
 
 /**
- * Renders the latest answer state for the active query.
+ * Static answer area with optional loading and empty copy.
+ * @param props - See `AnswerPanelProps`.
+ * @returns A bordered `Paper` with the answer or placeholder text.
  */
 export function AnswerPanel({ answer, isLoading }: AnswerPanelProps) {
     return (

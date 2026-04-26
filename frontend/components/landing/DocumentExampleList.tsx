@@ -5,6 +5,11 @@ import { exampleDocuments } from "./copy";
 
 type LineProps = (typeof exampleDocuments)[number];
 
+/**
+ * One emoji + label row inside the example list.
+ * @param props - `{ emoji, text }` from `exampleDocuments`.
+ * @returns A flex `li` inside the parent `ul`.
+ */
 function ExampleLine({ emoji, text }: LineProps) {
     return (
         <Box
@@ -44,6 +49,7 @@ function ExampleLine({ emoji, text }: LineProps) {
 
 /**
  * Unstyled list of example German-life document types (emoji + label).
+ * @returns A `Box` `ul` mapping `exampleDocuments` to `ExampleLine` rows.
  */
 export function DocumentExampleList() {
     return (

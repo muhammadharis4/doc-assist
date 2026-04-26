@@ -3,13 +3,18 @@
 import { Box, Typography } from "@mui/material";
 
 type FlowStepItemProps = {
+    /** Step index (1-based), shown in the badge. */
     n: number;
+    /** Short step title. */
     title: string;
+    /** Supporting sentence. */
     body: string;
 };
 
 /**
  * One numbered step with a badge (right-hand “The flow” card).
+ * @param props - `FlowStepItemProps`.
+ * @returns A horizontal flex row: badge + title/body column.
  */
 export function FlowStepItem({ n, title, body }: FlowStepItemProps) {
     return (

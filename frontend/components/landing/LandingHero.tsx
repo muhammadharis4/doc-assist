@@ -11,6 +11,7 @@ const LEDE =
 
 /**
  * Full-width hero: message, document/chat CTAs, then three pillars.
+ * @returns A centered `Box` combining `HeroMessage`, `HeroCtas`, and `LandingPillarRow`.
  */
 export function LandingHero() {
     return (

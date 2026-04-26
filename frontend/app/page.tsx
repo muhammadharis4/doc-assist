@@ -6,8 +6,8 @@ import { LandingHero } from "@/components/landing/LandingHero";
 import { ProblemAndFlowGrid } from "@/components/landing/ProblemAndFlowGrid";
 
 /**
- * Marketing home: explain the product, then route to `/documents` or `/chat`.
- * Layout is a vertical stack; shell background is set in `AppProviders` + `globals.css`.
+ * Marketing home: value proposition, problem/flow cards, and legal disclaimer.
+ * @returns A transparent `<main>` with hero, two-column content, and footer note (shell from global theme + CSS).
  */
 export default function HomePage() {
     return (

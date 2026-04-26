@@ -6,6 +6,7 @@ import { legalDisclaimer } from "./copy";
 /**
  * Muted full-width note below the grid; not a legal substitute for a professional.
  * Rendered as `footer` for landmarks / screen readers.
+ * @returns A `footer` with top border and centered `Typography` from `legalDisclaimer` in `copy.ts`.
  */
 export function LandingDisclaimer() {
     return (

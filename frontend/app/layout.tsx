@@ -1,3 +1,6 @@
+/**
+ * Root HTML shell: Geist fonts, global CSS, and `AppProviders` for the whole tree.
+ */
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -19,6 +22,11 @@ export const metadata: Metadata = {
         "Upload German and other documents, ask in German or English, and get answers grounded in your files with source snippets.",
 };
 
+/**
+ * Root layout for the whole app: HTML shell, fonts, global CSS, and the MUI theme provider.
+ * @param children - The active route’s UI (the App Router `children` slot).
+ * @returns A document with `<html>` / `<body>` and `AppProviders` wrapping all pages.
+ */
 export default function RootLayout({
     children,
 }: Readonly<{

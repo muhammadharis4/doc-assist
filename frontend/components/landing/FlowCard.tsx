@@ -7,6 +7,7 @@ import { LandingSectionCard } from "./LandingSectionCard";
 
 /**
  * Right column: upload → ask → verify steps.
+ * @returns A `LandingSectionCard` with one `FlowStepItem` per `flowSteps` entry.
  */
 export function FlowCard() {
     return (
