@@ -7,8 +7,8 @@
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --background: #0a0f1a;
-        --foreground: #f3f4f6;
+        --background: #0b1220;
+        --foreground: #e5eefc;
     }
 }
 
@@ -28,4 +28,21 @@ body {
         var(--background);
     color: var(--foreground);
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background:
+            radial-gradient(
+                circle at top left,
+                rgba(122, 162, 255, 0.2),
+                transparent 34%
+            ),
+            radial-gradient(
+                circle at top right,
+                rgba(72, 209, 198, 0.15),
+                transparent 28%
+            ),
+            var(--background);
+    }
 }
