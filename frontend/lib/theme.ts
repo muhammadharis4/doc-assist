@@ -4,6 +4,8 @@
  */
 
 import { createTheme } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
+import { alpha } from "@mui/material/styles";
 
 /** Base background token; avoids pure `#000` strips next to the gradient. */
 const darkShell = "#050508";
@@ -17,6 +19,25 @@ const appBodyBackground = {
     ].join(", "),
     backgroundAttachment: "fixed" as const,
 };
+
+/**
+ * Colours for a light assistant bubble on a dark chat shell. Uses
+ * `theme.palette.getContrastText(surface)` so ink follows the surface in any
+ * palette mode, without ad hoc `grey.900` on every `sx` block.
+ *
+ * @param theme - MUI `Theme` from `useTheme` or the `theme` arg of `sx`.
+ * @returns Surface fill, primary text, and muted/icon tints of the same hue.
+ */
+export function getAssistantMessageTokens(theme: Theme) {
+    const surface = theme.palette.grey[100];
+    const onSurface = theme.palette.getContrastText(surface);
+    return {
+        surface,
+        onSurface,
+        onSurfaceIcon: alpha(onSurface, 0.58),
+        onSurfaceMuted: alpha(onSurface, 0.75),
+    };
+}
 
 /**
  * Builds the app MUI theme (palette, typography, `MuiCssBaseline` body styles).

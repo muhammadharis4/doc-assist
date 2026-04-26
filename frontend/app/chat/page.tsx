@@ -24,6 +24,7 @@ import {
     getQueryHistory,
     streamQuery,
 } from "@/lib/api/queries";
+import { getAssistantMessageTokens } from "@/lib/theme";
 import { getErrorMessage } from "@/lib/types/api";
 import { MAX_QUERY_LENGTH, type QueryHistoryItem } from "@/lib/types/queries";
 
@@ -352,23 +353,33 @@ export default function ChatPage() {
                                         }}
                                     >
                                         <Box
-                                            sx={{
-                                                maxWidth: "92%",
-                                                borderRadius: 3,
-                                                px: 1.75,
-                                                py: 1.25,
-                                                backgroundColor: "grey.100",
-                                                color: "text.primary",
-                                                border: "1px solid",
-                                                borderColor: "divider",
-                                                display: "flex",
-                                                gap: 1,
-                                                alignItems: "flex-start",
+                                            sx={(theme) => {
+                                                const a =
+                                                    getAssistantMessageTokens(
+                                                        theme,
+                                                    );
+                                                return {
+                                                    maxWidth: "92%",
+                                                    borderRadius: 3,
+                                                    px: 1.75,
+                                                    py: 1.25,
+                                                    backgroundColor: a.surface,
+                                                    color: a.onSurface,
+                                                    border: "1px solid",
+                                                    borderColor: "divider",
+                                                    display: "flex",
+                                                    gap: 1,
+                                                    alignItems: "flex-start",
+                                                };
                                             }}
                                         >
                                             <SmartToyRoundedIcon
                                                 fontSize="small"
-                                                color="action"
+                                                sx={(theme) => ({
+                                                    color: getAssistantMessageTokens(
+                                                        theme,
+                                                    ).onSurfaceIcon,
+                                                })}
                                             />
                                             <Typography
                                                 variant="body2"
@@ -419,25 +430,39 @@ export default function ChatPage() {
                                     }}
                                 >
                                     <Box
-                                        sx={{
-                                            borderRadius: 3,
-                                            px: 1.5,
-                                            py: 1,
-                                            backgroundColor: "grey.100",
-                                            border: "1px solid",
-                                            borderColor: "divider",
-                                            display: "flex",
-                                            gap: 1,
-                                            alignItems: "center",
+                                        sx={(theme) => {
+                                            const a = getAssistantMessageTokens(
+                                                theme,
+                                            );
+                                            return {
+                                                borderRadius: 3,
+                                                px: 1.5,
+                                                py: 1,
+                                                backgroundColor: a.surface,
+                                                color: a.onSurface,
+                                                border: "1px solid",
+                                                borderColor: "divider",
+                                                display: "flex",
+                                                gap: 1,
+                                                alignItems: "center",
+                                            };
                                         }}
                                     >
                                         <SmartToyRoundedIcon
                                             fontSize="small"
-                                            color="action"
+                                            sx={(theme) => ({
+                                                color: getAssistantMessageTokens(
+                                                    theme,
+                                                ).onSurfaceIcon,
+                                            })}
                                         />
                                         <Typography
                                             variant="body2"
-                                            color="text.secondary"
+                                            sx={(theme) => ({
+                                                color: getAssistantMessageTokens(
+                                                    theme,
+                                                ).onSurfaceMuted,
+                                            })}
                                         >
                                             {streamingAnswer ||
                                                 "Thinking through your question..."}
