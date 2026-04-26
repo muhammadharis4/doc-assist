@@ -1,17 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import AdjustRoundedIcon from "@mui/icons-material/AdjustRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
-import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
 import NoteAddRoundedIcon from "@mui/icons-material/NoteAddRounded";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import {
     Box,
@@ -56,12 +52,12 @@ export function HistoryList({
         <Paper
             sx={(theme) => ({
                 p: isCollapsed ? 1.25 : 2,
-                border: "1px solid",
-                borderColor: "rgba(255, 255, 255, 0.08)",
+                border: "none",
                 width: isCollapsed ? 56 : "100%",
                 minWidth: isCollapsed ? 56 : 0,
                 overflow: "hidden",
-                backgroundColor: "#171a20",
+                borderRadius: 0,
+                backgroundColor: "#000000",
                 color: "#e7ecf7",
                 transition: theme.transitions.create(["width", "padding"], {
                     duration: theme.transitions.duration.shorter,
@@ -79,6 +75,14 @@ export function HistoryList({
                         gap: 1,
                     }}
                 >
+                    {!isCollapsed && (
+                        <Typography
+                            variant="overline"
+                            sx={{ color: "#95a0b8", letterSpacing: 0.7 }}
+                        >
+                            Doc Assist
+                        </Typography>
+                    )}
                     <IconButton
                         size="small"
                         onClick={onToggleCollapsed}
@@ -98,7 +102,7 @@ export function HistoryList({
                 </Box>
 
                 {isCollapsed ? (
-                    <Stack spacing={0.5} alignItems="center">
+                    <Stack spacing={0.5} sx={{ alignItems: "center" }}>
                         <Tooltip title="New chat" placement="right">
                             <IconButton
                                 size="small"
@@ -164,7 +168,7 @@ export function HistoryList({
                                       sx={{
                                           p: 1.25,
                                           borderRadius: 2,
-                                          backgroundColor: "#222734",
+                                          backgroundColor: "#0c0c0c",
                                           border: "1px solid rgba(255,255,255,0.08)",
                                       }}
                                   >
@@ -180,7 +184,7 @@ export function HistoryList({
                                         sx={{
                                             borderRadius: 2,
                                             p: 1.1,
-                                            backgroundColor: "#222734",
+                                            backgroundColor: "#0c0c0c",
                                             border: "1px solid rgba(255,255,255,0.08)",
                                             display: "flex",
                                             alignItems: "center",

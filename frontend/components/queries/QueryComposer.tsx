@@ -51,8 +51,8 @@ export function QueryComposer({
                     label="Your question"
                     placeholder="What does the policy say about onboarding?"
                     multiline
-                    minRows={3}
-                    maxRows={6}
+                    minRows={embedded ? 2 : 3}
+                    maxRows={embedded ? 4 : 6}
                     value={queryText}
                     onChange={(event) => onQueryTextChange(event.target.value)}
                     onKeyDown={(event) => {
@@ -64,7 +64,11 @@ export function QueryComposer({
                             onSubmit();
                         }
                     }}
-                    helperText="Use Ctrl+Enter to submit quickly"
+                    helperText={
+                        embedded
+                            ? undefined
+                            : "Use Ctrl+Enter to submit quickly"
+                    }
                     slotProps={{ htmlInput: { maxLength } }}
                     fullWidth
                 />

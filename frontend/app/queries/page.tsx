@@ -146,30 +146,14 @@ export default function QueriesPage() {
         <Container
             maxWidth={false}
             disableGutters
-            sx={{ px: { xs: 1, md: 2 }, py: 1.5, minHeight: "100vh" }}
+            sx={{
+                px: { xs: 1, md: 2 },
+                py: 1.5,
+                minHeight: "100vh",
+                backgroundColor: "#000000",
+            }}
         >
             <Stack spacing={1.5} sx={{ minHeight: "100vh" }}>
-                <Box
-                    sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 2,
-                    }}
-                >
-                    <Box sx={{ minWidth: 0 }}>
-                        <Typography
-                            variant="overline"
-                            color="primary.main"
-                            sx={{ fontWeight: 800 }}
-                        >
-                            DocAssist
-                        </Typography>
-                        <Typography variant="h4" sx={{ mt: 0.5 }}>
-                            Chat
-                        </Typography>
-                    </Box>
-                </Box>
-
                 {errorMessage ? (
                     <Alert severity="error">{errorMessage}</Alert>
                 ) : null}

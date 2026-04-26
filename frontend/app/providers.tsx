@@ -1,12 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import {
-    CssBaseline,
-    ThemeProvider,
-    createTheme,
-    useMediaQuery,
-} from "@mui/material";
+import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 
 function createAppTheme(mode: "light" | "dark") {
     return createTheme({
@@ -46,11 +41,7 @@ function createAppTheme(mode: "light" | "dark") {
  * Provides the shared MUI theme and global CSS reset for the app.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
-    const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-    const theme = useMemo(
-        () => createAppTheme(prefersDarkMode ? "dark" : "light"),
-        [prefersDarkMode],
-    );
+    const theme = useMemo(() => createAppTheme("dark"), []);
 
     return (
         <ThemeProvider theme={theme}>
