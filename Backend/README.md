@@ -1,14 +1,15 @@
 # DocAssist Backend
 
-FastAPI backend for document ingest, hybrid retrieval (BM25 + vector), and answer generation.
+FastAPI backend for document ingestion, hybrid retrieval (BM25 + vector), and grounded answer generation.
 
 ## Stack
 
 - FastAPI
-- OpenSearch (text + vector in one engine)
+- SQLite (documents + query history persistence)
+- OpenSearch (hybrid lexical/vector retrieval)
 - SentenceTransformer embeddings
 - Ollama generation
-- SQLite for document/query history persistence
+- Telegram webhook integration
 
 ## Run Locally
 
@@ -24,151 +25,145 @@ Backend URL: `http://localhost:8000`
 
 ## Environment Variables
 
-- `APP_DB_PATH`: SQLite file path for documents/query history. Default `./data/app.db`.
-- `OPENSEARCH_URL`: OpenSearch endpoint URL. Default `http://localhost:9200`.
-- `OPENSEARCH_INDEX_NAME`: Index name for stored chunks. Default `docassist_chunks`.
-- `OPENSEARCH_PIPELINE_NAME`: Hybrid search pipeline name. Default `nlp-search-pipeline`.
+### Core
 
-- `CHUNK_SIZE_CHARS`: Max chars per indexed chunk. Default `500`.
-- `CHUNK_OVERLAP_CHARS`: Overlap chars between chunks. Default `120`.
-- `RAG_TOP_K`: Final number of chunks returned to answer. Default `8`.
-- `RAG_CANDIDATE_MULTIPLIER`: Candidate expansion before reranking. Default `6`.
-- `RAG_MAX_RESULTS_PER_DOCUMENT`: Per-document cap in final hits. Default `3`.
-- `SOURCE_SNIPPET_MAX_CHARS`: Max snippet length returned in sources/history. Default `500`.
-- `DOC_TYPE_SCORE_BOOST`: Score bonus when query-intent type matches document type. Default `0.2`.
-- `TEXT_SCORE_WEIGHT`: Lexical match weight in hybrid scoring. Default `0.6`.
-- `VECTOR_SCORE_WEIGHT`: Embedding similarity weight in hybrid scoring. Default `0.4`.
-- `EMBEDDING_MODEL`: Sentence-transformers model name/path. Default `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`.
-- `OCR_LANGUAGES`: OCR language codes for scanned PDFs. Default `deu+eng`.
+- `APP_DB_PATH` (default: `./data/app.db`)
+- `OPENSEARCH_URL` (default: `http://localhost:9200`)
+- `OPENSEARCH_INDEX_NAME` (default: `docassist_chunks`)
+- `OPENSEARCH_PIPELINE_NAME` (default: `nlp-search-pipeline`)
 
-- `OLLAMA_BASE_URL`: Ollama API base URL. Default `http://localhost:11434`.
-- `OLLAMA_MODEL`: Ollama model used for generation. Default `llama3.2:1b`.
-- `OLLAMA_TEMPERATURE`: LLM generation temperature. Default `0.2`.
+### Retrieval and Ranking
 
-- `TELEGRAM_BOT_TOKEN`: Bot token to enable Telegram integration. Default empty (disabled).
-- `TELEGRAM_WEBHOOK_SECRET`: Optional webhook secret header validator. Default empty (no secret check).
-- `TELEGRAM_WEBHOOK_URL`: Public HTTPS webhook target for auto-registration. Default empty.
-- `TELEGRAM_SOURCE_LIMIT`: Number of sources shown in Telegram replies. Default `3`.
-- `TELEGRAM_MAX_MESSAGE_CHARS`: Max Telegram reply length before truncation. Default `3500`.
-- `TELEGRAM_DOCS_LIST_LIMIT`: Max docs shown by `/docs`. Default `20`.
-- `TELEGRAM_SCOPE_LABEL_ENABLED`: Include scope label in Telegram answers. Default `true`.
+- `CHUNK_SIZE_CHARS` (default: `500`)
+- `CHUNK_OVERLAP_CHARS` (default: `120`)
+- `RAG_TOP_K` (default: `8`)
+- `RAG_CANDIDATE_MULTIPLIER` (default: `6`)
+- `RAG_MAX_RESULTS_PER_DOCUMENT` (default: `3`)
+- `SOURCE_SNIPPET_MAX_CHARS` (default: `500`)
+- `DOC_TYPE_SCORE_BOOST` (default: `0.2`)
+- `TEXT_SCORE_WEIGHT` (default: `0.6`)
+- `VECTOR_SCORE_WEIGHT` (default: `0.4`)
+- `EMBEDDING_MODEL` (default: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`)
+- `OCR_LANGUAGES` (default: `deu+eng`)
+
+### LLM Generation
+
+- `OLLAMA_BASE_URL` (default: `http://localhost:11434`)
+- `OLLAMA_MODEL` (default: `llama3.2:1b`)
+- `OLLAMA_TEMPERATURE` (default: `0.2`)
+
+### Telegram Integration
+
+- `TELEGRAM_BOT_TOKEN` (default: empty, integration disabled)
+- `TELEGRAM_WEBHOOK_SECRET` (default: empty)
+- `TELEGRAM_WEBHOOK_URL` (default: empty)
+- `TELEGRAM_SOURCE_LIMIT` (default: `3`)
+- `TELEGRAM_MAX_MESSAGE_CHARS` (default: `3500`)
+- `TELEGRAM_DOCS_LIST_LIMIT` (default: `20`)
+- `TELEGRAM_SCOPE_LABEL_ENABLED` (default: `true`)
 
 ## API Endpoints
 
+### Health
+
 - `GET /health`
+
+### Documents
+
 - `GET /documents`
 - `POST /documents`
 - `POST /documents/extract`
 - `DELETE /documents/:id`
+
+### Queries
+
 - `POST /queries`
 - `POST /queries/stream`
 - `GET /queries/history`
+
+### Telegram
+
 - `GET /integrations/telegram/health`
 - `POST /integrations/telegram/webhook`
 
-## App Flow
+## Request/Response Notes
 
-1. `POST /documents` stores a document row in SQLite with `status=pending`.
-2. Background processing updates status to `processing`, then runs chunking and embedding.
-3. Chunks are indexed in OpenSearch with both text and vector fields.
-4. On success status becomes `ready`; on failure status becomes `failed` with an error message.
-5. `POST /queries` embeds the query, runs OpenSearch hybrid search, and retrieves top chunks.
-6. Retrieved chunks are sent to Ollama for grounded answer generation.
-7. Query answer and sources are persisted to SQLite and returned.
+### `POST /documents`
 
-Query params:
+Creates a document, then processes chunking/embedding/indexing asynchronously.
 
-- `limit` (optional): max rows to return, default `20`, max `100`
+Typical request fields:
 
-Response:
+- `filename`
+- `content`
+- `mimeType` (optional)
+- `documentType` (optional)
 
-```json
-[
-    {
-        "id": "history-id",
-        "query": "How do I run tests?",
-        "answer": "Use npm run test --workspace=Backend",
-        "userId": null,
-        "createdAt": "2026-04-12T10:05:00.000Z"
-    }
-]
-```
+Document lifecycle:
 
-#### `GET /queries/saved`
+`pending` -> `processing` -> `ready` or `failed`
 
-Returns saved queries ordered by recency.
+### `POST /queries`
 
-Response:
+Accepts:
 
 ```json
-[
-    {
-        "id": "saved-id",
-        "title": "Run tests",
-        "query": "How do I run tests?",
-        "userId": null,
-        "createdAt": "2026-04-12T10:10:00.000Z"
-    }
-]
+{ "query": "How do I reset my password?" }
 ```
 
-#### `POST /queries/saved`
-
-Creates a saved query.
-
-Validation:
-
-- `title` is required, trimmed, and limited to 120 characters
-- `query` is required, trimmed, and limited to 2000 characters
-
-Request body:
+Returns:
 
 ```json
 {
-    "title": "Run tests",
-    "query": "How do I run tests?"
+  "answer": "string",
+  "sources": [
+    {
+      "documentId": "string",
+      "filename": "string",
+      "snippet": "string",
+      "score": 0.9
+    }
+  ]
 }
 ```
 
-Response: created saved query object
+### `GET /queries/history`
 
-#### `DELETE /queries/saved/:id`
+Query params:
 
-Deletes a saved query by id.
+- `limit` (optional, default `20`, max `100`)
 
-Path params:
+Returns latest query records with answer + sources.
 
-- `id`: saved query id
+## Processing Flow
 
-Response: deleted saved query object
+1. Ingest endpoint stores document metadata/content in SQLite.
+2. Background processing chunks content and creates embeddings.
+3. Chunks are indexed into OpenSearch with text + vector fields.
+4. Query endpoint retrieves candidates through hybrid search.
+5. Retrieved chunks are sent to Ollama for grounded answer generation.
+6. Query history and sources are persisted and returned.
 
-## RAG Integration Behavior
-
-The backend `RagService` behavior is:
-
-- Try external RAG endpoint when `RAG_SERVICE_URL` is configured
-- Fall back to local keyword retrieval when external RAG is unavailable
-- Continue persisting query history either way
-
-## Testing
+## Testing and Verification
 
 ```bash
-# Unit tests
-npm run test --workspace=Backend
-
-# E2E tests
-npm run test:e2e --workspace=Backend
-
-# Build
-npm run build --workspace=Backend
+# Run backend service locally
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+Use `/health`, `/documents`, and `/queries` endpoints to validate the pipeline end-to-end.
 
 ## Key Source Files
 
-- `Backend/src/documents/documents.controller.ts`
-- `Backend/src/documents/documents.service.ts`
-- `Backend/src/queries/queries.controller.ts`
-- `Backend/src/queries/queries.service.ts`
-- `Backend/src/rag/rag.service.ts`
-- `Backend/src/prisma/prisma.service.ts`
-- `Backend/prisma/schema.prisma`
+- `src/main.py`
+- `src/config.py`
+- `src/db.py`
+- `src/documents/routes.py`
+- `src/documents/service.py`
+- `src/queries/routes.py`
+- `src/queries/service.py`
+- `src/rag/chunking.py`
+- `src/rag/embeddings.py`
+- `src/rag/opensearch_store.py`
+- `src/rag/llm.py`
+- `src/integrations/telegram/routes.py`
