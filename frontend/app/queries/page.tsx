@@ -150,7 +150,6 @@ export default function QueriesPage() {
                 px: { xs: 1, md: 2 },
                 py: 1.5,
                 minHeight: "100vh",
-                backgroundColor: "#000000",
             }}
         >
             <Stack spacing={1.5} sx={{ minHeight: "100vh" }}>

@@ -114,8 +114,6 @@ export default function Home() {
                     elevation={0}
                     sx={{
                         p: { xs: 2.5, md: 3.5 },
-                        background:
-                            "linear-gradient(135deg, #eff6ff 0%, #ffffff 60%)",
                         border: "1px solid",
                         borderColor: "divider",
                     }}
@@ -139,14 +137,6 @@ export default function Home() {
                             </Typography>
                             <Typography variant="h4" sx={{ mt: 0.5 }}>
                                 Documents
-                            </Typography>
-                            <Typography
-                                variant="body1"
-                                color="text.secondary"
-                                sx={{ mt: 1, maxWidth: 720 }}
-                            >
-                                Add files, keep the list simple, and delete rows
-                                when you do not need them anymore.
                             </Typography>
                         </Box>
 

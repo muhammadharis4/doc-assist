@@ -1,10 +1,5 @@
 @import "tailwindcss";
 
-:root {
-    --background: #000000;
-    --foreground: #e5eefc;
-}
-
 body {
     min-height: 100vh;
     background: var(--background);

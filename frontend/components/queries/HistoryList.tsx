@@ -57,7 +57,6 @@ export function HistoryList({
                 minWidth: isCollapsed ? 56 : 0,
                 overflow: "hidden",
                 borderRadius: 0,
-                backgroundColor: "#000000",
                 color: "#e7ecf7",
                 transition: theme.transitions.create(["width", "padding"], {
                     duration: theme.transitions.duration.shorter,
