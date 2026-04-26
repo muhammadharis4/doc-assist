@@ -1,17 +1,14 @@
 "use client";
-
-import type { ReactNode } from "react";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
-import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
+import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import NoteAddRoundedIcon from "@mui/icons-material/NoteAddRounded";
-import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import {
     Box,
-    Button,
+    ButtonBase,
     Collapse,
     IconButton,
     Paper,
@@ -51,12 +48,14 @@ export function HistoryList({
     return (
         <Paper
             sx={(theme) => ({
-                p: isCollapsed ? 1.25 : 2,
-                border: "none",
+                p: isCollapsed ? 1 : 1.25,
+                border: "1px solid",
+                borderColor: "rgba(255,255,255,0.08)",
+                backgroundColor: "#101010",
                 width: isCollapsed ? 56 : "100%",
                 minWidth: isCollapsed ? 56 : 0,
                 overflow: "hidden",
-                borderRadius: 0,
+                borderRadius: 1.5,
                 color: "#e7ecf7",
                 transition: theme.transitions.create(["width", "padding"], {
                     duration: theme.transitions.duration.shorter,
@@ -72,14 +71,12 @@ export function HistoryList({
                             ? "center"
                             : "space-between",
                         gap: 1,
+                        minHeight: 28,
                     }}
                 >
                     {!isCollapsed && (
-                        <Typography
-                            variant="overline"
-                            sx={{ color: "#95a0b8", letterSpacing: 0.7 }}
-                        >
-                            Doc Assist
+                        <Typography variant="caption" sx={{ color: "#9aa3b8" }}>
+                            DOC ASSIST
                         </Typography>
                     )}
                     <IconButton
@@ -101,7 +98,7 @@ export function HistoryList({
                 </Box>
 
                 {isCollapsed ? (
-                    <Stack spacing={0.5} sx={{ alignItems: "center" }}>
+                    <Stack spacing={0.5} sx={{ alignItems: "center", pt: 0.5 }}>
                         <Tooltip title="New chat" placement="right">
                             <IconButton
                                 size="small"
@@ -124,14 +121,13 @@ export function HistoryList({
                         </Tooltip>
                     </Stack>
                 ) : (
-                    <Stack spacing={0.5}>
-                        <SidebarActionRow
+                    <Stack spacing={0.4}>
+                        <SidebarAction
                             label="New chat"
                             icon={<EditNoteRoundedIcon fontSize="small" />}
                             onClick={onNewChat}
                         />
-
-                        <SidebarActionRow
+                        <SidebarAction
                             label="Documents"
                             icon={<DescriptionRoundedIcon fontSize="small" />}
                             onClick={onOpenDocuments}
@@ -148,15 +144,9 @@ export function HistoryList({
                                 justifyContent: "space-between",
                             }}
                         >
-                            <Typography
-                                variant="overline"
-                                sx={{ color: "#95a0b8", letterSpacing: 0.7 }}
-                            >
+                            <Typography variant="caption" sx={{ color: "#9aa3b8" }}>
                                 Recent chats
                             </Typography>
-                            <IconButton size="small" sx={{ color: "#95a0b8" }}>
-                                <TuneRoundedIcon fontSize="small" />
-                            </IconButton>
                         </Box>
 
                         {isLoading
@@ -165,9 +155,9 @@ export function HistoryList({
                                       key={index}
                                       elevation={0}
                                       sx={{
-                                          p: 1.25,
+                                          p: 1,
                                           borderRadius: 2,
-                                          backgroundColor: "#0c0c0c",
+                                          backgroundColor: "#0d0d0d",
                                           border: "1px solid rgba(255,255,255,0.08)",
                                       }}
                                   >
@@ -182,8 +172,8 @@ export function HistoryList({
                                         key={item.id}
                                         sx={{
                                             borderRadius: 2,
-                                            p: 1.1,
-                                            backgroundColor: "#0c0c0c",
+                                            p: 0.9,
+                                            backgroundColor: "#0d0d0d",
                                             border: "1px solid rgba(255,255,255,0.08)",
                                             display: "flex",
                                             alignItems: "center",
@@ -191,30 +181,46 @@ export function HistoryList({
                                             gap: 0.75,
                                         }}
                                     >
-                                        <Button
-                                            size="small"
-                                            variant="text"
+                                        <ButtonBase
                                             onClick={() =>
                                                 onReuseQuery(item.query)
                                             }
-                                            startIcon={
-                                                <FolderRoundedIcon fontSize="small" />
-                                            }
                                             sx={{
                                                 flex: 1,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 0.8,
                                                 justifyContent: "flex-start",
                                                 textAlign: "left",
                                                 color: "#e7ecf7",
-                                                textTransform: "none",
-                                                px: 0.25,
+                                                px: 0.4,
+                                                py: 0.2,
+                                                borderRadius: 1,
                                                 minWidth: 0,
                                                 overflow: "hidden",
                                                 whiteSpace: "nowrap",
                                                 textOverflow: "ellipsis",
+                                                "&:hover": {
+                                                    backgroundColor:
+                                                        "rgba(255,255,255,0.04)",
+                                                },
                                             }}
                                         >
-                                            {item.query}
-                                        </Button>
+                                            <ForumRoundedIcon
+                                                fontSize="small"
+                                                sx={{ color: "#98a1b6" }}
+                                            />
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    overflow: "hidden",
+                                                    whiteSpace: "nowrap",
+                                                    textOverflow: "ellipsis",
+                                                }}
+                                            >
+                                                {item.query}
+                                            </Typography>
+                                        </ButtonBase>
                                         <IconButton
                                             aria-label={`Delete chat ${item.query}`}
                                             onClick={() =>
@@ -237,29 +243,35 @@ export function HistoryList({
     );
 }
 
-function SidebarActionRow({
+function SidebarAction({
     label,
     icon,
     onClick,
 }: {
     label: string;
-    icon: ReactNode;
+    icon: React.ReactNode;
     onClick: () => void;
 }) {
     return (
-        <Button
-            size="small"
-            variant="text"
-            startIcon={icon}
+        <ButtonBase
             onClick={onClick}
             sx={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
                 justifyContent: "flex-start",
+                gap: 0.8,
+                px: 0.7,
+                py: 0.55,
+                borderRadius: 1,
                 color: "#e7ecf7",
-                textTransform: "none",
-                px: 0.5,
+                "&:hover": {
+                    backgroundColor: "rgba(255,255,255,0.04)",
+                },
             }}
         >
-            {label}
-        </Button>
+            {icon}
+            <Typography variant="body2">{label}</Typography>
+        </ButtonBase>
     );
 }

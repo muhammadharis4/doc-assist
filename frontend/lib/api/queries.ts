@@ -66,7 +66,9 @@ export async function streamQuery(
                 handlers.onToken?.(String(event.data.delta ?? ""));
             } else if (event?.event === "done") {
                 handlers.onDone?.(
-                    normalizeQueryHistoryItem(event.data as QueryHistoryItem),
+                    normalizeQueryHistoryItem(
+                        event.data as unknown as QueryHistoryItem,
+                    ),
                 );
             } else if (event?.event === "error") {
                 throw new Error(

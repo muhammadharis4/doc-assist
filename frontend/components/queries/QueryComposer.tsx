@@ -4,9 +4,11 @@ import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import {
     Box,
     Button,
+    IconButton,
     Paper,
     Stack,
     TextField,
+    Tooltip,
     Typography,
 } from "@mui/material";
 
@@ -85,14 +87,29 @@ export function QueryComposer({
                         {queryText.length}/{maxLength}
                     </Typography>
 
-                    <Button
-                        variant="contained"
-                        startIcon={<SendRoundedIcon />}
-                        onClick={onSubmit}
-                        disabled={isSubmitting || isEmpty}
-                    >
-                        {isSubmitting ? "Running..." : "Send"}
-                    </Button>
+                    {embedded ? (
+                        <Tooltip title="Send (Ctrl+Enter)">
+                            <span>
+                                <IconButton
+                                    color="primary"
+                                    onClick={onSubmit}
+                                    disabled={isSubmitting || isEmpty}
+                                    aria-label="Send query"
+                                >
+                                    <SendRoundedIcon />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    ) : (
+                        <Button
+                            variant="contained"
+                            startIcon={<SendRoundedIcon />}
+                            onClick={onSubmit}
+                            disabled={isSubmitting || isEmpty}
+                        >
+                            {isSubmitting ? "Running..." : "Send"}
+                        </Button>
+                    )}
                 </Box>
             </Stack>
         </Paper>

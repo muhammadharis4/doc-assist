@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "DocAssist Frontend",
+    title: "DocAssist",
     description:
-        "DocAssist workspace for document ingestion and retrieval flows.",
+        "Upload German and other documents, ask in German or English, and get answers grounded in your files with source snippets.",
 };
 
 export default function RootLayout({

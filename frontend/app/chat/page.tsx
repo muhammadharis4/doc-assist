@@ -1,9 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
+import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
+import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
-import { Alert, Box, Container, Paper, Stack, Typography } from "@mui/material";
+import {
+    Alert,
+    Box,
+    Container,
+    IconButton,
+    Paper,
+    Stack,
+    Tooltip,
+    Typography,
+} from "@mui/material";
 import { HistoryList } from "@/components/queries/HistoryList";
 import { QueryComposer } from "@/components/queries/QueryComposer";
 import {
@@ -15,9 +27,9 @@ import { getErrorMessage } from "@/lib/types/api";
 import { MAX_QUERY_LENGTH, type QueryHistoryItem } from "@/lib/types/queries";
 
 /**
- * Provides query execution, answer rendering, and recent history.
+ * Chat view: query, streaming answer, and recent history.
  */
-export default function QueriesPage() {
+export default function ChatPage() {
     const [queryText, setQueryText] = useState("");
     const [history, setHistory] = useState<QueryHistoryItem[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -147,12 +159,15 @@ export default function QueriesPage() {
             maxWidth={false}
             disableGutters
             sx={{
-                px: { xs: 1, md: 2 },
-                py: 1.5,
+                px: { xs: 1, md: 1.5 },
+                pt: { xs: 1.25, md: 1.5 },
+                pb: 1.25,
                 minHeight: "100vh",
+                boxSizing: "border-box",
+                backgroundColor: "#000",
             }}
         >
-            <Stack spacing={1.5} sx={{ minHeight: "100vh" }}>
+            <Stack spacing={1} sx={{ minHeight: "calc(100vh - 32px)" }}>
                 {errorMessage ? (
                     <Alert severity="error">{errorMessage}</Alert>
                 ) : null}
@@ -164,7 +179,7 @@ export default function QueriesPage() {
                             xs: "1fr",
                             lg: isHistoryCollapsed ? "56px 1fr" : "300px 1fr",
                         },
-                        gap: 2,
+                        gap: 1,
                         alignItems: "stretch",
                         flex: 1,
                         minHeight: 0,
@@ -179,7 +194,7 @@ export default function QueriesPage() {
                         }}
                         onNewChat={startNewChat}
                         onOpenDocuments={() => {
-                            window.location.href = "/";
+                            window.location.href = "/documents";
                         }}
                         onReuseQuery={(query) => {
                             setQueryText(query);
@@ -196,34 +211,105 @@ export default function QueriesPage() {
                             display: "flex",
                             flexDirection: "column",
                             border: "1px solid",
-                            borderColor: "divider",
+                            borderColor: "rgba(255,255,255,0.08)",
+                            backgroundColor: "#111",
                             overflow: "hidden",
+                            borderRadius: 1.5,
                         }}
                     >
                         <Box
                             sx={{
-                                p: 1.5,
+                                p: 1,
                                 borderBottom: "1px solid",
-                                borderColor: "divider",
-                                backgroundColor: "background.paper",
+                                borderColor: "rgba(255,255,255,0.08)",
+                                backgroundColor: "#111",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 1,
                             }}
                         >
-                            <Typography
-                                variant="subtitle1"
-                                sx={{ fontWeight: 700 }}
+                            <Box
+                                sx={{ display: "flex", alignItems: "center", gap: 1 }}
                             >
-                                Conversation
-                            </Typography>
+                                <ChatRoundedIcon
+                                    fontSize="small"
+                                    color="primary"
+                                />
+                                <Typography
+                                    variant="subtitle1"
+                                    sx={{ fontWeight: 700 }}
+                                >
+                                    Conversation
+                                </Typography>
+                            </Box>
+                            <Box
+                                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                            >
+                                <Tooltip title="New chat">
+                                    <IconButton
+                                        size="small"
+                                        onClick={startNewChat}
+                                        aria-label="New chat"
+                                    >
+                                        <EditNoteRoundedIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Open documents">
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                            window.location.href = "/documents";
+                                        }}
+                                        aria-label="Open documents"
+                                    >
+                                        <DescriptionRoundedIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            </Box>
                         </Box>
 
                         <Box
                             sx={{
-                                p: 1.5,
+                                p: 1.25,
                                 overflowY: "auto",
                                 flex: 1,
                                 scrollPaddingTop: 8,
+                                backgroundColor: "#111",
                             }}
                         >
+                            {conversation.length === 0 && !streamingQuery && !isSubmitting ? (
+                                <Box
+                                    sx={{
+                                        minHeight: "100%",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        px: 2,
+                                    }}
+                                >
+                                    <Stack
+                                        spacing={0.75}
+                                        sx={{ textAlign: "center", maxWidth: 420 }}
+                                    >
+                                        <Typography
+                                            variant="body2"
+                                            sx={{ fontWeight: 700 }}
+                                        >
+                                            Start a new conversation
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                        >
+                                            Ask a question about your uploaded
+                                            documents to see grounded answers and
+                                            source snippets.
+                                        </Typography>
+                                    </Stack>
+                                </Box>
+                            ) : null}
+
                             {conversation.map((item) => (
                                 <Stack
                                     key={item.id}
@@ -362,10 +448,10 @@ export default function QueriesPage() {
 
                         <Box
                             sx={{
-                                p: 1.5,
+                                p: 1,
                                 borderTop: "1px solid",
-                                borderColor: "divider",
-                                backgroundColor: "background.paper",
+                                borderColor: "rgba(255,255,255,0.08)",
+                                backgroundColor: "#111",
                             }}
                         >
                             <QueryComposer

@@ -48,7 +48,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:3000`.
+Frontend runs on `http://localhost:3000`. UI routes: `/` (overview), `/documents` (files), `/chat` (Q&A). The old `/queries` path redirects to `/chat`.
 
 ## Main API Endpoints
 

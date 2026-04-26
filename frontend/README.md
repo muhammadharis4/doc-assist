@@ -28,6 +28,14 @@ npm run dev
 
 App default URL: http://localhost:3000
 
+## App routes
+
+- `/` — Landing page (what DocAssist is, links to get started)
+- `/documents` — Upload and list documents
+- `/chat` — Chat with your documents and history
+
+Legacy path `/queries` redirects to `/chat`.
+
 ## API Flow
 
 Browser components call local Next.js API routes:
