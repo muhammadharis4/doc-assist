@@ -3,7 +3,7 @@
 import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import { IconButton, Tooltip } from "@mui/material";
-import { useThemeMode } from "@/lib/theme-mode-context";
+import { useThemeMode } from "@/hooks/theme-mode";
 
 type ThemeSwitcherProps = {
     /** MUI `IconButton` size; default `small` for dense toolbars. */

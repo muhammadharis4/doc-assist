@@ -2,7 +2,7 @@
  * Proxies document list (`GET /documents`) and create (`POST /documents`) to the backend.
  */
 import { NextRequest } from "next/server";
-import { proxyRequest } from "@/lib/server/backend";
+import { proxyRequest } from "@/services/server/backend";
 
 /**
  * Forwards a list request to the Python backend and returns the same response.

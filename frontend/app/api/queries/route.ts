@@ -2,7 +2,7 @@
  * Proxies non-streaming query execution to the backend `POST /queries`.
  */
 import { NextRequest } from "next/server";
-import { proxyRequest } from "@/lib/server/backend";
+import { proxyRequest } from "@/services/server/backend";
 
 /**
  * Runs a one-shot (non-streaming) RAG query on the backend and returns its answer.

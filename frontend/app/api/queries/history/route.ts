@@ -2,7 +2,7 @@
  * Proxies chat history listing to the backend `GET /queries/history`.
  */
 import { NextRequest } from "next/server";
-import { proxyRequest } from "@/lib/server/backend";
+import { proxyRequest } from "@/services/server/backend";
 
 /**
  * Fetches a page of past chat Q&A entries from the backend, honoring `?limit=`.

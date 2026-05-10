@@ -18,12 +18,12 @@ import {
     Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { extractPdfText } from "@/lib/api/documents";
+import { extractPdfText } from "@/services/documents";
 import {
     DOCUMENT_TYPE_OPTIONS,
     type CreateDocumentInput,
     type DocumentType,
-} from "@/lib/types/documents";
+} from "@/types/documents";
 
 interface DocumentUploadDialogProps {
     /** Controls MUI `Dialog` visibility. */

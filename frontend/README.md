@@ -34,7 +34,9 @@ The browser calls **same-origin** routes under `app/api/*`; those server handler
 | `npm run lint` | ESLint, zero warnings |
 | `npm run lint:fix` | ESLint with `--fix` |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run check` | `typecheck` + `lint` + `build` |
+| `npm run test` | Vitest unit tests (`**/*.test.ts`) |
+| `npm run test:watch` | Vitest watch mode |
+| `npm run check` | `typecheck` + `lint` + `test` + `build` |
 
 ---
 
@@ -50,9 +52,26 @@ The browser calls **same-origin** routes under `app/api/*`; those server handler
 
 ---
 
+## Project layout
+
+| Folder | Role |
+|--------|------|
+| `app/` | Next.js App Router: routes, layouts, `app/api/*` proxies |
+| `components/` | Reusable UI (including `marketing/` for the home page) |
+| `containers/` | Page-level compositions (chat, documents, home) wired to state and services |
+| `services/` | Browser API clients (`services/*.ts`) and server-only helpers (`services/server/`) |
+| `types/` | Shared TypeScript models and API shapes |
+| `libs/` | Theme factory and cross-cutting UI tokens |
+| `hooks/` | Client hooks and context (e.g. theme mode) |
+| `styles/` | Global CSS (`globals.css` imported from `app/layout.tsx`) |
+| `actions/` | Reserved for Server Actions |
+| `store/` | Reserved for client global state if you add it later |
+
+---
+
 ## API proxy shape
 
-Client code under `lib/api/*` talks to **Next.js** routes, which proxy to the backend:
+Client code under `services/*` talks to **Next.js** routes, which proxy to the backend:
 
 | Next route | Proxies to backend |
 |------------|---------------------|
@@ -64,7 +83,7 @@ Client code under `lib/api/*` talks to **Next.js** routes, which proxy to the ba
 | `GET` `/api/queries/history` | `/queries/history` |
 | `DELETE` `/api/queries/history/[id]` | `/queries/history/{id}` |
 
-Implementation: `lib/server/backend.ts` (`backendUrl`, `proxyRequest`).
+Implementation: `services/server/backend.ts` (`backendUrl`, `proxyRequest`).
 
 ---
 
@@ -83,8 +102,8 @@ The image uses Next **`output: "standalone"`**. Runtime env for the Node process
 
 ## Quality targets
 
-- Strict TypeScript on API helpers and typed domain models (`lib/types/*`).
-- Accessible UI patterns via MUI; theme mode persisted client-side (`lib/theme-mode-context.tsx`).
+- Strict TypeScript on API helpers and typed domain models (`types/*`).
+- Accessible UI patterns via MUI; theme mode persisted client-side (`hooks/theme-mode.tsx`).
 
 For repository-wide security and deployment assumptions, see the root **`SECURITY.md`**.
 

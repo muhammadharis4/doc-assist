@@ -2,7 +2,7 @@ import {
     DEFAULT_HISTORY_LIMIT,
     type ExecuteQueryInput,
     type QueryHistoryItem,
-} from "@/lib/types/queries";
+} from "@/types/queries";
 
 /**
  * Runs one full RAG query and returns the completed answer (no streaming).

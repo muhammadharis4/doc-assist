@@ -20,8 +20,8 @@ import {
     Typography,
     useTheme,
 } from "@mui/material";
-import { getChatShellTokens } from "@/lib/theme";
-import type { QueryHistoryItem } from "@/lib/types/queries";
+import { getChatShellTokens } from "@/libs/theme";
+import type { QueryHistoryItem } from "@/types/queries";
 
 interface HistoryListProps {
     /** Newest items first is typical; list is re-rendered from parent. */

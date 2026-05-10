@@ -19,7 +19,7 @@ import {
     DOCUMENT_TYPE_OPTIONS,
     type DocumentItem,
     type DocumentType,
-} from "@/lib/types/documents";
+} from "@/types/documents";
 
 interface DocumentsTableProps {
     /** Current rows; empty shows an empty state (after loading). */

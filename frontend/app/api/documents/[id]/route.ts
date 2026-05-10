@@ -1,7 +1,7 @@
 /**
  * Proxies document deletion: `DELETE /documents/:id` on the backend.
  */
-import { proxyRequest } from "@/lib/server/backend";
+import { proxyRequest } from "@/services/server/backend";
 
 interface RouteContext {
     params: Promise<{ id: string }>;

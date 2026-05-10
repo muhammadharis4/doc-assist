@@ -5,8 +5,8 @@
 
 import { useMemo, type ReactNode } from "react";
 import { CssBaseline, ThemeProvider } from "@mui/material";
-import { createAppTheme } from "@/lib/theme";
-import { ThemeModeProvider, useThemeMode } from "@/lib/theme-mode-context";
+import { createAppTheme } from "@/libs/theme";
+import { ThemeModeProvider, useThemeMode } from "@/hooks/theme-mode";
 
 /**
  * Applies `createAppTheme(mode)` from `useThemeMode` and mounts `CssBaseline`.

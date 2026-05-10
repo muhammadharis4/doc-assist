@@ -2,7 +2,7 @@
  * Proxies PDF/text extraction: `POST /documents/extract` (multipart) to the backend.
  */
 import { NextRequest } from "next/server";
-import { proxyRequest } from "@/lib/server/backend";
+import { proxyRequest } from "@/services/server/backend";
 
 /**
  * Runs backend PDF/text extraction on the uploaded file and returns extracted text.

@@ -1,4 +1,4 @@
-import type { CreateDocumentInput, DocumentItem } from "@/lib/types/documents";
+import type { CreateDocumentInput, DocumentItem } from "@/types/documents";
 
 /**
  * Fetches the user’s document list and indexing status from the Next API (`GET /api/documents`).

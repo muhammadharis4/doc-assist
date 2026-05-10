@@ -94,10 +94,31 @@ Full detail: **`Backend/README.md`**, **`frontend/README.md`**.
 
 ---
 
+## Testing and CI
+
+**Backend** (from `Backend/`):
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+pytest -q
+```
+
+**Frontend** (from `frontend/`):
+
+```bash
+npm install
+npm run test
+npm run check
+```
+
+**GitHub Actions**: `.github/workflows/ci.yml` runs the same checks on push/PR to `main` or `master`.
+
+---
+
 ## Contributing
 
 - Keep API contracts stable unless you intentionally version or document a break.
-- Prefer small, reviewable changes; run backend `compileall` / frontend `npm run check` when you touch those trees.
+- Prefer small, reviewable changes; run **`pytest`** in `Backend/` and **`npm run check`** in `frontend/` before opening a PR.
 - Update READMEs when behavior, env vars, or deployment assumptions change.
 
 ---

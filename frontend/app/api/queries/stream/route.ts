@@ -2,7 +2,7 @@
  * Proxies streaming query execution to the backend `POST /queries/stream` (SSE).
  */
 import { NextRequest } from "next/server";
-import { proxyRequest } from "@/lib/server/backend";
+import { proxyRequest } from "@/services/server/backend";
 
 /**
  * Starts a streaming RAG query (SSE) on the backend and returns the same byte stream.

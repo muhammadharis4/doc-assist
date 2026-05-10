@@ -84,6 +84,17 @@ The monorepo is under the **MIT License** — see the root [`LICENSE`](../LICENS
 
 ---
 
+## Tests
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+pytest -q
+```
+
+Tests live in `tests/`. They use a temporary SQLite file and **mock** OpenSearch setup and embedding warmup so CI does not require Docker services. Full RAG integration tests are not included yet.
+
+---
+
 ## Key modules
 
 | Path | Role |
