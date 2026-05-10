@@ -87,3 +87,7 @@ The image uses Next **`output: "standalone"`**. Runtime env for the Node process
 - Accessible UI patterns via MUI; theme mode persisted client-side (`lib/theme-mode-context.tsx`).
 
 For repository-wide security and deployment assumptions, see the root **`SECURITY.md`**.
+
+## License
+
+MIT — see the repository root [`LICENSE`](../LICENSE).

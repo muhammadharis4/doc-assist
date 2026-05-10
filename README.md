@@ -2,7 +2,7 @@
 
 DocAssist is a retrieval-augmented assistant over your uploaded documents: a **FastAPI** backend (chunking, embeddings, OpenSearch hybrid search, optional Ollama) and a **Next.js** App Router frontend.
 
-**License:** repository default is `UNLICENSED` until you attach an explicit OSS or proprietary license — see [`LICENSE`](#license) below.
+**License:** [MIT](./LICENSE) — see the [License](#license) section below.
 
 ---
 
@@ -11,7 +11,8 @@ DocAssist is a retrieval-augmented assistant over your uploaded documents: a **F
 ```text
 Doc Assist/
 ├── Backend/           # FastAPI API + RAG pipeline
-├── frontend/          # Next.js UI + `app/api/*` proxies to Backend
+├── frontend/        # Next.js UI + `app/api/*` proxies to Backend
+├── LICENSE            # MIT
 ├── docker-compose.yml # Optional full stack for local/demo (see SECURITY.md)
 └── SECURITY.md        # Threat model and hardening notes (read before exposing to a network)
 ```
@@ -103,4 +104,6 @@ Full detail: **`Backend/README.md`**, **`frontend/README.md`**.
 
 ## License
 
-The root metadata may state **UNLICENSED** until a `LICENSE` file is added. That means **all rights reserved** by default — others may not legally reuse the code without permission. To make the project open source, add a standard license file (e.g. MIT, Apache-2.0) and adjust `package.json` / PyPI metadata if you publish artifacts.
+This project is licensed under the **MIT License** — see [`LICENSE`](./LICENSE).
+
+The `frontend/package.json` field `license` is set to `MIT` for npm tooling. The Python backend in `Backend/` is covered by the same root `LICENSE` file (no separate PyPI package is defined in-repo; if you publish one, set `license` in `pyproject.toml` to match).

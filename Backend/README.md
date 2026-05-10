@@ -78,6 +78,12 @@ See also the repository root **`SECURITY.md`** for Telegram webhook and deployme
 
 ---
 
+## License
+
+The monorepo is under the **MIT License** — see the root [`LICENSE`](../LICENSE) file. Python code in this directory is covered by that license.
+
+---
+
 ## Key modules
 
 | Path | Role |
