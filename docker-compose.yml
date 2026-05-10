@@ -1,0 +1,77 @@
+# DocAssist stack: Next.js frontend (reverse proxy routes) + FastAPI backend + OpenSearch (dev topology).
+#
+# Prerequisites on the host:
+# - Ollama running on the machine (recommended). Backend reaches it via:
+#     OLLAMA_BASE_URL=http://host.docker.internal:11434 (default below on Linux-compatible Docker).
+#
+# Commands:
+#   docker compose build
+#   docker compose up
+#
+# Frontend: http://localhost:3000 — API proxies use BACKEND_API_URL=http://backend:8000
+# Backend: http://localhost:8000/docs
+#
+# SECURITY: OpenSearch runs with DISABLE_SECURITY_PLUGIN=true — only use for local/demo.
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      BACKEND_API_URL: http://backend:8000
+
+    depends_on:
+      backend:
+        condition: service_started
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_data:/app/data
+    environment:
+      APP_DB_PATH: /app/data/app.db
+      OPENSEARCH_URL: http://opensearch:9200
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      USE_MOCK_LLM: ${USE_MOCK_LLM:-false}
+    extra_hosts:
+      # Allows Linux Docker to resolve host.docker.internal like Docker Desktop does.
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      opensearch:
+        condition: service_healthy
+
+  opensearch:
+    image: opensearchproject/opensearch:2.17.1
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -sf http://127.0.0.1:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+      start_period: 40s
+
+volumes:
+  backend_data:
+  opensearch_data:
