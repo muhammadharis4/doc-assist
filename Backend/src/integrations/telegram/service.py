@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from telegram import Bot, Update
@@ -9,9 +10,18 @@ from telegram.constants import ChatAction
 
 from src import db
 from src.config import settings
+from src.constants import (
+    TELEGRAM_DOCS_LIST_LIMIT,
+    TELEGRAM_MAX_MESSAGE_CHARS,
+    TELEGRAM_SCOPE_LABEL_ENABLED,
+    TELEGRAM_SOURCE_LIMIT,
+    TELEGRAM_WEBHOOK_RETRY_MAX,
+)
 from src.queries.service import QueryService
 
 logger = logging.getLogger(__name__)
+
+_TELEGRAM_WEBHOOK_RETRY_INTERVAL_SEC = 5.0
 
 
 class TelegramService:
@@ -51,24 +61,51 @@ class TelegramService:
 
         return (secret_token or "") == self._secret
 
-    async def register_webhook(self) -> bool:
+    async def register_webhook_retry_loop(self) -> None:
         """
-        Registers the configured Telegram webhook when a public URL is available.
+        Calls Telegram `setWebhook` in a loop when `TELEGRAM_WEBHOOK_URL` is set.
+
+        Retries every 5 seconds on failure. If `TELEGRAM_WEBHOOK_RETRY_MAX`
+        in ``src.constants`` is 0, retries indefinitely (e.g. while a tunnel or
+        DNS is not ready).
 
         Returns:
-            bool: True when a webhook URL is configured and registration was attempted.
+            None: This coroutine runs until success or max retries are exhausted.
         """
 
         webhook_url = settings.telegram_webhook_url.strip()
         if not self._bot or not webhook_url:
-            return False
+            return
 
-        await self._bot.set_webhook(
-            url=webhook_url,
-            secret_token=self._secret or None,
-        )
-        logger.info("Telegram webhook registered for %s", webhook_url)
-        return True
+        max_retries = max(0, TELEGRAM_WEBHOOK_RETRY_MAX)
+        attempt = 0
+
+        while True:
+            attempt += 1
+            try:
+                await self._bot.set_webhook(
+                    url=webhook_url,
+                    secret_token=self._secret or None,
+                )
+                logger.info(
+                    "Telegram webhook registered for %s (attempt %s)",
+                    webhook_url,
+                    attempt,
+                )
+                return
+            except Exception as error:  # pragma: no cover - network / Telegram API
+                logger.warning(
+                    "Telegram webhook registration failed (attempt %s): %s",
+                    attempt,
+                    error,
+                )
+                if max_retries > 0 and attempt >= max_retries:
+                    logger.error(
+                        "Telegram webhook registration stopped after %s failed attempts.",
+                        max_retries,
+                    )
+                    return
+            await asyncio.sleep(_TELEGRAM_WEBHOOK_RETRY_INTERVAL_SEC)
 
     async def handle_update(self, payload: dict[str, object]) -> None:
         """
@@ -225,7 +262,7 @@ class TelegramService:
             return "No ready documents found."
 
         lines = ["Ready documents:"]
-        docs_list_limit = max(1, settings.telegram_docs_list_limit)
+        docs_list_limit = max(1, TELEGRAM_DOCS_LIST_LIMIT)
         for item in ready_documents[:docs_list_limit]:
             document_id = str(item.get("id", ""))
             filename = str(item.get("filename") or "Unknown")
@@ -328,7 +365,7 @@ class TelegramService:
         source_lines: list[str] = []
 
         if isinstance(sources, list):
-            source_limit = max(1, settings.telegram_source_limit)
+            source_limit = max(1, TELEGRAM_SOURCE_LIMIT)
             for source in sources[:source_limit]:
                 if not isinstance(source, dict):
                     continue
@@ -343,10 +380,10 @@ class TelegramService:
         if source_lines:
             message += "\n\nSources:\n" + "\n".join(source_lines)
 
-        if scope_label and settings.telegram_scope_label_enabled:
+        if scope_label and TELEGRAM_SCOPE_LABEL_ENABLED:
             message += f"\n\nScope: {scope_label}"
 
-        max_message_chars = max(100, settings.telegram_max_message_chars)
+        max_message_chars = max(100, TELEGRAM_MAX_MESSAGE_CHARS)
         if len(message) > max_message_chars:
             message = message[: max_message_chars - 3].rstrip() + "..."
 

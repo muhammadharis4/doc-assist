@@ -1,4 +1,9 @@
-"""Environment-driven runtime settings."""
+"""
+Runtime configuration.
+
+Only a handful of values come from the process environment (see `_build_settings`);
+everything else lives in ``src.constants`` so defaults stay in code, not scattered env files.
+"""
 
 from __future__ import annotations
 
@@ -12,20 +17,17 @@ from src.constants import (
     APP_VERSION,
     CHUNK_OVERLAP_CHARS,
     CHUNK_SIZE_CHARS,
-    DEFAULT_HISTORY_LIMIT,
     DOC_TYPE_SCORE_BOOST,
     EMBEDDING_MODEL_PATH,
     MAX_QUERY_LENGTH,
     OCR_LANGUAGES,
+    OLLAMA_MODEL,
+    OLLAMA_TEMPERATURE,
     OPENSEARCH_INDEX_NAME,
     OPENSEARCH_PIPELINE_NAME,
     RAG_CANDIDATE_MULTIPLIER,
     RAG_MAX_RESULTS_PER_DOCUMENT,
     SOURCE_SNIPPET_MAX_CHARS,
-    TELEGRAM_DOCS_LIST_LIMIT,
-    TELEGRAM_MAX_MESSAGE_CHARS,
-    TELEGRAM_SCOPE_LABEL_ENABLED,
-    TELEGRAM_SOURCE_LIMIT,
     TEXT_SCORE_WEIGHT,
     TOP_K,
     VECTOR_SCORE_WEIGHT,
@@ -55,66 +57,74 @@ def _as_bool(raw: str | None, default: bool = False) -> bool:
 @dataclass(frozen=True)
 class Settings:
     """
-    Holds all configurable runtime settings.
+    Holds all runtime settings (env-backed fields are set in `_build_settings`).
 
     Returns:
-        Settings: Dataclass-style settings container.
+        Settings: Immutable settings container.
     """
 
-    app_name: str = os.getenv("APP_NAME", APP_NAME)
-    app_version: str = os.getenv("APP_VERSION", APP_VERSION)
+    app_name: str
+    app_version: str
+    db_path: str
+    opensearch_url: str
+    opensearch_index_name: str
+    opensearch_pipeline_name: str
+    embedding_model_path: str
+    chunk_size_chars: int
+    chunk_overlap_chars: int
+    top_k: int
+    rag_candidate_multiplier: int
+    rag_max_results_per_document: int
+    source_snippet_max_chars: int
+    doc_type_score_boost: float
+    text_score_weight: float
+    vector_score_weight: float
+    ocr_languages: str
+    max_query_length: int
+    ollama_base_url: str
+    ollama_model: str
+    ollama_temperature: float
+    use_mock_llm: bool
+    telegram_bot_token: str
+    telegram_webhook_secret: str
+    telegram_webhook_url: str
 
-    db_path: str = os.getenv("APP_DB_PATH", "./data/app.db")
 
-    opensearch_url: str = os.getenv("OPENSEARCH_URL", "http://localhost:9200")
-    opensearch_index_name: str = os.getenv("OPENSEARCH_INDEX_NAME", OPENSEARCH_INDEX_NAME)
-    opensearch_pipeline_name: str = os.getenv("OPENSEARCH_PIPELINE_NAME", OPENSEARCH_PIPELINE_NAME)
+def _build_settings() -> Settings:
+    """
+    Builds Settings from constants plus a minimal environment surface:
 
-    embedding_model_path: str = os.getenv("EMBEDDING_MODEL", EMBEDDING_MODEL_PATH)
-    chunk_size_chars: int = int(os.getenv("CHUNK_SIZE_CHARS", str(CHUNK_SIZE_CHARS)))
-    chunk_overlap_chars: int = int(os.getenv("CHUNK_OVERLAP_CHARS", str(CHUNK_OVERLAP_CHARS)))
+    ``APP_DB_PATH``, ``OPENSEARCH_URL``, ``OLLAMA_BASE_URL``, ``USE_MOCK_LLM``,
+    ``TELEGRAM_BOT_TOKEN``, ``TELEGRAM_WEBHOOK_SECRET``, ``TELEGRAM_WEBHOOK_URL``.
+    """
 
-    top_k: int = int(os.getenv("RAG_TOP_K", str(TOP_K)))
-    rag_candidate_multiplier: int = int(
-        os.getenv("RAG_CANDIDATE_MULTIPLIER", str(RAG_CANDIDATE_MULTIPLIER))
+    return Settings(
+        app_name=APP_NAME,
+        app_version=APP_VERSION,
+        db_path=os.getenv("APP_DB_PATH", "./data/app.db"),
+        opensearch_url=os.getenv("OPENSEARCH_URL", "http://localhost:9200"),
+        opensearch_index_name=OPENSEARCH_INDEX_NAME,
+        opensearch_pipeline_name=OPENSEARCH_PIPELINE_NAME,
+        embedding_model_path=EMBEDDING_MODEL_PATH,
+        chunk_size_chars=CHUNK_SIZE_CHARS,
+        chunk_overlap_chars=CHUNK_OVERLAP_CHARS,
+        top_k=TOP_K,
+        rag_candidate_multiplier=RAG_CANDIDATE_MULTIPLIER,
+        rag_max_results_per_document=RAG_MAX_RESULTS_PER_DOCUMENT,
+        source_snippet_max_chars=SOURCE_SNIPPET_MAX_CHARS,
+        doc_type_score_boost=DOC_TYPE_SCORE_BOOST,
+        text_score_weight=TEXT_SCORE_WEIGHT,
+        vector_score_weight=VECTOR_SCORE_WEIGHT,
+        ocr_languages=OCR_LANGUAGES,
+        max_query_length=MAX_QUERY_LENGTH,
+        ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        ollama_model=OLLAMA_MODEL,
+        ollama_temperature=OLLAMA_TEMPERATURE,
+        use_mock_llm=_as_bool(os.getenv("USE_MOCK_LLM"), default=False),
+        telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
+        telegram_webhook_secret=os.getenv("TELEGRAM_WEBHOOK_SECRET", ""),
+        telegram_webhook_url=os.getenv("TELEGRAM_WEBHOOK_URL", ""),
     )
-    rag_max_results_per_document: int = int(
-        os.getenv("RAG_MAX_RESULTS_PER_DOCUMENT", str(RAG_MAX_RESULTS_PER_DOCUMENT))
-    )
-    source_snippet_max_chars: int = int(
-        os.getenv("SOURCE_SNIPPET_MAX_CHARS", str(SOURCE_SNIPPET_MAX_CHARS))
-    )
-    doc_type_score_boost: float = float(
-        os.getenv("DOC_TYPE_SCORE_BOOST", str(DOC_TYPE_SCORE_BOOST))
-    )
-    text_score_weight: float = float(os.getenv("TEXT_SCORE_WEIGHT", str(TEXT_SCORE_WEIGHT)))
-    vector_score_weight: float = float(os.getenv("VECTOR_SCORE_WEIGHT", str(VECTOR_SCORE_WEIGHT)))
-    ocr_languages: str = os.getenv("OCR_LANGUAGES", OCR_LANGUAGES)
-
-    max_query_length: int = int(os.getenv("MAX_QUERY_LENGTH", str(MAX_QUERY_LENGTH)))
-    default_history_limit: int = int(os.getenv("DEFAULT_HISTORY_LIMIT", str(DEFAULT_HISTORY_LIMIT)))
-
-    ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
-    ollama_temperature: float = float(os.getenv("OLLAMA_TEMPERATURE", "0.2"))
-    use_mock_llm: bool = _as_bool(os.getenv("USE_MOCK_LLM"), default=False)
-
-    telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
-    telegram_webhook_secret: str = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
-    telegram_webhook_url: str = os.getenv("TELEGRAM_WEBHOOK_URL", "")
-    telegram_source_limit: int = int(
-        os.getenv("TELEGRAM_SOURCE_LIMIT", str(TELEGRAM_SOURCE_LIMIT))
-    )
-    telegram_max_message_chars: int = int(
-        os.getenv("TELEGRAM_MAX_MESSAGE_CHARS", str(TELEGRAM_MAX_MESSAGE_CHARS))
-    )
-    telegram_docs_list_limit: int = int(
-        os.getenv("TELEGRAM_DOCS_LIST_LIMIT", str(TELEGRAM_DOCS_LIST_LIMIT))
-    )
-    telegram_scope_label_enabled: bool = _as_bool(
-        os.getenv("TELEGRAM_SCOPE_LABEL_ENABLED"),
-        default=TELEGRAM_SCOPE_LABEL_ENABLED,
-    )
 
 
-settings = Settings()
+settings = _build_settings()

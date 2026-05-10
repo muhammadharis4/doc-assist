@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -50,10 +51,8 @@ async def lifespan(_: FastAPI):
     except Exception as error:  # pragma: no cover - environment-dependent startup
         logger.warning("Startup step failed for warmup: %s", error)
 
-    try:
-        await telegram_service.register_webhook()
-    except Exception as error:  # pragma: no cover - environment-dependent startup
-        logger.warning("Startup step failed for telegram webhook registration: %s", error)
+    if telegram_service.enabled and settings.telegram_webhook_url.strip():
+        asyncio.create_task(telegram_service.register_webhook_retry_loop())
 
     yield
 
