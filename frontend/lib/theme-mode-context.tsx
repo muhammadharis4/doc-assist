@@ -8,13 +8,13 @@ import {
     createContext,
     useCallback,
     useContext,
-    useEffect,
     useMemo,
-    useState,
+    useSyncExternalStore,
     type ReactNode,
 } from "react";
 
 const STORAGE_KEY = "docassist-theme-mode";
+const DEFAULT_MODE: AppThemeMode = "dark";
 
 export type AppThemeMode = "light" | "dark";
 
@@ -28,33 +28,67 @@ type ThemeModeContextValue = {
 
 const ThemeModeContext = createContext<ThemeModeContextValue | null>(null);
 
+function readStoredMode(): AppThemeMode {
+    if (typeof window === "undefined") {
+        return DEFAULT_MODE;
+    }
+    try {
+        const stored = window.localStorage.getItem(STORAGE_KEY);
+        return stored === "light" || stored === "dark" ? stored : DEFAULT_MODE;
+    } catch {
+        return DEFAULT_MODE;
+    }
+}
+
+function subscribeThemeMode(onChange: () => void): () => void {
+    if (typeof window === "undefined") {
+        return () => {};
+    }
+
+    const handleStorage = (event: StorageEvent) => {
+        if (event.key === STORAGE_KEY) {
+            onChange();
+        }
+    };
+
+    const handleLocalToggle = () => onChange();
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("docassist-theme-change", handleLocalToggle);
+
+    return () => {
+        window.removeEventListener("storage", handleStorage);
+        window.removeEventListener("docassist-theme-change", handleLocalToggle);
+    };
+}
+
 /**
  * Holds `mode` in state, restores it from `localStorage` after mount, and writes back on change.
  * @param props.children - App tree (typically wrapped by MUI `ThemeProvider` separately).
  */
 export function ThemeModeProvider({ children }: { children: ReactNode }) {
-    const [mode, setMode] = useState<AppThemeMode>(() => {
-        if (typeof window === "undefined") {
-            return "dark";
-        }
-        try {
-            const stored = window.localStorage.getItem(STORAGE_KEY);
-            return stored === "light" || stored === "dark" ? stored : "dark";
-        } catch {
-            return "dark";
-        }
-    });
+    const mode = useSyncExternalStore(
+        subscribeThemeMode,
+        readStoredMode,
+        () => DEFAULT_MODE,
+    );
 
-    useEffect(() => {
+    const toggleMode = useCallback(() => {
+        const nextMode: AppThemeMode = mode === "dark" ? "light" : "dark";
         try {
-            window.localStorage.setItem(STORAGE_KEY, mode);
+            window.localStorage.setItem(STORAGE_KEY, nextMode);
         } catch {
             /* ignore */
         }
+        window.dispatchEvent(new Event("docassist-theme-change"));
     }, [mode]);
 
-    const toggleMode = useCallback(() => {
-        setMode((current) => (current === "dark" ? "light" : "dark"));
+    const setMode = useCallback((nextMode: AppThemeMode) => {
+        try {
+            window.localStorage.setItem(STORAGE_KEY, nextMode);
+        } catch {
+            /* ignore */
+        }
+        window.dispatchEvent(new Event("docassist-theme-change"));
     }, []);
 
     const value = useMemo(
@@ -63,7 +97,7 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
             setMode,
             toggleMode,
         }),
-        [mode, toggleMode],
+        [mode, setMode, toggleMode],
     );
 
     return (
