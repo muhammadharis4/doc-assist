@@ -11,7 +11,11 @@
 # Frontend: http://localhost:3000 — API proxies use BACKEND_API_URL=http://backend:8000
 # Backend: http://localhost:8000/docs
 #
-# SECURITY: OpenSearch runs with DISABLE_SECURITY_PLUGIN=true — only use for local/demo.
+# SECURITY
+# - OpenSearch: DISABLE_SECURITY_PLUGIN=true — demo/local ONLY. Production: secured cluster +
+#   OPENSEARCH_URL to that endpoint; enable the security plugin and auth.
+# - OpenSearch port 9200 is NOT published to the host; only backend reaches it on the
+#   internal network. Temporarily add "9200:9200" under `opensearch` for debugging only.
 
 services:
   frontend:
@@ -53,8 +57,6 @@ services:
       - discovery.type=single-node
       - DISABLE_SECURITY_PLUGIN=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
     ulimits:
       memlock:
         soft: -1

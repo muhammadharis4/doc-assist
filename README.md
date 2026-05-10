@@ -1,46 +1,53 @@
 # DocAssist Monorepo
 
-DocAssist is a retrieval-augmented documentation assistant with a Python backend and a Next.js frontend.
+DocAssist is a retrieval-augmented assistant over your uploaded documents: a **FastAPI** backend (chunking, embeddings, OpenSearch hybrid search, optional Ollama) and a **Next.js** App Router frontend.
 
-## Project Layout
+**License:** repository default is `UNLICENSED` until you attach an explicit OSS or proprietary license — see [`LICENSE`](#license) below.
+
+---
+
+## Repository layout
 
 ```text
 Doc Assist/
-├── Backend/      # FastAPI API + retrieval pipeline
-├── frontend/     # Next.js App Router UI
-├── .github/      # Agent/docs guidance (ignored from git in this repo)
-└── .gitignore
+├── Backend/           # FastAPI API + RAG pipeline
+├── frontend/          # Next.js UI + `app/api/*` proxies to Backend
+├── docker-compose.yml # Optional full stack for local/demo (see SECURITY.md)
+└── SECURITY.md        # Threat model and hardening notes (read before exposing to a network)
 ```
 
-## Current Architecture
+---
 
-- `frontend` calls local Next.js route handlers under `frontend/app/api/*`.
-- Route handlers proxy requests to `Backend`.
-- `Backend` handles ingestion, retrieval, and answer generation.
-- Retrieval stack is backend-internal: chunking + embeddings + OpenSearch hybrid search + Ollama.
-- Persistence uses SQLite for documents, query history, and source records.
+## Prerequisites
 
-## Backend Quick Start
+- **Python 3.11+**, **Node 20+** (matching the frontend Docker image).
+- **OpenSearch** reachable at `OPENSEARCH_URL` (default `http://localhost:9200` for native dev).
+- **Ollama** (optional) at `OLLAMA_BASE_URL`, or `USE_MOCK_LLM=true` for tests/demo without an LLM.
+
+---
+
+## Backend quick start
 
 ```bash
 cd Backend
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Backend runs on `http://localhost:8000`.
+- API: `http://localhost:8000` — OpenAPI: `/docs`
+- **Environment:** only a small set of variables is read from the process environment; see `Backend/src/config.py` (`_build_settings`) and **`Backend/README.md`**. Other defaults live in **`Backend/src/constants.py`** (not env).
 
-## Frontend Quick Start
+---
 
-Create `frontend/.env.local`:
+## Frontend quick start
+
+Create **`frontend/.env.local`** (not committed):
 
 ```bash
 BACKEND_API_URL=http://localhost:8000
 ```
-
-Run frontend:
 
 ```bash
 cd frontend
@@ -48,31 +55,52 @@ npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:3000`. UI routes: `/` (overview), `/documents` (files), `/chat` (Q&A). The old `/queries` path redirects to `/chat`.
+- App: `http://localhost:3000` — routes: `/`, `/documents`, `/chat` (legacy `/queries` redirects to `/chat`).
+- Quality gates: `npm run lint`, `npm run typecheck`, `npm run check` (includes `next build`).
 
-## Main API Endpoints
+---
 
-- `GET /health`
-- `GET /documents`
-- `POST /documents`
-- `POST /documents/extract`
-- `DELETE /documents/:id`
-- `POST /queries`
-- `POST /queries/stream`
-- `GET /queries/history`
-- `POST /integrations/telegram/webhook`
+## Docker (optional)
 
-## Service Docs
+From the repo root:
 
-- `Backend/README.md`
-- `frontend/README.md`
+```bash
+docker compose build
+docker compose up
+```
 
-## Contribution Notes
+- UI: `http://localhost:3000` — backend: `http://localhost:8000/docs`
+- Compose includes a **development-only** OpenSearch configuration. **Do not** use that topology as-is on the public internet — read **`SECURITY.md`**.
 
-- Keep contracts stable unless intentionally changing them.
-- Add or update tests for behavior changes where practical.
-- Keep docs synchronized with implementation when contracts change.
+---
+
+## HTTP API surface (backend)
+
+| Area        | Examples |
+|------------|----------|
+| Health     | `GET /health` |
+| Documents  | `GET/POST /documents`, `POST /documents/extract`, `DELETE /documents/{id}` |
+| Queries    | `POST /queries`, `POST /queries/stream`, `GET /queries/history` |
+| Telegram   | `POST /integrations/telegram/webhook` (when bot + webhook configured) |
+
+Full detail: **`Backend/README.md`**, **`frontend/README.md`**.
+
+---
+
+## Security
+
+**Read [`SECURITY.md`](./SECURITY.md)** before deploying. This project does **not** ship application-level user auth on the document/query API; network placement and your own controls matter.
+
+---
+
+## Contributing
+
+- Keep API contracts stable unless you intentionally version or document a break.
+- Prefer small, reviewable changes; run backend `compileall` / frontend `npm run check` when you touch those trees.
+- Update READMEs when behavior, env vars, or deployment assumptions change.
+
+---
 
 ## License
 
-UNLICENSED
+The root metadata may state **UNLICENSED** until a `LICENSE` file is added. That means **all rights reserved** by default — others may not legally reuse the code without permission. To make the project open source, add a standard license file (e.g. MIT, Apache-2.0) and adjust `package.json` / PyPI metadata if you publish artifacts.

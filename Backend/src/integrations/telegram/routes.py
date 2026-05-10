@@ -41,6 +41,7 @@ async def webhook(
     if not service.enabled:
         return {"status": "disabled"}
 
+    # Header checked with constant-time compare when TELEGRAM_WEBHOOK_SECRET is set.
     if not service.validate_secret(telegram_secret):
         raise HTTPException(status_code=401, detail="invalid telegram secret")
 

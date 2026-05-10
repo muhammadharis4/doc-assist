@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import secrets
 
 from telegram import Bot, Update
 from telegram.constants import ChatAction
@@ -34,6 +35,16 @@ class TelegramService:
         self._query_service = QueryService()
         self._chat_document_scope: dict[int, str] = {}
 
+        if (
+            self._bot
+            and settings.telegram_webhook_url.strip()
+            and not self._secret
+        ):
+            logger.warning(
+                "TELEGRAM_WEBHOOK_URL is set but TELEGRAM_WEBHOOK_SECRET is empty: "
+                "enable a secret so only Telegram can call the webhook (see SECURITY.md)."
+            )
+
     @property
     def enabled(self) -> bool:
         """
@@ -59,7 +70,8 @@ class TelegramService:
         if not self._secret:
             return True
 
-        return (secret_token or "") == self._secret
+        # Constant-time comparison; mitigates timing probes on the webhook secret header.
+        return secrets.compare_digest(secret_token or "", self._secret)
 
     async def register_webhook_retry_loop(self) -> None:
         """
@@ -241,11 +253,14 @@ class TelegramService:
                 chat_id=chat_id,
                 text=self._format_query_response(result, scope_label=scope_label),
             )
-        except Exception as error:  # pragma: no cover - network/runtime dependent
+        except Exception:  # pragma: no cover - network/runtime dependent
             logger.exception("Telegram query handling failed")
             await self._bot.send_message(
                 chat_id=chat_id,
-                text=f"Something went wrong while processing your question: {error}",
+                text=(
+                    "Something went wrong while processing your question. "
+                    "Please try again later."
+                ),
             )
 
     def _build_docs_message(self) -> str:

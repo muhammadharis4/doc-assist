@@ -1,169 +1,92 @@
 # DocAssist Backend
 
-FastAPI backend for document ingestion, hybrid retrieval (BM25 + vector), and grounded answer generation.
+FastAPI service for document ingestion, **OpenSearch hybrid retrieval** (lexical + vector), and grounded answer generation (Ollama or mock). Persistence: **SQLite**. Optional **Telegram** webhook integration.
 
-## Stack
+---
 
-- FastAPI
-- SQLite (documents + query history persistence)
-- OpenSearch (hybrid lexical/vector retrieval)
-- SentenceTransformer embeddings
-- Ollama generation
-- Telegram webhook integration
+## Requirements
 
-## Run Locally
+- Python **3.11+**
+- Running **OpenSearch** (see `OPENSEARCH_URL`)
+- **Ollama** on the same host or network (or set `USE_MOCK_LLM=true`)
+
+---
+
+## Run locally
 
 ```bash
 cd Backend
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Backend URL: `http://localhost:8000`
+- Base URL: `http://localhost:8000`
+- Interactive docs: `http://localhost:8000/docs`
 
-## Environment Variables
+Use a `.env` file in this directory (loaded by `python-dotenv`; keep it out of git). **Do not commit secrets.**
 
-### Core
+---
 
-- `APP_DB_PATH` (default: `./data/app.db`)
-- `OPENSEARCH_URL` (default: `http://localhost:9200`)
-- `OPENSEARCH_INDEX_NAME` (default: `docassist_chunks`)
-- `OPENSEARCH_PIPELINE_NAME` (default: `nlp-search-pipeline`)
+## Configuration: environment vs code
 
-### Retrieval and Ranking
+### Environment variables (minimal)
 
-- `CHUNK_SIZE_CHARS` (default: `500`)
-- `CHUNK_OVERLAP_CHARS` (default: `120`)
-- `RAG_TOP_K` (default: `8`)
-- `RAG_CANDIDATE_MULTIPLIER` (default: `6`)
-- `RAG_MAX_RESULTS_PER_DOCUMENT` (default: `3`)
-- `SOURCE_SNIPPET_MAX_CHARS` (default: `500`)
-- `DOC_TYPE_SCORE_BOOST` (default: `0.2`)
-- `TEXT_SCORE_WEIGHT` (default: `0.6`)
-- `VECTOR_SCORE_WEIGHT` (default: `0.4`)
-- `EMBEDDING_MODEL` (default: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`)
-- `OCR_LANGUAGES` (default: `deu+eng`)
+These are the **only** values read from the environment in `src/config.py`:
 
-### LLM Generation
+| Variable | Purpose |
+|----------|---------|
+| `APP_DB_PATH` | SQLite database file path (default `./data/app.db`) |
+| `OPENSEARCH_URL` | OpenSearch HTTP base URL |
+| `OLLAMA_BASE_URL` | Ollama API base URL |
+| `USE_MOCK_LLM` | If truthy, skip live Ollama calls (useful for CI / Compose without a model) |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token (empty disables Telegram features) |
+| `TELEGRAM_WEBHOOK_SECRET` | Strong secret for webhook validation header (recommended when using webhooks) |
+| `TELEGRAM_WEBHOOK_URL` | Public HTTPS URL for `setWebhook` |
 
-- `OLLAMA_BASE_URL` (default: `http://localhost:11434`)
-- `OLLAMA_MODEL` (default: `llama3.2:1b`)
-- `OLLAMA_TEMPERATURE` (default: `0.2`)
+### Constants (code, not env)
 
-### Telegram Integration
+Retrieval tuning, embedding model id, chunk sizes, OpenSearch **index / pipeline names**, Ollama **model name and temperature**, Telegram message limits, etc. live in **`src/constants.py`**. Change those in code (or fork) rather than scattering env knobs.
 
-- `TELEGRAM_BOT_TOKEN` (default: empty, integration disabled)
-- `TELEGRAM_WEBHOOK_SECRET` (default: empty)
-- `TELEGRAM_WEBHOOK_URL` (default: empty)
-- `TELEGRAM_SOURCE_LIMIT` (default: `3`)
-- `TELEGRAM_MAX_MESSAGE_CHARS` (default: `3500`)
-- `TELEGRAM_DOCS_LIST_LIMIT` (default: `20`)
-- `TELEGRAM_SCOPE_LABEL_ENABLED` (default: `true`)
+See also the repository root **`SECURITY.md`** for Telegram webhook and deployment notes.
 
-## API Endpoints
+---
 
-### Health
+## Main HTTP routes
 
-- `GET /health`
+| Method | Path | Notes |
+|--------|------|--------|
+| `GET` | `/health` | Liveness |
+| `GET` / `POST` | `/documents` | List / create documents |
+| `POST` | `/documents/extract` | PDF/text extraction helper |
+| `DELETE` | `/documents/{id}` | Remove document |
+| `POST` | `/queries` | Non-streaming Q&A |
+| `POST` | `/queries/stream` | SSE streaming answer |
+| `GET` | `/queries/history` | Recent queries |
+| `GET` | `/integrations/telegram/health` | Telegram enabled flag |
+| `POST` | `/integrations/telegram/webhook` | Telegram updates (validated when secret is set) |
 
-### Documents
+---
 
-- `GET /documents`
-- `POST /documents`
-- `POST /documents/extract`
-- `DELETE /documents/:id`
+## Processing flow (high level)
 
-### Queries
+1. **Ingest** stores metadata (and staging) in SQLite; processing chunks text and computes embeddings.
+2. **Indexing** writes chunks into OpenSearch (text + `knn_vector`) with the configured hybrid search pipeline.
+3. **Query** runs hybrid search, optional type boosting, caps per-document hits.
+4. **Generate** sends context to Ollama (or mock); history and sources are persisted in SQLite.
 
-- `POST /queries`
-- `POST /queries/stream`
-- `GET /queries/history`
+---
 
-### Telegram
+## Key modules
 
-- `GET /integrations/telegram/health`
-- `POST /integrations/telegram/webhook`
-
-## Request/Response Notes
-
-### `POST /documents`
-
-Creates a document, then processes chunking/embedding/indexing asynchronously.
-
-Typical request fields:
-
-- `filename`
-- `content`
-- `mimeType` (optional)
-- `documentType` (optional)
-
-Document lifecycle:
-
-`pending` -> `processing` -> `ready` or `failed`
-
-### `POST /queries`
-
-Accepts:
-
-```json
-{ "query": "How do I reset my password?" }
-```
-
-Returns:
-
-```json
-{
-  "answer": "string",
-  "sources": [
-    {
-      "documentId": "string",
-      "filename": "string",
-      "snippet": "string",
-      "score": 0.9
-    }
-  ]
-}
-```
-
-### `GET /queries/history`
-
-Query params:
-
-- `limit` (optional, default `20`, max `100`)
-
-Returns latest query records with answer + sources.
-
-## Processing Flow
-
-1. Ingest endpoint stores document metadata/content in SQLite.
-2. Background processing chunks content and creates embeddings.
-3. Chunks are indexed into OpenSearch with text + vector fields.
-4. Query endpoint retrieves candidates through hybrid search.
-5. Retrieved chunks are sent to Ollama for grounded answer generation.
-6. Query history and sources are persisted and returned.
-
-## Testing and Verification
-
-```bash
-# Run backend service locally
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Use `/health`, `/documents`, and `/queries` endpoints to validate the pipeline end-to-end.
-
-## Key Source Files
-
-- `src/main.py`
-- `src/config.py`
-- `src/db.py`
-- `src/documents/routes.py`
-- `src/documents/service.py`
-- `src/queries/routes.py`
-- `src/queries/service.py`
-- `src/rag/chunking.py`
-- `src/rag/embeddings.py`
-- `src/rag/opensearch_store.py`
-- `src/rag/llm.py`
-- `src/integrations/telegram/routes.py`
+| Path | Role |
+|------|------|
+| `src/main.py` | App factory, lifespan: DB init, OpenSearch pipeline, warmup, Telegram webhook loop |
+| `src/config.py` | `Settings` from env + constants |
+| `src/constants.py` | Non-env tuning and defaults |
+| `src/db.py` | SQLite access |
+| `src/documents/` | Document routes & processing |
+| `src/queries/` | Query routes & streaming service |
+| `src/rag/` | Chunking, embeddings, OpenSearch, LLM |
+| `src/integrations/telegram/` | Webhook and bot messaging |

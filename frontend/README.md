@@ -1,62 +1,89 @@
 # DocAssist Frontend
 
-Next.js App Router frontend for DocAssist.
+Next.js **App Router** UI for DocAssist: marketing home, document hub, chat with streamed answers and history.
 
-## Current Feature Slice
+---
 
-- Document upload form
-- Document list
-- Delete documents
-- Query chat + history
-- Typed API calls through Next.js route handlers
+## Prerequisites
 
-## Environment Setup
+- **Node.js 20+** (aligned with `frontend/Dockerfile`)
 
-Create `frontend/.env.local`:
+---
+
+## Environment
+
+Create **`frontend/.env.local`** (gitignored):
 
 ```bash
 BACKEND_API_URL=http://localhost:8000
 ```
 
-Route handlers under `app/api` proxy requests to this backend origin.
+The browser calls **same-origin** routes under `app/api/*`; those server handlers forward to `BACKEND_API_URL`. Set this to the FastAPI base URL (no trailing slash required — it is normalized in code).
 
-## Run Locally
+**Security note:** `BACKEND_API_URL` must be a **trusted** internal URL in production. It is not end-user input in the default app, but a compromised deployment could misuse it if you inject untrusted values into the server environment.
+
+---
+
+## Scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Development server (Turbopack) |
+| `npm run build` | Production build |
+| `npm run start` | Production server (after `build`) |
+| `npm run lint` | ESLint, zero warnings |
+| `npm run lint:fix` | ESLint with `--fix` |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run check` | `typecheck` + `lint` + `build` |
+
+---
+
+## Routes
+
+| Path | Description |
+|------|-------------|
+| `/` | Landing / product overview |
+| `/documents` | Upload, list, delete documents |
+| `/chat` | Ask questions, stream tokens, history |
+
+`/queries` redirects to `/chat` (see `next.config.ts`).
+
+---
+
+## API proxy shape
+
+Client code under `lib/api/*` talks to **Next.js** routes, which proxy to the backend:
+
+| Next route | Proxies to backend |
+|------------|---------------------|
+| `GET/POST` `/api/documents` | `/documents` |
+| `DELETE` `/api/documents/[id]` | `/documents/{id}` |
+| `POST` `/api/documents/extract` | `/documents/extract` |
+| `POST` `/api/queries` | `/queries` |
+| `POST` `/api/queries/stream` | `/queries/stream` (SSE) |
+| `GET` `/api/queries/history` | `/queries/history` |
+| `DELETE` `/api/queries/history/[id]` | `/queries/history/{id}` |
+
+Implementation: `lib/server/backend.ts` (`backendUrl`, `proxyRequest`).
+
+---
+
+## Docker
+
+From the **repository root** (not `frontend/` alone):
 
 ```bash
-npm run dev
+docker compose build frontend
+docker compose up frontend
 ```
 
-App default URL: http://localhost:3000
+The image uses Next **`output: "standalone"`**. Runtime env for the Node process should include **`BACKEND_API_URL`** pointing at the backend service (Compose sets `http://backend:8000` for `frontend`).
 
-## App routes
+---
 
-- `/` — Landing page (what DocAssist is, links to get started)
-- `/documents` — Upload and list documents
-- `/chat` — Chat with your documents and history
+## Quality targets
 
-Legacy path `/queries` redirects to `/chat`.
+- Strict TypeScript on API helpers and typed domain models (`lib/types/*`).
+- Accessible UI patterns via MUI; theme mode persisted client-side (`lib/theme-mode-context.tsx`).
 
-## API Flow
-
-Browser components call local Next.js API routes:
-
-- `GET /api/documents`
-- `POST /api/documents`
-- `DELETE /api/documents/:id`
-- `POST /api/queries`
-- `GET /api/queries/history`
-
-Route handlers forward requests to Backend:
-
-- `GET /documents`
-- `POST /documents`
-- `DELETE /documents/:id`
-- `POST /queries`
-- `GET /queries/history`
-
-## Quality Goals in This Slice
-
-- Strict TypeScript on component props and API models
-- Minimal request handling via one documents API module
-- Clear loading, empty, success, and error states
-- Brief behavior-focused comments in component modules
+For repository-wide security and deployment assumptions, see the root **`SECURITY.md`**.
