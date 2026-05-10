@@ -1,9 +1,7 @@
 "use client";
 
 import { Box, Typography } from "@mui/material";
-
-const ACCENT =
-    "linear-gradient(90deg, transparent, rgba(122, 162, 255, 0.8), transparent)";
+import { alpha } from "@mui/material/styles";
 
 type HeroMessageProps = {
     /** e.g. “DocAssist” (overline). */
@@ -37,14 +35,14 @@ export function HeroMessage({ brand, headline, lede }: HeroMessageProps) {
                 sx={{ maxWidth: 720, mx: "auto", mt: 2.5, mb: 1 }}
             >
                 <Box
-                    sx={{
+                    sx={(theme) => ({
                         display: "inline-block",
                         width: 48,
                         height: 3,
                         borderRadius: 1,
-                        background: ACCENT,
+                        background: `linear-gradient(90deg, transparent, ${alpha(theme.palette.primary.light, 0.82)}, transparent)`,
                         mb: 3,
-                    }}
+                    })}
                 />
                 <Typography
                     variant="h3"

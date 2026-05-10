@@ -17,6 +17,7 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { extractPdfText } from "@/lib/api/documents";
 import {
     DOCUMENT_TYPE_OPTIONS,
@@ -171,7 +172,7 @@ export function DocumentUploadDialog({
                                 ? theme.palette.primary.main
                                 : theme.palette.divider,
                             backgroundColor: isDragging
-                                ? "rgba(37, 99, 235, 0.08)"
+                                ? alpha(theme.palette.primary.main, 0.08)
                                 : theme.palette.mode === "dark"
                                   ? theme.palette.grey[900]
                                   : theme.palette.grey[50],
