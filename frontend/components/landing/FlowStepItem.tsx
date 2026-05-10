@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Typography } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 type FlowStepItemProps = {
     /** Step index (1-based), shown in the badge. */
@@ -20,7 +21,7 @@ export function FlowStepItem({ n, title, body }: FlowStepItemProps) {
     return (
         <Box sx={{ display: "flex", gap: 1.5 }}>
             <Box
-                sx={{
+                sx={(theme) => ({
                     minWidth: 28,
                     height: 28,
                     borderRadius: 1,
@@ -29,23 +30,23 @@ export function FlowStepItem({ n, title, body }: FlowStepItemProps) {
                     justifyContent: "center",
                     fontSize: "0.75rem",
                     fontWeight: 800,
-                    backgroundColor: "rgba(122, 162, 255, 0.15)",
-                    color: "primary.light",
-                }}
+                    backgroundColor: alpha(theme.palette.primary.main, 0.15),
+                    color: "primary.main",
+                })}
             >
                 {n}
             </Box>
             <Box>
                 <Typography
                     variant="subtitle2"
-                    sx={{ fontWeight: 700, color: "#e8ecf5", mb: 0.5 }}
+                    sx={{ fontWeight: 700, color: "text.primary", mb: 0.5 }}
                 >
                     {title}
                 </Typography>
                 <Typography
                     variant="body2"
                     sx={{
-                        color: "rgba(200, 208, 224, 0.88)",
+                        color: "text.secondary",
                         lineHeight: 1.55,
                         overflowWrap: "anywhere",
                     }}

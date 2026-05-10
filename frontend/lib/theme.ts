@@ -40,6 +40,24 @@ export function getAssistantMessageTokens(theme: Theme) {
 }
 
 /**
+ * Chat layout surfaces (history rail, main pane, nested cards) for light and dark mode.
+ *
+ * @param theme - Active MUI theme.
+ * @returns Background and border tokens for the full-width chat UI.
+ */
+export function getChatShellTokens(theme: Theme) {
+    const { palette } = theme;
+    const isDark = palette.mode === "dark";
+    return {
+        pageBg: palette.background.default,
+        historyRailBg: isDark ? "#101010" : palette.grey[50],
+        mainChromeBg: isDark ? "#111" : palette.grey[100],
+        historyCardBg: isDark ? palette.grey[900] : palette.grey[200],
+        subtleBorder: palette.divider,
+    };
+}
+
+/**
  * Builds the app MUI theme (palette, typography, `MuiCssBaseline` body styles).
  * @param mode - `"dark"` (current app default) or `"light"` (reserved).
  * @returns A MUI `Theme` from `createTheme`.

@@ -1,4 +1,6 @@
 "use client";
+
+import type { ReactNode } from "react";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
@@ -16,7 +18,9 @@ import {
     Stack,
     Tooltip,
     Typography,
+    useTheme,
 } from "@mui/material";
+import { getChatShellTokens } from "@/lib/theme";
 import type { QueryHistoryItem } from "@/lib/types/queries";
 
 interface HistoryListProps {
@@ -58,20 +62,23 @@ export function HistoryList({
 }: HistoryListProps) {
     return (
         <Paper
-            sx={(theme) => ({
-                p: isCollapsed ? 1 : 1.25,
-                border: "1px solid",
-                borderColor: "rgba(255,255,255,0.08)",
-                backgroundColor: "#101010",
-                width: isCollapsed ? 56 : "100%",
-                minWidth: isCollapsed ? 56 : 0,
-                overflow: "hidden",
-                borderRadius: 1.5,
-                color: "#e7ecf7",
-                transition: theme.transitions.create(["width", "padding"], {
-                    duration: theme.transitions.duration.shorter,
-                }),
-            })}
+            sx={(theme) => {
+                const c = getChatShellTokens(theme);
+                return {
+                    p: isCollapsed ? 1 : 1.25,
+                    border: "1px solid",
+                    borderColor: c.subtleBorder,
+                    backgroundColor: c.historyRailBg,
+                    width: isCollapsed ? 56 : "100%",
+                    minWidth: isCollapsed ? 56 : 0,
+                    overflow: "hidden",
+                    borderRadius: 1.5,
+                    color: theme.palette.text.primary,
+                    transition: theme.transitions.create(["width", "padding"], {
+                        duration: theme.transitions.duration.shorter,
+                    }),
+                };
+            }}
         >
             <Stack spacing={1.75}>
                 <Box
@@ -86,7 +93,10 @@ export function HistoryList({
                     }}
                 >
                     {!isCollapsed && (
-                        <Typography variant="caption" sx={{ color: "#9aa3b8" }}>
+                        <Typography
+                            variant="caption"
+                            sx={{ color: "text.secondary" }}
+                        >
                             DOC ASSIST
                         </Typography>
                     )}
@@ -98,7 +108,7 @@ export function HistoryList({
                                 ? "Expand chat history"
                                 : "Collapse chat history"
                         }
-                        sx={{ color: "#cfd6e6" }}
+                        sx={{ color: "text.secondary" }}
                     >
                         {isCollapsed ? (
                             <KeyboardArrowRightRoundedIcon fontSize="small" />
@@ -115,7 +125,7 @@ export function HistoryList({
                                 size="small"
                                 onClick={onNewChat}
                                 aria-label="New chat"
-                                sx={{ color: "#e6ecff" }}
+                                sx={{ color: "primary.main" }}
                             >
                                 <NoteAddRoundedIcon fontSize="small" />
                             </IconButton>
@@ -125,7 +135,7 @@ export function HistoryList({
                                 size="small"
                                 onClick={onOpenDocuments}
                                 aria-label="Open documents"
-                                sx={{ color: "#e6ecff" }}
+                                sx={{ color: "primary.main" }}
                             >
                                 <DescriptionRoundedIcon fontSize="small" />
                             </IconButton>
@@ -155,7 +165,10 @@ export function HistoryList({
                                 justifyContent: "space-between",
                             }}
                         >
-                            <Typography variant="caption" sx={{ color: "#9aa3b8" }}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: "text.secondary" }}
+                            >
                                 Recent chats
                             </Typography>
                         </Box>
@@ -165,11 +178,15 @@ export function HistoryList({
                                   <Paper
                                       key={index}
                                       elevation={0}
-                                      sx={{
-                                          p: 1,
-                                          borderRadius: 2,
-                                          backgroundColor: "#0d0d0d",
-                                          border: "1px solid rgba(255,255,255,0.08)",
+                                      sx={(theme) => {
+                                          const c = getChatShellTokens(theme);
+                                          return {
+                                              p: 1,
+                                              borderRadius: 2,
+                                              backgroundColor: c.historyCardBg,
+                                              border: "1px solid",
+                                              borderColor: c.subtleBorder,
+                                          };
                                       }}
                                   >
                                       <Skeleton width="72%" />
@@ -181,29 +198,33 @@ export function HistoryList({
                               : history.map((item) => (
                                     <Box
                                         key={item.id}
-                                        sx={{
-                                            borderRadius: 2,
-                                            p: 0.9,
-                                            backgroundColor: "#0d0d0d",
-                                            border: "1px solid rgba(255,255,255,0.08)",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "space-between",
-                                            gap: 0.75,
+                                        sx={(theme) => {
+                                            const c = getChatShellTokens(theme);
+                                            return {
+                                                borderRadius: 2,
+                                                p: 0.9,
+                                                backgroundColor: c.historyCardBg,
+                                                border: "1px solid",
+                                                borderColor: c.subtleBorder,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "space-between",
+                                                gap: 0.75,
+                                            };
                                         }}
                                     >
                                         <ButtonBase
                                             onClick={() =>
                                                 onReuseQuery(item.query)
                                             }
-                                            sx={{
+                                            sx={(theme) => ({
                                                 flex: 1,
                                                 display: "flex",
                                                 alignItems: "center",
                                                 gap: 0.8,
                                                 justifyContent: "flex-start",
                                                 textAlign: "left",
-                                                color: "#e7ecf7",
+                                                color: theme.palette.text.primary,
                                                 px: 0.4,
                                                 py: 0.2,
                                                 borderRadius: 1,
@@ -213,13 +234,13 @@ export function HistoryList({
                                                 textOverflow: "ellipsis",
                                                 "&:hover": {
                                                     backgroundColor:
-                                                        "rgba(255,255,255,0.04)",
+                                                        theme.palette.action.hover,
                                                 },
-                                            }}
+                                            })}
                                         >
                                             <ForumRoundedIcon
                                                 fontSize="small"
-                                                sx={{ color: "#98a1b6" }}
+                                                sx={{ color: "text.secondary" }}
                                             />
                                             <Typography
                                                 variant="body2"
@@ -241,7 +262,7 @@ export function HistoryList({
                                                 deletingHistoryId === item.id
                                             }
                                             size="small"
-                                            sx={{ color: "#f28b8b" }}
+                                            sx={{ color: "error.main" }}
                                         >
                                             <DeleteOutlineRoundedIcon fontSize="small" />
                                         </IconButton>
@@ -260,9 +281,10 @@ function SidebarAction({
     onClick,
 }: {
     label: string;
-    icon: React.ReactNode;
+    icon: ReactNode;
     onClick: () => void;
 }) {
+    const theme = useTheme();
     return (
         <ButtonBase
             onClick={onClick}
@@ -275,9 +297,9 @@ function SidebarAction({
                 px: 0.7,
                 py: 0.55,
                 borderRadius: 1,
-                color: "#e7ecf7",
+                color: theme.palette.text.primary,
                 "&:hover": {
-                    backgroundColor: "rgba(255,255,255,0.04)",
+                    backgroundColor: theme.palette.action.hover,
                 },
             }}
         >

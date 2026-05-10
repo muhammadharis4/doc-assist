@@ -56,15 +56,19 @@ export function HeroCtas({
                 size="large"
                 fullWidth
                 startIcon={<ChatRoundedIcon />}
-                sx={{
-                    py: 1.25,
-                    borderColor: "rgba(255,255,255,0.2)",
-                    color: "#e8ecf5",
-                    "&:hover": {
-                        borderColor: "rgba(122, 162, 255, 0.5)",
-                        backgroundColor: "rgba(122, 162, 255, 0.06)",
-                    },
-                }}
+                sx={(theme) =>
+                    theme.palette.mode === "dark"
+                        ? {
+                              py: 1.25,
+                              borderColor: "rgba(255,255,255,0.2)",
+                              color: "#e8ecf5",
+                              "&:hover": {
+                                  borderColor: "rgba(122, 162, 255, 0.5)",
+                                  backgroundColor: "rgba(122, 162, 255, 0.06)",
+                              },
+                          }
+                        : { py: 1.25 }
+                }
             >
                 {secondaryLabel}
             </Button>

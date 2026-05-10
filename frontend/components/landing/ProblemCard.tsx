@@ -19,7 +19,7 @@ export function ProblemCard() {
             <Typography
                 variant="body2"
                 sx={{
-                    color: "rgba(200, 208, 224, 0.9)",
+                    color: "text.secondary",
                     lineHeight: 1.6,
                     overflowWrap: "anywhere",
                     mt: 2,

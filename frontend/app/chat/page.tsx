@@ -17,6 +17,7 @@ import {
     Typography,
 } from "@mui/material";
 import { NavHomeButton } from "@/components/NavHomeButton";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { HistoryList } from "@/components/queries/HistoryList";
 import { QueryComposer } from "@/components/queries/QueryComposer";
 import {
@@ -24,7 +25,7 @@ import {
     getQueryHistory,
     streamQuery,
 } from "@/lib/api/queries";
-import { getAssistantMessageTokens } from "@/lib/theme";
+import { getAssistantMessageTokens, getChatShellTokens } from "@/lib/theme";
 import { getErrorMessage } from "@/lib/types/api";
 import { MAX_QUERY_LENGTH, type QueryHistoryItem } from "@/lib/types/queries";
 
@@ -161,14 +162,14 @@ export default function ChatPage() {
         <Container
             maxWidth={false}
             disableGutters
-            sx={{
+            sx={(theme) => ({
                 px: { xs: 1, md: 1.5 },
                 pt: { xs: 1.25, md: 1.5 },
                 pb: 1.25,
                 minHeight: "100vh",
                 boxSizing: "border-box",
-                backgroundColor: "#000",
-            }}
+                backgroundColor: getChatShellTokens(theme).pageBg,
+            })}
         >
             <Stack spacing={1} sx={{ minHeight: "calc(100vh - 32px)" }}>
                 {errorMessage ? (
@@ -208,28 +209,34 @@ export default function ChatPage() {
                     />
 
                     <Paper
-                        sx={{
-                            minHeight: 0,
-                            height: "100%",
-                            display: "flex",
-                            flexDirection: "column",
-                            border: "1px solid",
-                            borderColor: "rgba(255,255,255,0.08)",
-                            backgroundColor: "#111",
-                            overflow: "hidden",
-                            borderRadius: 1.5,
+                        sx={(theme) => {
+                            const c = getChatShellTokens(theme);
+                            return {
+                                minHeight: 0,
+                                height: "100%",
+                                display: "flex",
+                                flexDirection: "column",
+                                border: "1px solid",
+                                borderColor: c.subtleBorder,
+                                backgroundColor: c.mainChromeBg,
+                                overflow: "hidden",
+                                borderRadius: 1.5,
+                            };
                         }}
                     >
                         <Box
-                            sx={{
-                                p: 1,
-                                borderBottom: "1px solid",
-                                borderColor: "rgba(255,255,255,0.08)",
-                                backgroundColor: "#111",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                gap: 1,
+                            sx={(theme) => {
+                                const c = getChatShellTokens(theme);
+                                return {
+                                    p: 1,
+                                    borderBottom: "1px solid",
+                                    borderColor: c.subtleBorder,
+                                    backgroundColor: c.mainChromeBg,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    gap: 1,
+                                };
                             }}
                         >
                             <Box
@@ -270,17 +277,19 @@ export default function ChatPage() {
                                         <DescriptionRoundedIcon fontSize="small" />
                                     </IconButton>
                                 </Tooltip>
+                                <ThemeSwitcher size="small" />
                             </Box>
                         </Box>
 
                         <Box
-                            sx={{
+                            sx={(theme) => ({
                                 p: 1.25,
                                 overflowY: "auto",
                                 flex: 1,
                                 scrollPaddingTop: 8,
-                                backgroundColor: "#111",
-                            }}
+                                backgroundColor: getChatShellTokens(theme)
+                                    .mainChromeBg,
+                            })}
                         >
                             {conversation.length === 0 && !streamingQuery && !isSubmitting ? (
                                 <Box
@@ -475,11 +484,14 @@ export default function ChatPage() {
                         </Box>
 
                         <Box
-                            sx={{
-                                p: 1,
-                                borderTop: "1px solid",
-                                borderColor: "rgba(255,255,255,0.08)",
-                                backgroundColor: "#111",
+                            sx={(theme) => {
+                                const c = getChatShellTokens(theme);
+                                return {
+                                    p: 1,
+                                    borderTop: "1px solid",
+                                    borderColor: c.subtleBorder,
+                                    backgroundColor: c.mainChromeBg,
+                                };
                             }}
                         >
                             <QueryComposer

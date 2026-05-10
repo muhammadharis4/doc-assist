@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Container, Stack } from "@mui/material";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { LandingDisclaimer } from "@/components/landing/LandingDisclaimer";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { ProblemAndFlowGrid } from "@/components/landing/ProblemAndFlowGrid";
@@ -34,6 +35,9 @@ export default function HomePage() {
                     spacing={{ xs: 3.5, md: 4.5 }}
                     sx={{ width: 1, minWidth: 0 }}
                 >
+                    <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                        <ThemeSwitcher size="medium" />
+                    </Box>
                     <LandingHero />
                     <ProblemAndFlowGrid />
                     <LandingDisclaimer />

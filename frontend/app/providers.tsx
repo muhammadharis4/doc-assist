@@ -1,25 +1,36 @@
 /**
- * Client wrapper: MUI `ThemeProvider` + `CssBaseline`.
- * Theme definition lives in `@/lib/theme`.
+ * Client wrapper: theme mode (`ThemeModeProvider`), MUI `ThemeProvider`, `CssBaseline`.
  */
 "use client";
 
 import { useMemo, type ReactNode } from "react";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { createAppTheme } from "@/lib/theme";
+import { ThemeModeProvider, useThemeMode } from "@/lib/theme-mode-context";
 
 /**
- * Wraps the app in MUI’s theme and global baseline (fonts, default colors, `body` background).
- * @param children - App routes and layouts.
- * @returns Children wrapped in `ThemeProvider` and `CssBaseline`.
+ * Applies `createAppTheme(mode)` from `useThemeMode` and mounts `CssBaseline`.
  */
-export function AppProviders({ children }: { children: ReactNode }) {
-    const theme = useMemo(() => createAppTheme("dark"), []);
+function AppThemeSubtree({ children }: { children: ReactNode }) {
+    const { mode } = useThemeMode();
+    const theme = useMemo(() => createAppTheme(mode), [mode]);
 
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline enableColorScheme />
             {children}
         </ThemeProvider>
+    );
+}
+
+/**
+ * Wraps the app in persisted theme mode and MUI’s theme provider.
+ * @param children - App routes and layouts.
+ */
+export function AppProviders({ children }: { children: ReactNode }) {
+    return (
+        <ThemeModeProvider>
+            <AppThemeSubtree>{children}</AppThemeSubtree>
+        </ThemeModeProvider>
     );
 }

@@ -18,6 +18,7 @@ import {
 import { DocumentUploadDialog } from "@/components/documents/DocumentUploadDialog";
 import { DocumentsTable } from "@/components/documents/DocumentsTable";
 import { NavHomeButton } from "@/components/NavHomeButton";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import {
     createDocument,
     deleteDocument,
@@ -141,6 +142,7 @@ export default function DocumentsPage() {
 
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                             <NavHomeButton />
+                            <ThemeSwitcher />
                             <Tooltip title="Add files">
                                 <IconButton
                                     color="primary"

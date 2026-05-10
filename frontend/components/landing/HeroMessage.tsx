@@ -26,7 +26,7 @@ export function HeroMessage({ brand, headline, lede }: HeroMessageProps) {
                 variant="overline"
                 sx={{
                     letterSpacing: "0.2em",
-                    color: "rgba(200, 210, 230, 0.65)",
+                    color: "text.secondary",
                     fontWeight: 600,
                 }}
             >
@@ -58,7 +58,7 @@ export function HeroMessage({ brand, headline, lede }: HeroMessageProps) {
                             sm: "2.25rem",
                             md: "2.75rem",
                         },
-                        color: "#f0f2f7",
+                        color: "text.primary",
                     }}
                 >
                     {headline}
@@ -69,7 +69,7 @@ export function HeroMessage({ brand, headline, lede }: HeroMessageProps) {
                 sx={{
                     maxWidth: 480,
                     mx: "auto",
-                    color: "rgba(200, 208, 224, 0.88)",
+                    color: "text.secondary",
                     fontSize: { xs: "0.9375rem", sm: "1rem" },
                     lineHeight: 1.6,
                     overflowWrap: "anywhere",

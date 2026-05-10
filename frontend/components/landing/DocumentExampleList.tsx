@@ -37,7 +37,7 @@ function ExampleLine({ emoji, text }: LineProps) {
                 component="span"
                 variant="body2"
                 sx={{
-                    color: "rgba(200, 208, 224, 0.92)",
+                    color: "text.secondary",
                     lineHeight: 1.55,
                 }}
             >

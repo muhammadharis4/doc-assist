@@ -1,13 +1,12 @@
 @import "tailwindcss";
 
 html {
-    background-color: #050508;
+    min-height: 100%;
 }
 
 body {
     min-height: 100vh;
-    /* Matches app shell; MUI CssBaseline adds the same gradient in dark mode */
-    background-color: #050508;
-    color: #e7ecf7;
+    /* Background and foreground come from MUI `CssBaseline` + `createAppTheme` */
+    margin: 0;
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }

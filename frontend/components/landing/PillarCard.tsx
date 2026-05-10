@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import { Box, Paper, Typography } from "@mui/material";
-import { surfaceCardSx } from "./surface";
+import { alpha } from "@mui/material/styles";
+import { getSurfaceCardSx } from "./surface";
 
 type PillarCardProps = {
     /** Primary line (bold). */
@@ -22,15 +23,15 @@ export function PillarCard({ label, sub, icon }: PillarCardProps) {
     return (
         <Paper
             elevation={0}
-            sx={{
+            sx={(theme) => ({
                 flex: 1,
                 minWidth: 0,
                 py: 1.5,
                 px: 1.5,
                 textAlign: "left",
                 borderRadius: 2,
-                ...surfaceCardSx,
-            }}
+                ...getSurfaceCardSx(theme),
+            })}
         >
             <Box
                 sx={{
@@ -40,30 +41,30 @@ export function PillarCard({ label, sub, icon }: PillarCardProps) {
                 }}
             >
                 <Box
-                    sx={{
+                    sx={(theme) => ({
                         width: 40,
                         height: 40,
                         borderRadius: 1.5,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        backgroundColor: "rgba(122, 162, 255, 0.12)",
-                        color: "primary.light",
-                    }}
+                        backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                        color: "primary.main",
+                    })}
                 >
                     {icon}
                 </Box>
                 <Box>
                     <Typography
                         variant="subtitle2"
-                        sx={{ fontWeight: 700, color: "#e8ecf5" }}
+                        sx={{ fontWeight: 700, color: "text.primary" }}
                     >
                         {label}
                     </Typography>
                     <Typography
                         variant="caption"
                         sx={{
-                            color: "rgba(180, 190, 210, 0.85)",
+                            color: "text.secondary",
                             display: "block",
                             lineHeight: 1.4,
                         }}
