@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
@@ -34,6 +35,7 @@ import { MAX_QUERY_LENGTH, type QueryHistoryItem } from "@/lib/types/queries";
  * @returns Full client page with `HistoryList`, conversation area, and `QueryComposer`.
  */
 export default function ChatPage() {
+    const router = useRouter();
     const [queryText, setQueryText] = useState("");
     const [history, setHistory] = useState<QueryHistoryItem[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -198,7 +200,7 @@ export default function ChatPage() {
                         }}
                         onNewChat={startNewChat}
                         onOpenDocuments={() => {
-                            window.location.href = "/documents";
+                            router.push("/documents");
                         }}
                         onReuseQuery={(query) => {
                             setQueryText(query);
@@ -270,7 +272,7 @@ export default function ChatPage() {
                                     <IconButton
                                         size="small"
                                         onClick={() => {
-                                            window.location.href = "/documents";
+                                            router.push("/documents");
                                         }}
                                         aria-label="Open documents"
                                     >
