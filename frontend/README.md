@@ -2,6 +2,8 @@
 
 Next.js **App Router** UI for DocAssist: marketing home, document hub, chat with streamed answers and history.
 
+**Screenshots** (repo root): [`../docs/screenshots/`](../docs/screenshots/) — `ui-landing.png`, `ui-documents.png`, `ui-chat.png` (also embedded in the [root README](../README.md#screenshots)).
+
 ---
 
 ## Prerequisites

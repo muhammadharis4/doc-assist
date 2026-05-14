@@ -240,6 +240,9 @@ export function ChatSidebar({
                         Your document assistant
                     </Typography>
                     <Typography variant="caption" color="text.disabled">
+                        Powered by Doc Assist
+                    </Typography>
+                    <Typography variant="caption" color="text.disabled">
                         © {new Date().getFullYear()} Doc Assist
                     </Typography>
                 </Stack>

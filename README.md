@@ -6,11 +6,24 @@ DocAssist is a retrieval-augmented assistant over your uploaded documents: a **F
 
 ---
 
+## Screenshots
+
+Dark-mode examples from the current Next.js UI:
+
+| | |
+|:--|:--|
+| **Landing** (`/`) | ![Landing page](./docs/screenshots/ui-landing.png) |
+| **Documents** (`/documents`) | ![Documents library](./docs/screenshots/ui-documents.png) |
+| **Chat** (`/chat`) | ![Chat with RAG sidebar](./docs/screenshots/ui-chat.png) |
+
+---
+
 ## Repository layout
 
 ```text
 Doc Assist/
 ├── Backend/           # FastAPI API + RAG pipeline
+├── docs/screenshots/  # UI screenshots (referenced from README)
 ├── frontend/        # Next.js UI + `app/api/*` proxies to Backend
 ├── LICENSE            # MIT
 ├── docker-compose.yml # Optional full stack for local/demo (see SECURITY.md)
@@ -119,7 +132,7 @@ npm run check
 
 - Keep API contracts stable unless you intentionally version or document a break.
 - Prefer small, reviewable changes; run **`pytest`** in `Backend/` and **`npm run check`** in `frontend/` before opening a PR.
-- Update READMEs when behavior, env vars, or deployment assumptions change.
+- Update READMEs when behavior, env vars, deployment assumptions, or **prominent UI** changes (refresh `docs/screenshots/` when the marketing, documents, or chat layouts change materially).
 
 ---
 
