@@ -15,10 +15,24 @@ from src.constants import (
 )
 from src.rate_limit import limiter
 from src.schemas import DeleteStatusResponse, QueryExecuteRequest, QueryResponse
-from src.queries.service import QueryService
 
 router = APIRouter(prefix="/queries", tags=["queries"])
-service = QueryService()
+_query_service = None
+
+
+def _get_query_service():
+    """
+    Lazily constructs ``QueryService`` so importing this router does not load
+    the embedding model stack until a query route is actually invoked.
+    """
+
+    global _query_service
+
+    if _query_service is None:
+        from src.queries.service import QueryService
+
+        _query_service = QueryService()
+    return _query_service
 
 
 def _validate_query_text(query_text: str) -> str:
@@ -54,7 +68,7 @@ async def run_query(request: Request, payload: QueryExecuteRequest) -> dict[str,
     """
 
     query_text = _validate_query_text(payload.query)
-    return await service.run_query(
+    return await _get_query_service().run_query(
         query_text,
         rag_enabled=payload.rag_enabled,
         top_k=payload.top_k,
@@ -80,7 +94,7 @@ async def run_query_stream(
 
     query_text = _validate_query_text(payload.query)
     return StreamingResponse(
-        service.stream_query(
+        _get_query_service().stream_query(
             query_text,
             rag_enabled=payload.rag_enabled,
             top_k=payload.top_k,
@@ -111,7 +125,7 @@ def query_history(
         list[dict[str, object]]: Recent query history rows.
     """
 
-    return service.get_history(limit)
+    return _get_query_service().get_history(limit)
 
 
 @router.delete("/history/{query_id}", response_model=DeleteStatusResponse)
@@ -131,7 +145,7 @@ def delete_query_history(request: Request, query_id: str) -> DeleteStatusRespons
     if not query_id.strip():
         raise HTTPException(status_code=400, detail="query_id is required")
 
-    deleted = service.delete_history_item(query_id.strip())
+    deleted = _get_query_service().delete_history_item(query_id.strip())
     if not deleted:
         raise HTTPException(status_code=404, detail="query history not found")
 

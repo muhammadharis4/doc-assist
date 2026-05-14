@@ -5,7 +5,6 @@ from __future__ import annotations
 import io
 import logging
 
-import pytesseract
 from PIL import Image
 from PyPDF2 import PdfReader
 from PyPDF2._page import PageObject
@@ -84,6 +83,8 @@ def _extract_text_from_images(page: PageObject) -> str:
     images = getattr(page, "images", None)
     if not images:
         return ""
+
+    import pytesseract
 
     for image_file_object in images:
         try:

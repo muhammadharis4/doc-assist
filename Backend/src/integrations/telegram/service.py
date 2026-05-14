@@ -18,7 +18,6 @@ from src.constants import (
     TELEGRAM_SOURCE_LIMIT,
     TELEGRAM_WEBHOOK_RETRY_MAX,
 )
-from src.queries.service import QueryService
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ class TelegramService:
         self._token = settings.telegram_bot_token.strip()
         self._secret = settings.telegram_webhook_secret.strip()
         self._bot = Bot(self._token) if self._token else None
-        self._query_service = QueryService()
+        self._query_service = None
         self._chat_document_scope: dict[int, str] = {}
 
         if (
@@ -44,6 +43,18 @@ class TelegramService:
                 "TELEGRAM_WEBHOOK_URL is set but TELEGRAM_WEBHOOK_SECRET is empty: "
                 "enable a secret so only Telegram can call the webhook (see SECURITY.md)."
             )
+
+    def _get_query_service(self):
+        """
+        Lazily constructs the query service so importing this module does not
+        pull in the embedding stack (heavy deps) until a query is actually run.
+        """
+
+        if self._query_service is None:
+            from src.queries.service import QueryService
+
+            self._query_service = QueryService()
+        return self._query_service
 
     @property
     def enabled(self) -> bool:
@@ -245,7 +256,7 @@ class TelegramService:
                     document_ids = [scoped_document_id]
                     scope_label = f"selected {scoped_document.get('filename', 'Unknown')}"
 
-            result = await self._query_service.run_query(
+            result = await self._get_query_service().run_query(
                 query_text,
                 document_ids=document_ids,
             )

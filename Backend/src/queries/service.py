@@ -10,7 +10,6 @@ from time import perf_counter
 
 from src import db
 from src.config import settings
-from src.rag.embeddings import generate_query_embedding
 from src.rag.llm import LlmService
 from src.rag.opensearch_store import hybrid_search
 
@@ -57,6 +56,8 @@ class QueryService:
         """
 
         effective_top_k = top_k if top_k is not None else settings.top_k
+        from src.rag.embeddings import generate_query_embedding
+
         query_embedding = generate_query_embedding(query_text)
         hits = hybrid_search(
             query=query_text,

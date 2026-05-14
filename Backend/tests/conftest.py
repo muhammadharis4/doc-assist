@@ -25,11 +25,20 @@ from starlette.testclient import TestClient
 @pytest.fixture
 def client() -> TestClient:
     """
-    FastAPI client with OpenSearch setup and embedding/LLM warmup skipped (fast, CI-safe).
+    FastAPI client with OpenSearch index setup, embedding/LLM warmup, and document
+    index writes skipped so tests run without a local OpenSearch cluster (CI-safe).
     """
 
     main_mod = importlib.import_module("src.main")
     with patch.object(main_mod, "ensure_index_and_pipeline", lambda: None):
         with patch.object(main_mod, "warmup_runtime", new_callable=AsyncMock):
-            with TestClient(main_mod.app) as test_client:
-                yield test_client
+            with patch(
+                "src.documents.service.upsert_document_chunks",
+                lambda *args, **kwargs: None,
+            ):
+                with patch(
+                    "src.documents.routes.delete_document_chunks",
+                    lambda *args, **kwargs: None,
+                ):
+                    with TestClient(main_mod.app) as test_client:
+                        yield test_client

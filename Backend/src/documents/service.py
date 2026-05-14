@@ -10,7 +10,6 @@ from fastapi import HTTPException
 from src import db
 from src.documents.pdf_extractor import extract_text_from_pdf_bytes
 from src.rag.chunking import chunk_text
-from src.rag.embeddings import generate_embeddings
 from src.rag.opensearch_store import upsert_document_chunks
 
 logger = logging.getLogger(__name__)
@@ -78,6 +77,8 @@ class DocumentService:
             chunk_ms = (perf_counter() - chunk_start) * 1000
 
             embedding_start = perf_counter()
+            from src.rag.embeddings import generate_embeddings
+
             vectors = generate_embeddings(chunks)
             embedding_ms = (perf_counter() - embedding_start) * 1000
 
