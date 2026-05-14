@@ -1,26 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
-import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
-import {
-    Alert,
-    Box,
-    Container,
-    IconButton,
-    Paper,
-    Stack,
-    Tooltip,
-    Typography,
-} from "@mui/material";
+import { Alert, Box, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { NavHomeButton } from "@/components/NavHomeButton";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { HistoryList } from "@/components/queries/HistoryList";
 import { QueryComposer } from "@/components/queries/QueryComposer";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import {
     deleteQueryHistory,
     getQueryHistory,
@@ -30,24 +19,70 @@ import { getAssistantMessageTokens, getChatShellTokens } from "@/libs/theme";
 import { getErrorMessage } from "@/types/api";
 import { MAX_QUERY_LENGTH, type QueryHistoryItem } from "@/types/queries";
 
+const LS_RAG = "docassist.chat.ragEnabled";
+const LS_TOPK = "docassist.chat.topK";
+const LS_TEMP = "docassist.chat.temperature";
+
 /**
- * Chat UI: sidebar history, streaming Q&A, composer, and links to documents / home.
- * @returns Full client page with `HistoryList`, conversation area, and `QueryComposer`.
+ * Chat UI: Jam-style sidebar (nav + RAG + history), main transcript, and pill composer.
+ * @returns Full client page with `ChatSidebar`, conversation area, and `QueryComposer`.
  */
 export function ChatView() {
-    const router = useRouter();
+    const theme = useTheme();
     const [queryText, setQueryText] = useState("");
     const [history, setHistory] = useState<QueryHistoryItem[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-    const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(
-        null,
-    );
-    const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
+    const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState("");
     const [streamingQuery, setStreamingQuery] = useState("");
     const [streamingAnswer, setStreamingAnswer] = useState("");
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+    const [settingsHydrated, setSettingsHydrated] = useState(false);
+    const [ragEnabled, setRagEnabled] = useState(true);
+    const [topK, setTopK] = useState(5);
+    const [temperature, setTemperature] = useState(0.7);
+
+    useEffect(() => {
+        try {
+            const r = localStorage.getItem(LS_RAG);
+            if (r !== null) {
+                setRagEnabled(r === "true");
+            }
+            const k = localStorage.getItem(LS_TOPK);
+            if (k !== null) {
+                const n = Number.parseInt(k, 10);
+                if (!Number.isNaN(n)) {
+                    setTopK(Math.min(20, Math.max(1, n)));
+                }
+            }
+            const t = localStorage.getItem(LS_TEMP);
+            if (t !== null) {
+                const f = Number.parseFloat(t);
+                if (!Number.isNaN(f)) {
+                    setTemperature(Math.min(1, Math.max(0, f)));
+                }
+            }
+        } catch {
+            /* ignore */
+        } finally {
+            setSettingsHydrated(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!settingsHydrated) {
+            return;
+        }
+        try {
+            localStorage.setItem(LS_RAG, String(ragEnabled));
+            localStorage.setItem(LS_TOPK, String(topK));
+            localStorage.setItem(LS_TEMP, String(temperature));
+        } catch {
+            /* ignore */
+        }
+    }, [settingsHydrated, ragEnabled, topK, temperature]);
 
     const refreshHistory = useCallback(async () => {
         setIsLoadingHistory(true);
@@ -72,16 +107,12 @@ export function ChatView() {
             const trimmedQuery = rawQuery.trim();
 
             if (!trimmedQuery) {
-                setErrorMessage(
-                    "Please enter a question before running a query.",
-                );
+                setErrorMessage("Please enter a question before running a query.");
                 return;
             }
 
             if (trimmedQuery.length > MAX_QUERY_LENGTH) {
-                setErrorMessage(
-                    `Query must be ${MAX_QUERY_LENGTH} characters or fewer.`,
-                );
+                setErrorMessage(`Query must be ${MAX_QUERY_LENGTH} characters or fewer.`);
                 return;
             }
 
@@ -97,7 +128,12 @@ export function ChatView() {
 
             try {
                 await streamQuery(
-                    { query: trimmedQuery },
+                    {
+                        query: trimmedQuery,
+                        ragEnabled,
+                        topK,
+                        temperature,
+                    },
                     {
                         onToken: (delta) => {
                             setStreamingAnswer((current) => current + delta);
@@ -105,9 +141,7 @@ export function ChatView() {
                         onDone: (result) => {
                             setHistory((current) => [
                                 result,
-                                ...current.filter(
-                                    (item) => item.id !== result.id,
-                                ),
+                                ...current.filter((item) => item.id !== result.id),
                             ]);
                         },
                     },
@@ -120,7 +154,7 @@ export function ChatView() {
                 setStreamingAnswer("");
             }
         },
-        [isSubmitting],
+        [isSubmitting, ragEnabled, topK, temperature],
     );
 
     const conversation = useMemo(() => [...history].reverse(), [history]);
@@ -157,359 +191,302 @@ export function ChatView() {
         setErrorMessage("");
         setStreamingQuery("");
         setStreamingAnswer("");
-        setIsHistoryCollapsed(false);
     }, []);
 
+    const shell = getChatShellTokens(theme);
+
     return (
-        <Container
-            maxWidth={false}
-            disableGutters
-            sx={(theme) => ({
-                px: { xs: 1, md: 1.5 },
-                pt: { xs: 1.25, md: 1.5 },
-                pb: 1.25,
+        <Box
+            sx={{
+                display: "flex",
+                flexDirection: { xs: "column", md: "row" },
+                width: "100%",
                 minHeight: "100vh",
                 boxSizing: "border-box",
-                backgroundColor: getChatShellTokens(theme).pageBg,
-            })}
+                backgroundColor: shell.pageBg,
+            }}
         >
-            <Stack spacing={1} sx={{ minHeight: "calc(100vh - 32px)" }}>
+            <Box
+                sx={{
+                    width: { xs: "100%", md: 300 },
+                    flexShrink: 0,
+                    maxHeight: { xs: 400, md: "none" },
+                    minHeight: { md: "100vh" },
+                    overflow: { xs: "auto", md: "hidden" },
+                    borderRight: { md: `1px solid ${shell.subtleBorder}` },
+                }}
+            >
+                <ChatSidebar
+                    history={history}
+                    isLoadingHistory={isLoadingHistory}
+                    deletingHistoryId={deletingHistoryId}
+                    onReuseQuery={(query) => {
+                        setQueryText(query);
+                        void runQuery(query);
+                    }}
+                    onDeleteHistory={handleDeleteHistory}
+                    ragEnabled={ragEnabled}
+                    onRagEnabledChange={setRagEnabled}
+                    topK={topK}
+                    onTopKChange={setTopK}
+                    temperature={temperature}
+                    onTemperatureChange={setTemperature}
+                />
+            </Box>
+
+            <Box
+                sx={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: { xs: "min(70vh, 640px)", md: "100vh" },
+                    minWidth: 0,
+                    backgroundColor: (t) =>
+                        t.palette.mode === "dark" ? t.palette.grey[900] : "#ffffff",
+                }}
+            >
                 {errorMessage ? (
-                    <Alert severity="error">{errorMessage}</Alert>
+                    <Alert severity="error" sx={{ m: 1.5, flexShrink: 0 }}>
+                        {errorMessage}
+                    </Alert>
                 ) : null}
 
                 <Box
                     sx={{
-                        display: "grid",
-                        gridTemplateColumns: {
-                            xs: "1fr",
-                            lg: isHistoryCollapsed ? "56px 1fr" : "300px 1fr",
-                        },
+                        px: { xs: 1.5, sm: 2 },
+                        pt: 2,
+                        pb: 1,
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "flex-start",
+                        justifyContent: "space-between",
                         gap: 1,
-                        alignItems: "stretch",
-                        flex: 1,
-                        minHeight: 0,
                     }}
                 >
-                    <HistoryList
-                        history={history}
-                        isLoading={isLoadingHistory}
-                        isCollapsed={isHistoryCollapsed}
-                        onToggleCollapsed={() => {
-                            setIsHistoryCollapsed((current) => !current);
-                        }}
-                        onNewChat={startNewChat}
-                        onOpenDocuments={() => {
-                            router.push("/documents");
-                        }}
-                        onReuseQuery={(query) => {
-                            setQueryText(query);
-                            void runQuery(query);
-                        }}
-                        onDeleteHistory={handleDeleteHistory}
-                        deletingHistoryId={deletingHistoryId}
-                    />
+                    <Box sx={{ flex: 1 }} />
+                    <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+                        <NavHomeButton size="small" />
+                        <Tooltip title="New chat">
+                            <IconButton
+                                size="small"
+                                onClick={startNewChat}
+                                aria-label="New chat"
+                            >
+                                <EditNoteRoundedIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                        <ThemeSwitcher size="small" />
+                    </Stack>
+                </Box>
 
+                <Box sx={{ px: { xs: 1.5, sm: 2 }, pb: 1.5, flexShrink: 0 }}>
                     <Paper
-                        sx={(theme) => {
-                            const c = getChatShellTokens(theme);
-                            return {
-                                minHeight: 0,
-                                height: "100%",
-                                display: "flex",
-                                flexDirection: "column",
-                                border: "1px solid",
-                                borderColor: c.subtleBorder,
-                                backgroundColor: c.mainChromeBg,
-                                overflow: "hidden",
-                                borderRadius: 1.5,
-                            };
+                        elevation={0}
+                        sx={{
+                            mx: "auto",
+                            maxWidth: 560,
+                            py: 1.75,
+                            px: 3,
+                            borderRadius: 2,
+                            border: "1px solid",
+                            borderColor: "divider",
+                            textAlign: "center",
+                            backgroundColor:
+                                theme.palette.mode === "dark"
+                                    ? theme.palette.grey[800]
+                                    : theme.palette.grey[50],
                         }}
                     >
-                        <Box
-                            sx={(theme) => {
-                                const c = getChatShellTokens(theme);
-                                return {
-                                    p: 1,
-                                    borderBottom: "1px solid",
-                                    borderColor: c.subtleBorder,
-                                    backgroundColor: c.mainChromeBg,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    gap: 1,
-                                };
+                        <Typography
+                            variant="h6"
+                            sx={{
+                                fontWeight: 800,
+                                color: "secondary.main",
+                                letterSpacing: 0.2,
                             }}
                         >
-                            <Box
-                                sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                            >
-                                <ChatRoundedIcon
-                                    fontSize="small"
-                                    color="primary"
-                                />
-                                <Typography
-                                    variant="subtitle1"
-                                    sx={{ fontWeight: 700 }}
-                                >
-                                    Conversation
-                                </Typography>
+                            Doc Assist — Chat{" "}
+                            <Box component="span" aria-hidden>
+                                🤖
                             </Box>
-                            <Box
-                                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-                            >
-                                <NavHomeButton size="small" />
-                                <Tooltip title="New chat">
-                                    <IconButton
-                                        size="small"
-                                        onClick={startNewChat}
-                                        aria-label="New chat"
-                                    >
-                                        <EditNoteRoundedIcon fontSize="small" />
-                                    </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Open documents">
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => {
-                                            router.push("/documents");
-                                        }}
-                                        aria-label="Open documents"
-                                    >
-                                        <DescriptionRoundedIcon fontSize="small" />
-                                    </IconButton>
-                                </Tooltip>
-                                <ThemeSwitcher size="small" />
-                            </Box>
-                        </Box>
+                        </Typography>
+                    </Paper>
+                </Box>
 
+                <Box
+                    sx={{
+                        flex: 1,
+                        overflowY: "auto",
+                        px: { xs: 1.5, sm: 2 },
+                        py: 1,
+                        scrollPaddingTop: 8,
+                    }}
+                >
+                    {conversation.length === 0 && !streamingQuery && !isSubmitting ? (
                         <Box
-                            sx={(theme) => ({
-                                p: 1.25,
-                                overflowY: "auto",
-                                flex: 1,
-                                scrollPaddingTop: 8,
-                                backgroundColor: getChatShellTokens(theme)
-                                    .mainChromeBg,
-                            })}
+                            sx={{
+                                minHeight: "40%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                px: 2,
+                            }}
                         >
-                            {conversation.length === 0 && !streamingQuery && !isSubmitting ? (
+                            <Stack spacing={0.75} sx={{ textAlign: "center", maxWidth: 420 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                    Start a conversation
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Ask about your documents for grounded answers, or turn off
+                                    RAG mode in the sidebar for a general assistant.
+                                </Typography>
+                            </Stack>
+                        </Box>
+                    ) : null}
+
+                    {conversation.map((item) => (
+                        <Stack key={item.id} spacing={1.25} sx={{ mb: 2.5 }}>
+                            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                                 <Box
                                     sx={{
-                                        minHeight: "100%",
+                                        maxWidth: "85%",
+                                        borderRadius: 3,
+                                        px: 1.75,
+                                        py: 1.25,
+                                        backgroundColor: "primary.main",
+                                        color: "primary.contrastText",
                                         display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        px: 2,
+                                        gap: 1,
+                                        alignItems: "flex-start",
                                     }}
                                 >
-                                    <Stack
-                                        spacing={0.75}
-                                        sx={{ textAlign: "center", maxWidth: 420 }}
-                                    >
-                                        <Typography
-                                            variant="body2"
-                                            sx={{ fontWeight: 700 }}
-                                        >
-                                            Start a new conversation
-                                        </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            color="text.secondary"
-                                        >
-                                            Ask a question about your uploaded
-                                            documents to see grounded answers and
-                                            source snippets.
-                                        </Typography>
-                                    </Stack>
+                                    <PersonRoundedIcon fontSize="small" />
+                                    <Typography variant="body2">{item.query}</Typography>
                                 </Box>
-                            ) : null}
+                            </Box>
 
-                            {conversation.map((item) => (
-                                <Stack
-                                    key={item.id}
-                                    spacing={1.25}
-                                    sx={{ mb: 2.5 }}
-                                >
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            justifyContent: "flex-end",
-                                        }}
-                                    >
-                                        <Box
-                                            sx={{
-                                                maxWidth: "85%",
-                                                borderRadius: 3,
-                                                px: 1.75,
-                                                py: 1.25,
-                                                backgroundColor: "primary.main",
-                                                color: "primary.contrastText",
-                                                display: "flex",
-                                                gap: 1,
-                                                alignItems: "flex-start",
-                                            }}
-                                        >
-                                            <PersonRoundedIcon fontSize="small" />
-                                            <Typography variant="body2">
-                                                {item.query}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            justifyContent: "flex-start",
-                                        }}
-                                    >
-                                        <Box
-                                            sx={(theme) => {
-                                                const a =
-                                                    getAssistantMessageTokens(
-                                                        theme,
-                                                    );
-                                                return {
-                                                    maxWidth: "92%",
-                                                    borderRadius: 3,
-                                                    px: 1.75,
-                                                    py: 1.25,
-                                                    backgroundColor: a.surface,
-                                                    color: a.onSurface,
-                                                    border: "1px solid",
-                                                    borderColor: "divider",
-                                                    display: "flex",
-                                                    gap: 1,
-                                                    alignItems: "flex-start",
-                                                };
-                                            }}
-                                        >
-                                            <SmartToyRoundedIcon
-                                                fontSize="small"
-                                                sx={(theme) => ({
-                                                    color: getAssistantMessageTokens(
-                                                        theme,
-                                                    ).onSurfaceIcon,
-                                                })}
-                                            />
-                                            <Typography
-                                                variant="body2"
-                                                sx={{ whiteSpace: "pre-wrap" }}
-                                            >
-                                                {item.answer ??
-                                                    "No answer returned."}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                </Stack>
-                            ))}
-
-                            {streamingQuery ? (
+                            <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
                                 <Box
-                                    sx={{
-                                        display: "flex",
-                                        justifyContent: "flex-end",
-                                        mb: 1.5,
-                                    }}
-                                >
-                                    <Box
-                                        sx={{
-                                            maxWidth: "85%",
+                                    sx={(t) => {
+                                        const a = getAssistantMessageTokens(t);
+                                        return {
+                                            maxWidth: "92%",
                                             borderRadius: 3,
                                             px: 1.75,
                                             py: 1.25,
-                                            backgroundColor: "primary.main",
-                                            color: "primary.contrastText",
+                                            backgroundColor: a.surface,
+                                            color: a.onSurface,
+                                            border: "1px solid",
+                                            borderColor: "divider",
                                             display: "flex",
                                             gap: 1,
                                             alignItems: "flex-start",
-                                        }}
-                                    >
-                                        <PersonRoundedIcon fontSize="small" />
-                                        <Typography variant="body2">
-                                            {streamingQuery}
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            ) : null}
-
-                            {isSubmitting ? (
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        justifyContent: "flex-start",
+                                        };
                                     }}
                                 >
-                                    <Box
-                                        sx={(theme) => {
-                                            const a = getAssistantMessageTokens(
-                                                theme,
-                                            );
-                                            return {
-                                                borderRadius: 3,
-                                                px: 1.5,
-                                                py: 1,
-                                                backgroundColor: a.surface,
-                                                color: a.onSurface,
-                                                border: "1px solid",
-                                                borderColor: "divider",
-                                                display: "flex",
-                                                gap: 1,
-                                                alignItems: "center",
-                                            };
-                                        }}
-                                    >
-                                        <SmartToyRoundedIcon
-                                            fontSize="small"
-                                            sx={(theme) => ({
-                                                color: getAssistantMessageTokens(
-                                                    theme,
-                                                ).onSurfaceIcon,
-                                            })}
-                                        />
-                                        <Typography
-                                            variant="body2"
-                                            sx={(theme) => ({
-                                                color: getAssistantMessageTokens(
-                                                    theme,
-                                                ).onSurfaceMuted,
-                                            })}
-                                        >
-                                            {streamingAnswer ||
-                                                "Thinking through your question..."}
-                                        </Typography>
-                                    </Box>
+                                    <SmartToyRoundedIcon
+                                        fontSize="small"
+                                        sx={(t) => ({
+                                            color: getAssistantMessageTokens(t).onSurfaceIcon,
+                                        })}
+                                    />
+                                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                                        {item.answer ?? "No answer returned."}
+                                    </Typography>
                                 </Box>
-                            ) : null}
+                            </Box>
+                        </Stack>
+                    ))}
 
-                            <Box ref={messagesEndRef} />
-                        </Box>
-
+                    {streamingQuery ? (
                         <Box
-                            sx={(theme) => {
-                                const c = getChatShellTokens(theme);
-                                return {
-                                    p: 1,
-                                    borderTop: "1px solid",
-                                    borderColor: c.subtleBorder,
-                                    backgroundColor: c.mainChromeBg,
-                                };
+                            sx={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                mb: 1.5,
                             }}
                         >
-                            <QueryComposer
-                                queryText={queryText}
-                                onQueryTextChange={setQueryText}
-                                onSubmit={() => {
-                                    void runQuery(queryText);
+                            <Box
+                                sx={{
+                                    maxWidth: "85%",
+                                    borderRadius: 3,
+                                    px: 1.75,
+                                    py: 1.25,
+                                    backgroundColor: "primary.main",
+                                    color: "primary.contrastText",
+                                    display: "flex",
+                                    gap: 1,
+                                    alignItems: "flex-start",
                                 }}
-                                isSubmitting={isSubmitting}
-                                maxLength={MAX_QUERY_LENGTH}
-                                embedded
-                            />
+                            >
+                                <PersonRoundedIcon fontSize="small" />
+                                <Typography variant="body2">{streamingQuery}</Typography>
+                            </Box>
                         </Box>
-                    </Paper>
+                    ) : null}
+
+                    {isSubmitting ? (
+                        <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+                            <Box
+                                sx={(t) => {
+                                    const a = getAssistantMessageTokens(t);
+                                    return {
+                                        borderRadius: 3,
+                                        px: 1.5,
+                                        py: 1,
+                                        backgroundColor: a.surface,
+                                        color: a.onSurface,
+                                        border: "1px solid",
+                                        borderColor: "divider",
+                                        display: "flex",
+                                        gap: 1,
+                                        alignItems: "center",
+                                    };
+                                }}
+                            >
+                                <SmartToyRoundedIcon
+                                    fontSize="small"
+                                    sx={(t) => ({
+                                        color: getAssistantMessageTokens(t).onSurfaceIcon,
+                                    })}
+                                />
+                                <Typography
+                                    variant="body2"
+                                    sx={(t) => ({
+                                        color: getAssistantMessageTokens(t).onSurfaceMuted,
+                                    })}
+                                >
+                                    {streamingAnswer || "Thinking through your question..."}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    ) : null}
+
+                    <Box ref={messagesEndRef} />
                 </Box>
-            </Stack>
-        </Container>
+
+                <Box
+                    sx={{
+                        p: { xs: 1.5, sm: 2 },
+                        pt: 1,
+                        borderTop: "1px solid",
+                        borderColor: "divider",
+                        flexShrink: 0,
+                    }}
+                >
+                    <QueryComposer
+                        queryText={queryText}
+                        onQueryTextChange={setQueryText}
+                        onSubmit={() => {
+                            void runQuery(queryText);
+                        }}
+                        isSubmitting={isSubmitting}
+                        maxLength={MAX_QUERY_LENGTH}
+                        embedded
+                        variant="chatBar"
+                    />
+                </Box>
+            </Box>
+        </Box>
     );
 }

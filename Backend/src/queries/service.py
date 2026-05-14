@@ -42,22 +42,26 @@ class QueryService:
         self,
         query_text: str,
         document_ids: list[str] | None = None,
+        top_k: int | None = None,
     ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
         """
         Builds retrieval hits and source records for one query.
 
         Args:
             query_text (str): The user question.
+            document_ids (list[str] | None): Optional document id filter.
+            top_k (int | None): Retrieval depth; defaults to server settings when omitted.
 
         Returns:
             tuple[list[dict[str, object]], list[dict[str, object]]]: Retrieval hits and sources.
         """
 
+        effective_top_k = top_k if top_k is not None else settings.top_k
         query_embedding = generate_query_embedding(query_text)
         hits = hybrid_search(
             query=query_text,
             query_embedding=query_embedding,
-            top_k=settings.top_k,
+            top_k=effective_top_k,
             document_ids=document_ids,
         )
         sources = [
@@ -76,25 +80,39 @@ class QueryService:
         self,
         query_text: str,
         document_ids: list[str] | None = None,
+        *,
+        rag_enabled: bool = True,
+        top_k: int | None = None,
+        temperature: float | None = None,
     ) -> dict[str, object]:
         """
         Runs hybrid retrieval and returns a persisted query response.
 
         Args:
             query_text (str): The user question.
+            document_ids (list[str] | None): Optional document id filter.
+            rag_enabled (bool): When false, skips retrieval and answers without document context.
+            top_k (int | None): Retrieval depth when RAG is enabled.
+            temperature (float | None): LLM temperature override.
 
         Returns:
             dict[str, object]: The persisted query response with answer and sources.
         """
 
         retrieval_start = perf_counter()
-        hits, sources = await asyncio.to_thread(
-            self._prepare_query, query_text, document_ids
-        )
+        if rag_enabled:
+            hits, sources = await asyncio.to_thread(
+                self._prepare_query, query_text, document_ids, top_k
+            )
+        else:
+            hits, sources = [], []
         retrieval_ms = (perf_counter() - retrieval_start) * 1000
 
         llm_start = perf_counter()
-        answer = await self._llm.answer(query_text, hits)
+        if rag_enabled:
+            answer = await self._llm.answer(query_text, hits, temperature=temperature)
+        else:
+            answer = await self._llm.answer_general(query_text, temperature=temperature)
         llm_ms = (perf_counter() - llm_start) * 1000
 
         db_start = perf_counter()
@@ -115,27 +133,43 @@ class QueryService:
         self,
         query_text: str,
         document_ids: list[str] | None = None,
+        *,
+        rag_enabled: bool = True,
+        top_k: int | None = None,
+        temperature: float | None = None,
     ) -> AsyncIterator[str]:
         """
         Streams hybrid retrieval output and persists the final answer.
 
         Args:
             query_text (str): The user question.
+            document_ids (list[str] | None): Optional document id filter.
+            rag_enabled (bool): When false, skips retrieval and streams a general answer.
+            top_k (int | None): Retrieval depth when RAG is enabled.
+            temperature (float | None): LLM temperature override.
 
         Returns:
             AsyncIterator[str]: SSE-formatted events for the frontend.
         """
 
         retrieval_start = perf_counter()
-        hits, sources = await asyncio.to_thread(
-            self._prepare_query, query_text, document_ids
-        )
+        if rag_enabled:
+            hits, sources = await asyncio.to_thread(
+                self._prepare_query, query_text, document_ids, top_k
+            )
+        else:
+            hits, sources = [], []
         retrieval_ms = (perf_counter() - retrieval_start) * 1000
         answer_parts: list[str] = []
 
         try:
             llm_start = perf_counter()
-            async for delta in self._llm.stream_answer(query_text, hits):
+            stream = (
+                self._llm.stream_answer(query_text, hits, temperature=temperature)
+                if rag_enabled
+                else self._llm.stream_answer_general(query_text, temperature=temperature)
+            )
+            async for delta in stream:
                 if delta:
                     answer_parts.append(delta)
                     yield _serialize_sse_event("token", {"delta": delta})

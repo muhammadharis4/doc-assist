@@ -16,6 +16,12 @@ export interface QueryHistoryItem {
 export interface ExecuteQueryInput {
     query: string;
     userId?: string | null;
+    /** When false, the backend answers without document retrieval. */
+    ragEnabled?: boolean;
+    /** Hybrid retrieval depth (1–20); omit to use server default. */
+    topK?: number;
+    /** LLM sampling temperature (0–1). */
+    temperature?: number;
 }
 
 export const MAX_QUERY_LENGTH = 2000;

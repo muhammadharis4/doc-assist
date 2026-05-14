@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from src.constants import (
     DOCUMENT_TYPE_INSURANCE,
@@ -177,7 +177,12 @@ class QueryExecuteRequest(BaseModel):
         QueryExecuteRequest: Validated query payload.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     query: str = Field(min_length=1, max_length=MAX_QUERY_LENGTH)
+    rag_enabled: bool = Field(default=True, alias="ragEnabled")
+    top_k: int | None = Field(default=None, ge=1, le=20, alias="topK")
+    temperature: float | None = Field(default=None, ge=0.0, le=1.0, alias="temperature")
 
 
 class QueryResponse(BaseModel):

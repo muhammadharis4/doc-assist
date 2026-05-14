@@ -12,6 +12,20 @@ from src.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _ollama_temperature(override: float | None) -> float:
+    """
+    Resolves the temperature sent to Ollama (per-request override vs server default).
+
+    Args:
+        override (float | None): Optional client-provided temperature.
+
+    Returns:
+        float: Effective temperature in ``[0, 1]`` (validated on the HTTP model).
+    """
+
+    return settings.ollama_temperature if override is None else override
+
+
 class LlmService:
     """Generates grounded answers from retrieved chunks."""
 
@@ -76,17 +90,24 @@ class LlmService:
                 {
                     "role": "user",
                     "content": "Reply with the single word ready.",
-                }
+                },
             ],
         )
 
-    async def answer(self, query: str, chunks: list[dict[str, object]]) -> str:
+    async def answer(
+        self,
+        query: str,
+        chunks: list[dict[str, object]],
+        *,
+        temperature: float | None = None,
+    ) -> str:
         """
         Returns an answer synthesized from retrieved context chunks.
 
         Args:
             query (str): The user question.
             chunks (list[dict[str, object]]): Retrieved context chunks.
+            temperature (float | None): Optional sampling temperature override.
 
         Returns:
             str: The generated answer.
@@ -101,8 +122,42 @@ class LlmService:
 
         response = await self._client.chat(
             model=settings.ollama_model,
-            options={"temperature": settings.ollama_temperature},
+            options={"temperature": _ollama_temperature(temperature)},
             messages=self._build_messages(query, chunks),
+        )
+        return response["message"]["content"].strip()
+
+    async def answer_general(
+        self,
+        query: str,
+        *,
+        temperature: float | None = None,
+    ) -> str:
+        """
+        Returns a conversational answer without document context.
+
+        Args:
+            query (str): The user question.
+            temperature (float | None): Optional sampling temperature override.
+
+        Returns:
+            str: The generated answer.
+        """
+
+        if settings.use_mock_llm:
+            logger.info("Using mock LLM general response")
+            return f"Mock general reply to: {query.strip()[:180]}"
+
+        response = await self._client.chat(
+            model=settings.ollama_model,
+            options={"temperature": _ollama_temperature(temperature)},
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant. Answer clearly and concisely.",
+                },
+                {"role": "user", "content": query.strip()},
+            ],
         )
         return response["message"]["content"].strip()
 
@@ -110,6 +165,8 @@ class LlmService:
         self,
         query: str,
         chunks: list[dict[str, object]],
+        *,
+        temperature: float | None = None,
     ) -> AsyncIterator[str]:
         """
         Streams an answer synthesized from retrieved context chunks.
@@ -117,6 +174,7 @@ class LlmService:
         Args:
             query (str): The user question.
             chunks (list[dict[str, object]]): Retrieved context chunks.
+            temperature (float | None): Optional sampling temperature override.
 
         Returns:
             AsyncIterator[str]: Streamed answer chunks.
@@ -133,8 +191,48 @@ class LlmService:
 
         stream = await self._client.chat(
             model=settings.ollama_model,
-            options={"temperature": settings.ollama_temperature},
+            options={"temperature": _ollama_temperature(temperature)},
             messages=self._build_messages(query, chunks),
+            stream=True,
+        )
+
+        async for part in stream:
+            content = part.message.content or ""
+            if content:
+                yield content
+
+    async def stream_answer_general(
+        self,
+        query: str,
+        *,
+        temperature: float | None = None,
+    ) -> AsyncIterator[str]:
+        """
+        Streams a conversational answer without document context.
+
+        Args:
+            query (str): The user question.
+            temperature (float | None): Optional sampling temperature override.
+
+        Returns:
+            AsyncIterator[str]: Streamed answer chunks.
+        """
+
+        if settings.use_mock_llm:
+            logger.info("Using mock LLM general stream response")
+            yield f"Mock general reply to: {query.strip()[:180]}"
+            return
+
+        stream = await self._client.chat(
+            model=settings.ollama_model,
+            options={"temperature": _ollama_temperature(temperature)},
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant. Answer clearly and concisely.",
+                },
+                {"role": "user", "content": query.strip()},
+            ],
             stream=True,
         )
 

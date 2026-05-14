@@ -54,7 +54,12 @@ async def run_query(request: Request, payload: QueryExecuteRequest) -> dict[str,
     """
 
     query_text = _validate_query_text(payload.query)
-    return await service.run_query(query_text)
+    return await service.run_query(
+        query_text,
+        rag_enabled=payload.rag_enabled,
+        top_k=payload.top_k,
+        temperature=payload.temperature,
+    )
 
 
 @router.post("/stream")
@@ -75,7 +80,12 @@ async def run_query_stream(
 
     query_text = _validate_query_text(payload.query)
     return StreamingResponse(
-        service.stream_query(query_text),
+        service.stream_query(
+            query_text,
+            rag_enabled=payload.rag_enabled,
+            top_k=payload.top_k,
+            temperature=payload.temperature,
+        ),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

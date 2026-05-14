@@ -5,6 +5,7 @@ import {
     Box,
     Button,
     IconButton,
+    InputAdornment,
     Paper,
     Stack,
     TextField,
@@ -25,6 +26,8 @@ interface QueryComposerProps {
     maxLength: number;
     /** Hides the “Ask a question” heading and some chrome for the chat area. */
     embedded?: boolean;
+    /** Compact single-line-style bar used on the chat page. */
+    variant?: "default" | "chatBar";
 }
 
 /**
@@ -39,8 +42,73 @@ export function QueryComposer({
     isSubmitting,
     maxLength,
     embedded = false,
+    variant = "default",
 }: QueryComposerProps) {
     const isEmpty = queryText.trim().length === 0;
+
+    if (variant === "chatBar") {
+        return (
+            <Box sx={{ width: "100%" }}>
+                <TextField
+                    fullWidth
+                    placeholder="Type your message here..."
+                    multiline
+                    minRows={1}
+                    maxRows={5}
+                    size="small"
+                    value={queryText}
+                    onChange={(event) => onQueryTextChange(event.target.value)}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey) {
+                            event.preventDefault();
+                            if (!isSubmitting && !isEmpty) {
+                                onSubmit();
+                            }
+                            return;
+                        }
+                        if (
+                            event.key === "Enter" &&
+                            (event.metaKey || event.ctrlKey)
+                        ) {
+                            event.preventDefault();
+                            onSubmit();
+                        }
+                    }}
+                    slotProps={{
+                        htmlInput: { maxLength },
+                        input: {
+                            sx: (theme) => ({
+                                borderRadius: 999,
+                                backgroundColor:
+                                    theme.palette.mode === "dark"
+                                        ? theme.palette.grey[900]
+                                        : theme.palette.grey[100],
+                                pl: 2,
+                                pr: 0.5,
+                            }),
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <Tooltip title="Send">
+                                        <span>
+                                            <IconButton
+                                                color="primary"
+                                                edge="end"
+                                                onClick={onSubmit}
+                                                disabled={isSubmitting || isEmpty}
+                                                aria-label="Send message"
+                                            >
+                                                <SendRoundedIcon />
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                </InputAdornment>
+                            ),
+                        },
+                    }}
+                />
+            </Box>
+        );
+    }
 
     return (
         <Paper

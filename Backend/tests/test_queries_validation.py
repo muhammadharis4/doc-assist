@@ -25,3 +25,8 @@ def test_query_history_returns_list(client: TestClient) -> None:
     response = client.get("/queries/history?limit=5")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+def test_post_queries_rejects_invalid_topk(client: TestClient) -> None:
+    response = client.post("/queries", json={"query": "hello", "topK": 99})
+    assert response.status_code == 422
