@@ -80,7 +80,7 @@ docker compose up
 | Area        | Examples |
 |------------|----------|
 | Health     | `GET /health` |
-| Documents  | `GET/POST /documents`, `POST /documents/extract`, `DELETE /documents/{id}` |
+| Documents  | `GET /documents` (filters: `q`, `document_type`, `status`/`inbox`, `tag`, `created_*`), `POST /documents`, `PATCH /documents/{id}` (tags), `POST /documents/extract`, `DELETE /documents/{id}` |
 | Queries    | `POST /queries`, `POST /queries/stream`, `GET /queries/history` |
 | Telegram   | `POST /integrations/telegram/webhook` (when bot + webhook configured) |
 

@@ -75,7 +75,9 @@ Client code under `services/*` talks to **Next.js** routes, which proxy to the b
 
 | Next route | Proxies to backend |
 |------------|---------------------|
-| `GET/POST` `/api/documents` | `/documents` |
+| `GET` `/api/documents` | `/documents` (forwards query string for filters) |
+| `POST` `/api/documents` | `/documents` |
+| `PATCH` `/api/documents/[id]` | `/documents/{id}` (tags) |
 | `DELETE` `/api/documents/[id]` | `/documents/{id}` |
 | `POST` `/api/documents/extract` | `/documents/extract` |
 | `POST` `/api/queries` | `/queries` |

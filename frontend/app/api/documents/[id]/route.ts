@@ -1,6 +1,7 @@
 /**
- * Proxies document deletion: `DELETE /documents/:id` on the backend.
+ * Proxies document delete (`DELETE`) and tag updates (`PATCH`) on the backend.
  */
+import { NextRequest } from "next/server";
 import { proxyRequest } from "@/services/server/backend";
 
 interface RouteContext {
@@ -20,5 +21,26 @@ export async function DELETE(
     const { id } = await context.params;
     return proxyRequest(`/documents/${id}`, {
         method: "DELETE",
+    });
+}
+
+/**
+ * Updates document fields on the backend (tags).
+ * @param request - JSON body (e.g. `{ "tags": ["a"] }`).
+ * @param context - Route params with document `id`.
+ * @returns Proxied PATCH response.
+ */
+export async function PATCH(
+    request: NextRequest,
+    context: RouteContext,
+): Promise<Response> {
+    const { id } = await context.params;
+    const body = await request.text();
+    return proxyRequest(`/documents/${id}`, {
+        method: "PATCH",
+        body,
+        headers: {
+            "Content-Type": "application/json",
+        },
     });
 }

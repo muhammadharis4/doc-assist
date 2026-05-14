@@ -16,29 +16,36 @@ import {
     Typography,
 } from "@mui/material";
 import { DocumentUploadDialog } from "@/components/documents/DocumentUploadDialog";
+import { DocumentsFilters } from "@/components/documents/DocumentsFilters";
 import { DocumentsTable } from "@/components/documents/DocumentsTable";
+import { EditDocumentTagsDialog } from "@/components/documents/EditDocumentTagsDialog";
 import { NavHomeButton } from "@/components/NavHomeButton";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import {
     createDocument,
     deleteDocument,
     listDocuments,
+    patchDocumentTags,
 } from "@/services/documents";
 import { getErrorMessage } from "@/types/api";
-import type { DocumentItem } from "@/types/documents";
+import type { DocumentItem, DocumentListParams } from "@/types/documents";
+import { hasDocumentListFilters } from "@/types/documents";
 
 /**
- * Documents hub: list uploads, status, delete; open upload dialog; link to chat and home.
- * @returns Full client page with header actions, table, and `DocumentUploadDialog`.
+ * Documents hub: filters, list uploads, status, tags, delete; upload dialog; links to chat and home.
+ * @returns Full client page with filters, table, dialogs.
  */
 export function DocumentsView() {
     const [documents, setDocuments] = useState<DocumentItem[]>([]);
+    const [listFilters, setListFilters] = useState<DocumentListParams>({});
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [successMessage, setSuccessMessage] = useState<string>("");
     const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const [tagsEditorDoc, setTagsEditorDoc] = useState<DocumentItem | null>(null);
+    const [tagsSaving, setTagsSaving] = useState(false);
 
     const refreshDocuments = useCallback(
         async (options?: { silent?: boolean }) => {
@@ -47,7 +54,7 @@ export function DocumentsView() {
             }
 
             try {
-                const nextDocuments = await listDocuments();
+                const nextDocuments = await listDocuments(listFilters);
                 setDocuments(nextDocuments);
                 setErrorMessage("");
             } catch (error: unknown) {
@@ -60,7 +67,7 @@ export function DocumentsView() {
                 }
             }
         },
-        [],
+        [listFilters],
     );
 
     useEffect(() => {
@@ -185,11 +192,15 @@ export function DocumentsView() {
                     </Paper>
                 ) : null}
 
+                <DocumentsFilters value={listFilters} onChange={setListFilters} />
+
                 <DocumentsTable
                     documents={documents}
                     isLoading={isLoading}
                     onDelete={handleDelete}
                     deletingId={deletingId}
+                    onEditTags={(document) => setTagsEditorDoc(document)}
+                    filtersActive={hasDocumentListFilters(listFilters)}
                 />
             </Stack>
 
@@ -218,6 +229,25 @@ export function DocumentsView() {
                 }}
                 isSubmitting={isSubmitting}
             />
+
+            {tagsEditorDoc ? (
+                <EditDocumentTagsDialog
+                    key={tagsEditorDoc.id}
+                    document={tagsEditorDoc}
+                    onClose={() => setTagsEditorDoc(null)}
+                    isSaving={tagsSaving}
+                    onSave={async (tags) => {
+                        setTagsSaving(true);
+                        try {
+                            await patchDocumentTags(tagsEditorDoc.id, tags);
+                            await refreshDocuments({ silent: true });
+                            setTagsEditorDoc(null);
+                        } finally {
+                            setTagsSaving(false);
+                        }
+                    }}
+                />
+            ) : null}
         </Container>
     );
 }

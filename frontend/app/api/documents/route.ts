@@ -5,11 +5,15 @@ import { NextRequest } from "next/server";
 import { proxyRequest } from "@/services/server/backend";
 
 /**
- * Forwards a list request to the Python backend and returns the same response.
+ * Forwards a list request to the Python backend, preserving query string filters.
+ * @param request - Incoming request (search params forwarded to FastAPI).
  * @returns Proxied `GET /documents` JSON list.
  */
-export async function GET(): Promise<Response> {
-    return proxyRequest("/documents");
+export async function GET(request: NextRequest): Promise<Response> {
+    const { searchParams } = new URL(request.url);
+    const qs = searchParams.toString();
+    const path = qs ? `/documents?${qs}` : "/documents";
+    return proxyRequest(path);
 }
 
 /**

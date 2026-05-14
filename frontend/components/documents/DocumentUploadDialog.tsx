@@ -15,9 +15,11 @@ import {
     MenuItem,
     Select,
     Stack,
+    TextField,
     Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { parseDocumentTagsInput } from "@/libs/document-tags";
 import { extractPdfText } from "@/services/documents";
 import {
     DOCUMENT_TYPE_OPTIONS,
@@ -57,6 +59,7 @@ export function DocumentUploadDialog({
     const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [tagsRaw, setTagsRaw] = useState("");
 
     const hasFiles = pendingFiles.length > 0;
     const dropHint = useMemo(() => {
@@ -76,6 +79,7 @@ export function DocumentUploadDialog({
         setPendingFiles([]);
         setErrorMessage("");
         setIsDragging(false);
+        setTagsRaw("");
     }
 
     /** Closes the dialog and resets unless a submit is in progress. */
@@ -120,9 +124,26 @@ export function DocumentUploadDialog({
         }
 
         setErrorMessage("");
+        let tags: string[] = [];
+        try {
+            tags = parseDocumentTagsInput(tagsRaw);
+        } catch (parseError: unknown) {
+            setErrorMessage(
+                parseError instanceof Error
+                    ? parseError.message
+                    : "Invalid tags.",
+            );
+            return;
+        }
+
         await onSubmit(
             pendingFiles.map((item) =>
-                buildPayload(item.file, item.extractedText, item.documentType),
+                buildPayload(
+                    item.file,
+                    item.extractedText,
+                    item.documentType,
+                    tags,
+                ),
             ),
         );
         resetDialog();
@@ -238,6 +259,16 @@ export function DocumentUploadDialog({
                             >
                                 Files ready to upload
                             </Typography>
+                            <TextField
+                                size="small"
+                                fullWidth
+                                label="Tags for this batch (optional)"
+                                placeholder="e.g. inbox, 2024, scanned"
+                                helperText="Comma-separated; applied to every file in the batch."
+                                value={tagsRaw}
+                                onChange={(event) => setTagsRaw(event.target.value)}
+                                disabled={isSubmitting}
+                            />
                             {pendingFiles.map((item) => (
                                 <Box
                                     key={`${item.file.name}-${item.file.lastModified}`}
@@ -377,12 +408,14 @@ function buildPayload(
     file: File,
     extractedText: string,
     documentType: DocumentType,
+    tags: string[],
 ): CreateDocumentInput {
     return {
         filename: file.name,
         mimeType: file.type || "text/plain",
         content: extractedText.trim() || file.name,
         documentType,
+        tags: tags.length > 0 ? tags : undefined,
     };
 }
 

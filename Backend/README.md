@@ -60,7 +60,8 @@ See also the repository root **`SECURITY.md`** for Telegram webhook and deployme
 | Method | Path | Notes |
 |--------|------|--------|
 | `GET` | `/health` | Liveness |
-| `GET` / `POST` | `/documents` | List / create documents |
+| `GET` / `POST` | `/documents` | List (optional filters: `q`, `document_type`, `status`/`inbox`, `tag`, `created_from`, `created_to`) / create |
+| `PATCH` | `/documents/{id}` | Replace document tags |
 | `POST` | `/documents/extract` | PDF/text extraction helper |
 | `DELETE` | `/documents/{id}` | Remove document |
 | `POST` | `/queries` | Non-streaming Q&A |

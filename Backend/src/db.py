@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -47,7 +48,8 @@ def init_db() -> None:
                 created_at TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'ready',
                 error_message TEXT,
-                indexed_at TEXT
+                indexed_at TEXT,
+                tags_json TEXT NOT NULL DEFAULT '[]'
             );
 
             CREATE TABLE IF NOT EXISTS query_history (
@@ -102,6 +104,10 @@ def _ensure_document_columns(connection: sqlite3.Connection) -> None:
         connection.execute(
             "ALTER TABLE documents ADD COLUMN document_type TEXT NOT NULL DEFAULT 'other'"
         )
+    if "tags_json" not in columns:
+        connection.execute(
+            "ALTER TABLE documents ADD COLUMN tags_json TEXT NOT NULL DEFAULT '[]'"
+        )
 
 
 def _ensure_query_source_columns(connection: sqlite3.Connection) -> None:
@@ -147,12 +153,35 @@ def _connection() -> Iterator[sqlite3.Connection]:
         connection.close()
 
 
+def _tags_from_json(raw: str | None) -> list[str]:
+    """
+    Parses stored ``tags_json`` into a list of strings.
+
+    Args:
+        raw (str | None): JSON array text from SQLite.
+
+    Returns:
+        list[str]: Tags for API responses (empty on invalid JSON).
+    """
+
+    if not raw or not str(raw).strip():
+        return []
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [str(item).strip() for item in parsed if str(item).strip()]
+
+
 def create_document(
     filename: str,
     content: str,
     mime_type: str | None,
     document_type: str,
     status: str = "pending",
+    tags: list[str] | None = None,
 ) -> dict[str, object]:
     """
     Stores one document row and returns the created row.
@@ -162,6 +191,8 @@ def create_document(
         content (str): Document content.
         mime_type (str | None): Optional MIME type.
         document_type (str): User-selected document category.
+        status (str): Processing status for new rows.
+        tags (list[str] | None): Optional tag list (stored as JSON).
 
     Returns:
         dict[str, object]: Stored document payload.
@@ -169,6 +200,8 @@ def create_document(
 
     document_id = str(uuid4())
     created_at = _utc_now()
+    tag_list = list(tags) if tags is not None else []
+    tags_json = json.dumps(tag_list)
 
     with _connection() as connection:
         connection.execute(
@@ -182,11 +215,12 @@ def create_document(
                 created_at,
                 status,
                 error_message,
-                indexed_at
+                indexed_at,
+                tags_json
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?)
             """,
-            (document_id, filename, content, mime_type, document_type, created_at, status),
+            (document_id, filename, content, mime_type, document_type, created_at, status, tags_json),
         )
 
     return {
@@ -199,30 +233,87 @@ def create_document(
         "status": status,
         "errorMessage": None,
         "indexedAt": None,
+        "tags": tag_list,
     }
 
-def list_documents() -> list[dict[str, object]]:
+
+def list_documents(
+    *,
+    filename_substring: str | None = None,
+    document_type: str | None = None,
+    status: str | None = None,
+    tag: str | None = None,
+    created_from: str | None = None,
+    created_to: str | None = None,
+) -> list[dict[str, object]]:
     """
-    Returns all documents ordered from newest to oldest.
+    Returns documents newest first, optionally filtered.
+
+    Args:
+        filename_substring (str | None): Case-insensitive substring match on ``filename``.
+        document_type (str | None): Exact ``document_type`` filter.
+        status (str | None): Exact status, or ``inbox`` for pending and processing.
+        tag (str | None): Exact tag match (case-insensitive) against JSON tags.
+        created_from (str | None): Inclusive lower bound on ``created_at`` (ISO string).
+        created_to (str | None): Inclusive upper bound on ``created_at`` (ISO string).
 
     Returns:
-        list[dict[str, object]]: Stored documents in recency order.
+        list[dict[str, object]]: Stored document rows (content omitted on list responses).
+    """
+
+    clauses: list[str] = []
+    params: list[object] = []
+
+    if filename_substring and filename_substring.strip():
+        clauses.append("INSTR(LOWER(filename), LOWER(?)) > 0")
+        params.append(filename_substring.strip())
+
+    if document_type and document_type.strip():
+        clauses.append("document_type = ?")
+        params.append(document_type.strip())
+
+    if status and status.strip():
+        lowered = status.strip().lower()
+        if lowered == "inbox":
+            clauses.append("status IN ('pending', 'processing')")
+        else:
+            clauses.append("status = ?")
+            params.append(status.strip())
+
+    if tag and tag.strip():
+        clauses.append(
+            """
+            EXISTS (
+                SELECT 1 FROM json_each(COALESCE(documents.tags_json, '[]')) AS je
+                WHERE LOWER(je.value) = LOWER(?)
+            )
+            """
+        )
+        params.append(tag.strip())
+
+    if created_from and created_from.strip():
+        clauses.append("created_at >= ?")
+        params.append(created_from.strip())
+
+    if created_to and created_to.strip():
+        clauses.append("created_at <= ?")
+        params.append(created_to.strip())
+
+    where_sql = " AND ".join(clauses) if clauses else "1 = 1"
+    sql = f"""
+        SELECT id, filename, mime_type, document_type, created_at, status, error_message, indexed_at, tags_json
+        FROM documents
+        WHERE {where_sql}
+        ORDER BY created_at DESC
     """
 
     with _connection() as connection:
-        rows = connection.execute(
-            """
-            SELECT id, filename, mime_type, document_type, created_at, status, error_message, indexed_at
-            FROM documents
-            ORDER BY created_at DESC
-            """
-        ).fetchall()
+        rows = connection.execute(sql, params).fetchall()
 
     return [
         {
             "id": row["id"],
             "filename": row["filename"],
-            # Keep response shape stable while avoiding large content payloads on list calls.
             "content": "",
             "mimeType": row["mime_type"],
             "documentType": row["document_type"] or "other",
@@ -230,6 +321,7 @@ def list_documents() -> list[dict[str, object]]:
             "status": row["status"],
             "errorMessage": row["error_message"],
             "indexedAt": row["indexed_at"],
+            "tags": _tags_from_json(row["tags_json"]),
         }
         for row in rows
     ]
@@ -249,7 +341,7 @@ def get_document(document_id: str) -> dict[str, object] | None:
     with _connection() as connection:
         row = connection.execute(
             """
-            SELECT id, filename, content, mime_type, document_type, created_at, status, error_message, indexed_at
+            SELECT id, filename, content, mime_type, document_type, created_at, status, error_message, indexed_at, tags_json
             FROM documents
             WHERE id = ?
             """,
@@ -269,7 +361,32 @@ def get_document(document_id: str) -> dict[str, object] | None:
         "status": row["status"],
         "errorMessage": row["error_message"],
         "indexedAt": row["indexed_at"],
+        "tags": _tags_from_json(row["tags_json"]),
     }
+
+
+def update_document_tags(document_id: str, tags: list[str]) -> dict[str, object] | None:
+    """
+    Replaces stored tags for one document.
+
+    Args:
+        document_id (str): Document id.
+        tags (list[str]): New tag list (may be empty).
+
+    Returns:
+        dict[str, object] | None: Updated document row, or ``None`` if id missing.
+    """
+
+    tags_json = json.dumps(tags)
+    with _connection() as connection:
+        result = connection.execute(
+            "UPDATE documents SET tags_json = ? WHERE id = ?",
+            (tags_json, document_id),
+        )
+        if result.rowcount == 0:
+            return None
+
+    return get_document(document_id)
 
 
 def update_document_status(

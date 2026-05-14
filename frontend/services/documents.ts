@@ -1,11 +1,46 @@
-import type { CreateDocumentInput, DocumentItem } from "@/types/documents";
+import type {
+    CreateDocumentInput,
+    DocumentItem,
+    DocumentListParams,
+} from "@/types/documents";
+
+function listParamsToSearchParams(params?: DocumentListParams): URLSearchParams {
+    const search = new URLSearchParams();
+    if (!params) {
+        return search;
+    }
+    if (params.q?.trim()) {
+        search.set("q", params.q.trim());
+    }
+    if (params.documentType) {
+        search.set("document_type", params.documentType);
+    }
+    if (params.status) {
+        search.set("status", params.status);
+    }
+    if (params.tag?.trim()) {
+        search.set("tag", params.tag.trim());
+    }
+    if (params.createdFrom?.trim()) {
+        search.set("created_from", params.createdFrom.trim());
+    }
+    if (params.createdTo?.trim()) {
+        search.set("created_to", params.createdTo.trim());
+    }
+    return search;
+}
 
 /**
- * Fetches the user’s document list and indexing status from the Next API (`GET /api/documents`).
+ * Fetches documents from the Next API (`GET /api/documents`) with optional filters.
+ * @param params - Optional list filters (filename, type, status/inbox, tag, dates).
  * @returns Parsed `DocumentItem[]`; throws a generic `Error` if the request fails.
  */
-export async function listDocuments(): Promise<DocumentItem[]> {
-    const response = await fetch(`/api/documents`, {
+export async function listDocuments(
+    params?: DocumentListParams,
+): Promise<DocumentItem[]> {
+    const qs = listParamsToSearchParams(params).toString();
+    const url = qs ? `/api/documents?${qs}` : "/api/documents";
+    const response = await fetch(url, {
         cache: "no-store",
     });
 
@@ -18,7 +53,7 @@ export async function listDocuments(): Promise<DocumentItem[]> {
 
 /**
  * Persists a new document (text + metadata) through the Next API (`POST /api/documents`).
- * @param input - `CreateDocumentInput` (content, type, filename, etc.).
+ * @param input - `CreateDocumentInput` (content, type, filename, optional tags).
  * @returns The created `DocumentItem`.
  */
 export function createDocument(
@@ -27,6 +62,21 @@ export function createDocument(
     return fetchJson<DocumentItem>(`/api/documents`, {
         method: "POST",
         body: JSON.stringify(input),
+    });
+}
+
+/**
+ * Replaces tags on an existing document (`PATCH /api/documents/:id`).
+ * @param id - Document id.
+ * @param tags - Full tag list to store (may be empty).
+ */
+export function patchDocumentTags(
+    id: string,
+    tags: string[],
+): Promise<DocumentItem> {
+    return fetchJson<DocumentItem>(`/api/documents/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ tags }),
     });
 }
 
