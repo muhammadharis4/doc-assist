@@ -4,13 +4,14 @@ This document summarizes how DocAssist handles sensitive data and known limitati
 
 ## Threat model (important)
 
-- **No end-user authentication** is implemented on the REST API. Any client that can reach the backend can call document and query endpoints. **Do not expose the backend to the public internet** without adding your own auth, network controls (VPN, reverse proxy rules), or equivalent.
-- The **Next.js app** proxies the browser to the backend using `BACKEND_API_URL`. That URL must point to **a backend you trust**. Do not supply a user-controlled `BACKEND_API_URL` on a shared server deployment.
+- **No end-user accounts** are implemented. Anyone who can use the Next.js UI or reach the backend API can access all documents and queries for that deployment.- The **Next.js app** proxies the browser to the backend using `BACKEND_API_URL`. That URL must point to **a backend you trust**. Do not supply a user-controlled `BACKEND_API_URL` on a shared server deployment.
 
 ## Secrets and configuration
 
 - Store secrets in environment variables or a secrets manager — **never** commit real tokens to git. Backend reads `Backend/.env` locally via `python-dotenv`; use `.gitignore`d `.env` files only.
-- **Minimal backend env vars** are documented in the root `README.md` and `Backend/README.md`. Tuning that is not environment-driven lives in `Backend/src/constants.py`.
+- **Backend env vars** are documented in the root `README.md` and `Backend/README.md`. Tuning that is not environment-driven lives in `Backend/src/constants.py`.
+- **Rate limits** apply per client IP (SlowAPI). Limits are defined in `Backend/src/constants.py` and are **disabled automatically** when pytest sets `DOCASSIST_TESTING=1`.
+- **Payload caps:** `POST /documents` text is capped by `MAX_DOCUMENT_CONTENT_CHARS`; `POST /documents/extract` rejects PDFs larger than `MAX_PDF_UPLOAD_BYTES` (see `Backend/src/constants.py`).
 
 ## Telegram webhook
 

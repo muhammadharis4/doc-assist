@@ -90,7 +90,7 @@ Full detail: **`Backend/README.md`**, **`frontend/README.md`**.
 
 ## Security
 
-**Read [`SECURITY.md`](./SECURITY.md)** before deploying. This project does **not** ship application-level user auth on the document/query API; network placement and your own controls matter.
+**Read [`SECURITY.md`](./SECURITY.md)** before deploying. The REST API does not implement per-user sign-in; treat network placement and your own reverse proxy or identity layer as your control plane for anything beyond a trusted environment.
 
 ---
 

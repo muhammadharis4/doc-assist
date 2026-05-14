@@ -44,10 +44,12 @@ These are the **only** values read from the environment in `src/config.py`:
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token (empty disables Telegram features) |
 | `TELEGRAM_WEBHOOK_SECRET` | Strong secret for webhook validation header (recommended when using webhooks) |
 | `TELEGRAM_WEBHOOK_URL` | Public HTTPS URL for `setWebhook` |
+| `CORS_ALLOW_ORIGINS` | Comma-separated browser origins allowed by CORS (empty disables CORS middleware). Use `*` only for isolated demos (credentials disabled) |
+| `TRUSTED_HOSTS` | Comma-separated `Host` values for `TrustedHostMiddleware` (empty disables the middleware) |
 
 ### Constants (code, not env)
 
-Retrieval tuning, embedding model id, chunk sizes, OpenSearch **index / pipeline names**, Ollama **model name and temperature**, Telegram message limits, etc. live in **`src/constants.py`**. Change those in code (or fork) rather than scattering env knobs.
+Retrieval tuning, embedding model id, chunk sizes, OpenSearch **index / pipeline names**, Ollama **model name and temperature**, Telegram message limits, **per-IP rate limit strings**, **max document text size**, **max PDF upload size**, etc. live in **`src/constants.py`**. Change those in code (or fork) rather than scattering env knobs.
 
 See also the repository root **`SECURITY.md`** for Telegram webhook and deployment notes.
 

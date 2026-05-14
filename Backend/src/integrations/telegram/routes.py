@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Header, HTTPException, Request
 
+from src.constants import RATE_LIMIT_TELEGRAM_HEALTH
+from src.rate_limit import limiter
 from src.integrations.telegram.service import TelegramService
 
 router = APIRouter(prefix="/integrations/telegram", tags=["telegram"])
@@ -11,7 +13,8 @@ service = TelegramService()
 
 
 @router.get("/health")
-def health() -> dict[str, str | bool]:
+@limiter.limit(RATE_LIMIT_TELEGRAM_HEALTH)
+def health(request: Request) -> dict[str, str | bool]:
     """
     Returns Telegram integration health information.
 

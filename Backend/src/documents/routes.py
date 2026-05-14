@@ -2,8 +2,16 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Request, UploadFile
 
+from src.constants import (
+    MAX_PDF_UPLOAD_BYTES,
+    RATE_LIMIT_DOCUMENTS_CREATE,
+    RATE_LIMIT_DOCUMENTS_DELETE,
+    RATE_LIMIT_DOCUMENTS_EXTRACT,
+    RATE_LIMIT_DOCUMENTS_LIST,
+)
+from src.rate_limit import limiter
 from src.schemas import DeleteStatusResponse, DocumentCreateRequest, DocumentResponse
 from src.documents.service import DocumentService
 from src.rag.opensearch_store import delete_document_chunks
@@ -13,9 +21,13 @@ service = DocumentService()
 
 
 @router.get("", response_model=list[DocumentResponse])
-def list_documents() -> list[dict[str, object]]:
+@limiter.limit(RATE_LIMIT_DOCUMENTS_LIST)
+def list_documents(request: Request) -> list[dict[str, object]]:
     """
     Returns all indexed documents ordered by most recent.
+
+    Args:
+        request (Request): Request (required for rate limiting).
 
     Returns:
         list[dict[str, object]]: Stored document rows.
@@ -25,7 +37,9 @@ def list_documents() -> list[dict[str, object]]:
 
 
 @router.post("", response_model=DocumentResponse)
+@limiter.limit(RATE_LIMIT_DOCUMENTS_CREATE)
 def create_document(
+    request: Request,
     payload: DocumentCreateRequest,
     background_tasks: BackgroundTasks,
 ) -> dict[str, object]:
@@ -33,6 +47,7 @@ def create_document(
     Stores and indexes a document for retrieval.
 
     Args:
+        request (Request): Request (required for rate limiting).
         payload (DocumentCreateRequest): Document create payload.
 
     Returns:
@@ -54,11 +69,13 @@ def create_document(
 
 
 @router.post("/extract")
-async def extract_pdf(file: UploadFile = File(...)) -> dict[str, str]:
+@limiter.limit(RATE_LIMIT_DOCUMENTS_EXTRACT)
+async def extract_pdf(request: Request, file: UploadFile = File(...)) -> dict[str, str]:
     """
     Extracts text from an uploaded PDF file.
 
     Args:
+        request (Request): Request (required for rate limiting).
         file (UploadFile): PDF file upload.
 
     Returns:
@@ -71,13 +88,31 @@ async def extract_pdf(file: UploadFile = File(...)) -> dict[str, str]:
     if not (is_pdf_name or is_pdf_mime):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
-    file_bytes = await file.read()
+    max_bytes = MAX_PDF_UPLOAD_BYTES
+    chunks: list[bytes] = []
+    total = 0
+    chunk_size = min(1024 * 1024, max_bytes + 1)
+    while True:
+        buf = await file.read(chunk_size)
+        if not buf:
+            break
+        total += len(buf)
+        if total > max_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"PDF exceeds maximum size of {max_bytes} bytes",
+            )
+        chunks.append(buf)
+
+    file_bytes = b"".join(chunks)
     text = service.extract_pdf_text(file_bytes=file_bytes, filename=file.filename)
     return {"text": text}
 
 
 @router.delete("/{document_id}", response_model=DeleteStatusResponse)
+@limiter.limit(RATE_LIMIT_DOCUMENTS_DELETE)
 def remove_document(
+    request: Request,
     document_id: str,
     background_tasks: BackgroundTasks,
 ) -> DeleteStatusResponse:
@@ -85,6 +120,7 @@ def remove_document(
     Deletes one document and all indexed chunks.
 
     Args:
+        request (Request): Request (required for rate limiting).
         document_id (str): The document identifier.
 
     Returns:

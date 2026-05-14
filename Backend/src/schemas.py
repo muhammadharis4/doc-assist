@@ -14,6 +14,7 @@ from src.constants import (
     DOCUMENT_TYPE_SALARY_SLIP,
     DOCUMENT_TYPE_TAX,
     DOCUMENT_TYPE_WORK_CONTRACT,
+    MAX_DOCUMENT_CONTENT_CHARS,
     MAX_QUERY_LENGTH,
 )
 
@@ -37,7 +38,7 @@ class DocumentCreateRequest(BaseModel):
     """
 
     filename: str = Field(min_length=1, max_length=1024)
-    content: str = Field(min_length=1)
+    content: str = Field(min_length=1, max_length=MAX_DOCUMENT_CONTENT_CHARS)
     mimeType: str | None = Field(default=None, max_length=256)
     documentType: DocumentType = DOCUMENT_TYPE_OTHER
 

@@ -1,0 +1,1 @@
+"""DocAssist FastAPI application package."""
