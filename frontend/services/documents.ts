@@ -80,6 +80,36 @@ export function patchDocumentTags(
     });
 }
 
+/** Best-effort message from `/api/documents/extract` error JSON (FastAPI `detail`, etc.). */
+async function parseExtractErrorDetail(response: Response): Promise<string | null> {
+    const ct = response.headers.get("content-type");
+    if (!ct?.includes("application/json")) {
+        return response.statusText || `HTTP ${response.status}`;
+    }
+    try {
+        const data = (await response.json()) as {
+            detail?: unknown;
+            message?: string;
+        };
+        if (typeof data.message === "string" && data.message.trim()) {
+            return data.message.trim();
+        }
+        const d = data.detail;
+        if (typeof d === "string" && d.trim()) {
+            return d.trim();
+        }
+        if (Array.isArray(d) && d.length > 0) {
+            const first = d[0] as { msg?: string };
+            if (typeof first?.msg === "string" && first.msg.trim()) {
+                return first.msg.trim();
+            }
+        }
+    } catch {
+        // ignore malformed JSON
+    }
+    return null;
+}
+
 /**
  * Extracts plain text from a PDF via the app’s extract endpoint (used when staging uploads).
  * @param file - PDF `File` from an input or drag-and-drop.
@@ -95,7 +125,8 @@ export async function extractPdfText(file: File): Promise<string> {
     });
 
     if (!response.ok) {
-        throw new Error("Failed to extract PDF text.");
+        const detail = await parseExtractErrorDetail(response);
+        throw new Error(detail ?? "Failed to extract PDF text.");
     }
 
     const payload = (await response.json()) as { text?: string };

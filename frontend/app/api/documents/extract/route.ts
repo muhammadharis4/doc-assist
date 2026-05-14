@@ -10,9 +10,20 @@ import { proxyRequest } from "@/services/server/backend";
  * @returns Proxied `Response` (JSON with an extracted `text` field when successful).
  */
 export async function POST(request: NextRequest): Promise<Response> {
-    const formData = await request.formData();
+    const contentType = request.headers.get("content-type");
+    if (!contentType?.toLowerCase().includes("multipart/form-data")) {
+        return new Response(
+            JSON.stringify({ message: "Expected multipart/form-data." }),
+            { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+    }
+
+    // Forward the raw body so the multipart boundary matches `Content-Type`.
+    // Re-parsing `formData()` and passing `FormData` to `fetch` often breaks in Node.
+    const body = await request.arrayBuffer();
     return proxyRequest("/documents/extract", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": contentType },
+        body,
     });
 }

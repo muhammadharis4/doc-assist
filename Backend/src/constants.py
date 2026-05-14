@@ -38,7 +38,8 @@ MAX_PDF_UPLOAD_BYTES = 25 * 1024 * 1024
 # Per-IP rate limits (SlowAPI). Disabled when ``DOCASSIST_TESTING`` is set (pytest).
 RATE_LIMIT_DOCUMENTS_LIST = "120/minute"
 RATE_LIMIT_DOCUMENTS_CREATE = "20/minute"
-RATE_LIMIT_DOCUMENTS_EXTRACT = "10/minute"
+# Batches often upload many PDFs in sequence; Next proxies as one IP, so keep headroom.
+RATE_LIMIT_DOCUMENTS_EXTRACT = "60/minute"
 RATE_LIMIT_DOCUMENTS_DELETE = "60/minute"
 RATE_LIMIT_DOCUMENTS_PATCH = "60/minute"
 RATE_LIMIT_QUERIES_EXECUTE = "30/minute"

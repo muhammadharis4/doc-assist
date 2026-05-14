@@ -101,16 +101,31 @@ export function DocumentUploadDialog({
             return;
         }
 
-        const loaded = await Promise.all(
-            selectedFiles.map(async (file) => ({
-                file,
-                extractedText: await readFileText(file),
-                documentType: "other" as DocumentType,
-            })),
-        );
+        setErrorMessage("");
+        const loaded: PendingFile[] = [];
+        try {
+            // One file at a time: parallel extract POSTs each buffer the full PDF in the
+            // Next.js route (`arrayBuffer` + proxy), which can OOM and return 500 for batches.
+            for (const file of selectedFiles) {
+                loaded.push({
+                    file,
+                    extractedText: await readFileText(file),
+                    documentType: "other",
+                });
+            }
+        } catch (error: unknown) {
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : "Could not read one or more files.",
+            );
+            if (loaded.length > 0) {
+                setPendingFiles((current) => [...current, ...loaded]);
+            }
+            return;
+        }
 
         setPendingFiles((current) => [...current, ...loaded]);
-        setErrorMessage("");
     }
 
     /**

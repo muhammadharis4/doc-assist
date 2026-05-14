@@ -228,51 +228,53 @@ def hybrid_search(
     raw_candidate_size = max(top_k * candidate_multiplier, top_k)
     candidate_size = min(MAX_RETRIEVAL_CANDIDATE_SIZE, raw_candidate_size)
 
-    base_query: dict[str, object] = {
+    # Normalization pipeline weights must match the number of hybrid sub-queries (see
+    # OpenSearch docs: combination.parameters.weights length == queries length). Use two
+    # clauses: lexical (bool with strict/loose match) + knn. Do not wrap `hybrid` in
+    # `bool` (unsupported; breaks the normalization pipeline).
+    document_filter: dict[str, object] | None = None
+    if document_ids:
+        document_filter = {"terms": {"document_id": document_ids}}
+
+    lexical_bool: dict[str, object] = {
+        "should": [
+            {
+                "match": {
+                    "chunk_text": {
+                        "query": query,
+                        "operator": "and",
+                    }
+                }
+            },
+            {
+                "match": {
+                    "chunk_text": {
+                        "query": query,
+                        "operator": "or",
+                    }
+                }
+            },
+        ],
+        "minimum_should_match": 1,
+    }
+    if document_filter is not None:
+        lexical_bool["filter"] = [document_filter]
+
+    knn_embedding: dict[str, object] = {
+        "vector": query_embedding,
+        "k": candidate_size,
+    }
+    if document_filter is not None:
+        knn_embedding["filter"] = document_filter
+
+    final_query: dict[str, object] = {
         "hybrid": {
             "queries": [
-                {
-                    "match": {
-                        "chunk_text": {
-                            "query": query,
-                            "operator": "and",
-                        }
-                    }
-                },
-                {
-                    "match": {
-                        "chunk_text": {
-                            "query": query,
-                            "operator": "or",
-                        }
-                    }
-                },
-                {
-                    "knn": {
-                        "embedding": {
-                            "vector": query_embedding,
-                            "k": candidate_size,
-                        }
-                    }
-                },
+                {"bool": lexical_bool},
+                {"knn": {"embedding": knn_embedding}},
             ]
         }
     }
-
-    final_query: dict[str, object] = base_query
-    if document_ids:
-        final_query = {
-            "bool": {
-                "must": [base_query],
-                "filter": [
-                    {
-                        "terms": {
-                            "document_id": document_ids,
-                        }
-                    }
-                ],
-            }
-        }
 
     body = {
         "size": candidate_size,
