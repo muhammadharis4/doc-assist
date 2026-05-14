@@ -45,30 +45,32 @@ export function ChatView() {
     const [temperature, setTemperature] = useState(0.7);
 
     useEffect(() => {
-        try {
-            const r = localStorage.getItem(LS_RAG);
-            if (r !== null) {
-                setRagEnabled(r === "true");
-            }
-            const k = localStorage.getItem(LS_TOPK);
-            if (k !== null) {
-                const n = Number.parseInt(k, 10);
-                if (!Number.isNaN(n)) {
-                    setTopK(Math.min(20, Math.max(1, n)));
+        queueMicrotask(() => {
+            try {
+                const r = localStorage.getItem(LS_RAG);
+                if (r !== null) {
+                    setRagEnabled(r === "true");
                 }
-            }
-            const t = localStorage.getItem(LS_TEMP);
-            if (t !== null) {
-                const f = Number.parseFloat(t);
-                if (!Number.isNaN(f)) {
-                    setTemperature(Math.min(1, Math.max(0, f)));
+                const k = localStorage.getItem(LS_TOPK);
+                if (k !== null) {
+                    const n = Number.parseInt(k, 10);
+                    if (!Number.isNaN(n)) {
+                        setTopK(Math.min(20, Math.max(1, n)));
+                    }
                 }
+                const t = localStorage.getItem(LS_TEMP);
+                if (t !== null) {
+                    const f = Number.parseFloat(t);
+                    if (!Number.isNaN(f)) {
+                        setTemperature(Math.min(1, Math.max(0, f)));
+                    }
+                }
+            } catch {
+                /* ignore */
+            } finally {
+                setSettingsHydrated(true);
             }
-        } catch {
-            /* ignore */
-        } finally {
-            setSettingsHydrated(true);
-        }
+        });
     }, []);
 
     useEffect(() => {
@@ -99,7 +101,9 @@ export function ChatView() {
     }, []);
 
     useEffect(() => {
-        void refreshHistory();
+        queueMicrotask(() => {
+            void refreshHistory();
+        });
     }, [refreshHistory]);
 
     const runQuery = useCallback(

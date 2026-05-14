@@ -71,7 +71,9 @@ export function DocumentsView() {
     );
 
     useEffect(() => {
-        void refreshDocuments();
+        queueMicrotask(() => {
+            void refreshDocuments();
+        });
     }, [refreshDocuments]);
 
     useEffect(() => {
