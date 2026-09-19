@@ -47,3 +47,6 @@ temp/
 .cursor/*
 .github/*.md
 
+# AI plugins
+graphify-out/
+
