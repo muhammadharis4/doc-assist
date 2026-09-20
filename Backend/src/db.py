@@ -322,6 +322,33 @@ def update_document_status(
         )
 
 
+def replace_document_chunks(
+    document_id: str, chunks: list[str], embeddings: list[list[float]]
+) -> None:
+    """
+    Replaces all chunks of one document, so re-processing never duplicates them.
+
+    Args:
+        document_id (str): The document identifier.
+        chunks (list[str]): Chunk texts in order.
+        embeddings (list[list[float]]): One embedding vector per chunk.
+
+    Returns:
+        None: This function only writes to the chunks table.
+    """
+
+    rows = [
+        (document_id, index, text, "[" + ",".join(map(str, vector)) + "]")
+        for index, (text, vector) in enumerate(zip(chunks, embeddings, strict=True))
+    ]
+    with _connection() as connection:
+        connection.execute("DELETE FROM chunks WHERE document_id = %s", (document_id,))
+        connection.cursor().executemany(
+            "INSERT INTO chunks (document_id, chunk_index, content, embedding) VALUES (%s, %s, %s, %s::vector)",
+            rows,
+        )
+
+
 def delete_document(document_id: str) -> bool:
     """
     Deletes a document row (its chunks cascade) and returns True when a row was removed.

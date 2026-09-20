@@ -10,7 +10,6 @@ from fastapi import HTTPException
 from src import db
 from src.documents.pdf_extractor import extract_text_from_pdf_bytes
 from src.rag.chunking import chunk_text
-from src.rag.opensearch_store import upsert_document_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -83,14 +82,7 @@ class DocumentService:
             embedding_ms = (perf_counter() - embedding_start) * 1000
 
             index_start = perf_counter()
-            upsert_document_chunks(
-                document_id=str(document["id"]),
-                filename=str(document["filename"]),
-                document_type=str(document.get("documentType") or "other"),
-                chunks=chunks,
-                embeddings=vectors,
-                created_at=str(document["createdAt"]),
-            )
+            db.replace_document_chunks(document_id, chunks, vectors)
             index_ms = (perf_counter() - index_start) * 1000
             db.update_document_status(document_id=document_id, status="ready", error_message=None)
             total_ms = (perf_counter() - total_start) * 1000

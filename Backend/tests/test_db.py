@@ -47,6 +47,18 @@ def test_document_roundtrip_filters_and_cascade() -> None:
     assert db.delete_document(doc["id"]) is False
 
 
+def test_replace_document_chunks_does_not_duplicate() -> None:
+    db.init_db()
+    doc = db.create_document("a.txt", "body", None, "other")
+    vectors = [[0.1] * EMBEDDING_DIMENSIONS, [0.2] * EMBEDDING_DIMENSIONS]
+
+    db.replace_document_chunks(doc["id"], ["one", "two"], vectors)
+    db.replace_document_chunks(doc["id"], ["one", "two"], vectors)
+
+    assert _chunk_count(doc["id"]) == 2
+    db.delete_document(doc["id"])
+
+
 def test_query_history_roundtrip_and_cascade() -> None:
     db.init_db()
     stored = db.store_query("q?", "a.", [{"documentId": None, "filename": "f", "snippet": "s", "score": 0.5}])

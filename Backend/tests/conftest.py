@@ -33,7 +33,7 @@ def client() -> TestClient:
     with patch.object(main_mod, "ensure_index_and_pipeline", lambda: None):
         with patch.object(main_mod, "warmup_runtime", new_callable=AsyncMock):
             with patch(
-                "src.documents.service.upsert_document_chunks",
+                "src.db.replace_document_chunks",
                 lambda *args, **kwargs: None,
             ):
                 with patch(
