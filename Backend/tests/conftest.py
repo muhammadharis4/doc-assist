@@ -14,7 +14,6 @@ from unittest.mock import AsyncMock, patch
 
 os.environ["DATABASE_URL"] = "postgresql://docassist:docassist@localhost:5433/docassist_test"
 os.environ.setdefault("WATCH_FOLDER", "")
-os.environ.setdefault("USE_MOCK_LLM", "true")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "")
 os.environ.setdefault("TELEGRAM_WEBHOOK_URL", "")
 os.environ.setdefault("DOCASSIST_TESTING", "1")
@@ -37,11 +36,14 @@ def _empty_test_database() -> None:
 @pytest.fixture
 def client() -> TestClient:
     """
-    FastAPI client on the test Postgres, with warmup and embedding calls faked so tests
-    need no Ollama (CI-safe).
+    FastAPI client on the test Postgres, with warmup, embedding and LLM calls faked so
+    tests need no Ollama (CI-safe).
     """
 
     from src.constants import EMBEDDING_DIMENSIONS
+
+    async def fake_answer(self, query, chunks, *, temperature=None):
+        return f"Answer based on {len(chunks)} sources"
 
     main_mod = importlib.import_module("src.main")
     with patch.object(main_mod, "warmup_runtime", new_callable=AsyncMock):
@@ -53,5 +55,6 @@ def client() -> TestClient:
                 "src.rag.embeddings.generate_query_embedding",
                 lambda query: [0.1] * EMBEDDING_DIMENSIONS,
             ):
-                with TestClient(main_mod.app) as test_client:
-                    yield test_client
+                with patch("src.rag.llm.LlmService.answer", fake_answer):
+                    with TestClient(main_mod.app) as test_client:
+                        yield test_client

@@ -39,7 +39,6 @@ services:
     environment:
       DATABASE_URL: postgresql://docassist:docassist@postgres:5432/docassist
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      USE_MOCK_LLM: ${USE_MOCK_LLM:-false}
     extra_hosts:
       # Allows Linux Docker to resolve host.docker.internal like Docker Desktop does.
       - "host.docker.internal:host-gateway"

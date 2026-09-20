@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import AsyncIterator
 
 import ollama
 
 from src.config import settings
 from src.constants import OLLAMA_MODEL, OLLAMA_TEMPERATURE
-
-logger = logging.getLogger(__name__)
 
 
 def _ollama_temperature(override: float | None) -> float:
@@ -81,9 +78,6 @@ class LlmService:
             None: This function only performs a warmup request.
         """
 
-        if settings.use_mock_llm:
-            return
-
         await self._client.chat(
             model=OLLAMA_MODEL,
             options={"temperature": 0},
@@ -117,10 +111,6 @@ class LlmService:
         if not chunks:
             return "No relevant documents found."
 
-        if settings.use_mock_llm:
-            logger.info("Using mock LLM response")
-            return self._mock_answer(chunks)
-
         response = await self._client.chat(
             model=OLLAMA_MODEL,
             options={"temperature": _ollama_temperature(temperature)},
@@ -144,10 +134,6 @@ class LlmService:
         Returns:
             str: The generated answer.
         """
-
-        if settings.use_mock_llm:
-            logger.info("Using mock LLM general response")
-            return f"Mock general reply to: {query.strip()[:180]}"
 
         response = await self._client.chat(
             model=OLLAMA_MODEL,
@@ -185,11 +171,6 @@ class LlmService:
             yield "No relevant documents found."
             return
 
-        if settings.use_mock_llm:
-            logger.info("Using mock LLM response")
-            yield self._mock_answer(chunks)
-            return
-
         stream = await self._client.chat(
             model=OLLAMA_MODEL,
             options={"temperature": _ollama_temperature(temperature)},
@@ -219,11 +200,6 @@ class LlmService:
             AsyncIterator[str]: Streamed answer chunks.
         """
 
-        if settings.use_mock_llm:
-            logger.info("Using mock LLM general stream response")
-            yield f"Mock general reply to: {query.strip()[:180]}"
-            return
-
         stream = await self._client.chat(
             model=OLLAMA_MODEL,
             options={"temperature": _ollama_temperature(temperature)},
@@ -241,17 +217,3 @@ class LlmService:
             content = part.message.content or ""
             if content:
                 yield content
-
-    def _mock_answer(self, chunks: list[dict[str, object]]) -> str:
-        """
-        Returns a deterministic answer for local testing.
-
-        Args:
-            chunks (list[dict[str, object]]): Retrieved context chunks.
-
-        Returns:
-            str: A deterministic mock answer.
-        """
-
-        top = chunks[0].get("content", "") if chunks else ""
-        return f"Mock answer based on source: {str(top)[:180]}"

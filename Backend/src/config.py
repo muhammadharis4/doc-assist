@@ -50,23 +50,6 @@ def _parse_cors_origins(raw: str | None) -> tuple[str, ...]:
     return _parse_csv_tuple(stripped)
 
 
-def _as_bool(raw: str | None, default: bool = False) -> bool:
-    """
-    Converts a string environment value into a boolean.
-
-    Args:
-        raw (str | None): Raw environment value.
-        default (bool): Value returned when the input is missing.
-
-    Returns:
-        bool: Parsed boolean value.
-    """
-
-    if raw is None:
-        return default
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
-
-
 @dataclass(frozen=True)
 class Settings:
     """
@@ -79,7 +62,6 @@ class Settings:
     database_url: str
     watch_folder: str
     ollama_base_url: str
-    use_mock_llm: bool
     telegram_bot_token: str
     telegram_webhook_secret: str
     telegram_webhook_url: str
@@ -91,7 +73,7 @@ def _build_settings() -> Settings:
     """
     Builds Settings from constants plus a minimal environment surface:
 
-    ``DATABASE_URL``, ``WATCH_FOLDER``, ``OLLAMA_BASE_URL``, ``USE_MOCK_LLM``,
+    ``DATABASE_URL``, ``WATCH_FOLDER``, ``OLLAMA_BASE_URL``,
     ``TELEGRAM_BOT_TOKEN``, ``TELEGRAM_WEBHOOK_SECRET``, ``TELEGRAM_WEBHOOK_URL``,
     ``CORS_ALLOW_ORIGINS``, ``TRUSTED_HOSTS``.
     """
@@ -102,7 +84,6 @@ def _build_settings() -> Settings:
         ),
         watch_folder=os.getenv("WATCH_FOLDER", "Sample data"),
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-        use_mock_llm=_as_bool(os.getenv("USE_MOCK_LLM"), default=False),
         telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
         telegram_webhook_secret=os.getenv("TELEGRAM_WEBHOOK_SECRET", ""),
         telegram_webhook_url=os.getenv("TELEGRAM_WEBHOOK_URL", ""),
