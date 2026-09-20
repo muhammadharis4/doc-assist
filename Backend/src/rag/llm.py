@@ -114,15 +114,8 @@ class LlmService:
             str: The generated answer.
         """
 
-        if not chunks:
-            return "No relevant documents found."
-
-        response = await self._client.chat(
-            model=OLLAMA_MODEL,
-            options=_ollama_options(temperature),
-            messages=self._build_messages(query, chunks),
-        )
-        return response["message"]["content"].strip()
+        parts = [part async for part in self.stream_answer(query, chunks, temperature=temperature)]
+        return "".join(parts).strip()
 
     async def answer_general(
         self,
@@ -141,18 +134,8 @@ class LlmService:
             str: The generated answer.
         """
 
-        response = await self._client.chat(
-            model=OLLAMA_MODEL,
-            options=_ollama_options(temperature),
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant. Answer clearly and concisely.",
-                },
-                {"role": "user", "content": query.strip()},
-            ],
-        )
-        return response["message"]["content"].strip()
+        parts = [part async for part in self.stream_answer_general(query, temperature=temperature)]
+        return "".join(parts).strip()
 
     async def stream_answer(
         self,
