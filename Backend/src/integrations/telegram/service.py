@@ -18,7 +18,6 @@ from src.constants import (
     TELEGRAM_DOCS_LIST_LIMIT,
     TELEGRAM_MAX_MESSAGE_CHARS,
     TELEGRAM_SOURCE_LIMIT,
-    TELEGRAM_WEBHOOK_RETRY_MAX,
 )
 
 logger = logging.getLogger(__name__)
@@ -103,19 +102,17 @@ class TelegramService:
         """
         Calls Telegram `setWebhook` in a loop when `TELEGRAM_WEBHOOK_URL` is set.
 
-        Retries every 5 seconds on failure. If `TELEGRAM_WEBHOOK_RETRY_MAX`
-        in ``src.constants`` is 0, retries indefinitely (e.g. while a tunnel or
-        DNS is not ready).
+        Retries every 5 seconds on failure, indefinitely (e.g. while a tunnel or DNS
+        is not ready).
 
         Returns:
-            None: This coroutine runs until success or max retries are exhausted.
+            None: This coroutine runs until the webhook is registered.
         """
 
         webhook_url = settings.telegram_webhook_url.strip()
         if not self._bot or not webhook_url:
             return
 
-        max_retries = max(0, TELEGRAM_WEBHOOK_RETRY_MAX)
         attempt = 0
 
         while True:
@@ -137,12 +134,6 @@ class TelegramService:
                     attempt,
                     error,
                 )
-                if max_retries > 0 and attempt >= max_retries:
-                    logger.error(
-                        "Telegram webhook registration stopped after %s failed attempts.",
-                        max_retries,
-                    )
-                    return
             await asyncio.sleep(_TELEGRAM_WEBHOOK_RETRY_INTERVAL_SEC)
 
     async def handle_update(self, payload: dict[str, object]) -> None:
