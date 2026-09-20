@@ -65,8 +65,7 @@ def chunk_text(text: str) -> list[str]:
     if not normalized:
         return []
 
-    chunk_size = max(50, CHUNK_SIZE_CHARS)
-    overlap = max(0, min(CHUNK_OVERLAP_CHARS, chunk_size - 1))
+    chunk_size, overlap = CHUNK_SIZE_CHARS, CHUNK_OVERLAP_CHARS
     blocks = [part.strip() for part in normalized.split("\n\n") if part.strip()]
     if not blocks:
         return []
