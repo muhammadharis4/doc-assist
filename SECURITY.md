@@ -10,7 +10,7 @@ This document summarizes how DocAssist handles sensitive data and known limitati
 
 - Store secrets in environment variables or a secrets manager — **never** commit real tokens to git. Backend reads `Backend/.env` locally via `python-dotenv`; use `.gitignore`d `.env` files only.
 - **Backend env vars** are documented in the root `README.md` and `Backend/README.md`. Tuning that is not environment-driven lives in `Backend/src/constants.py`.
-- **Rate limits** apply per client IP (SlowAPI). Limits are defined in `Backend/src/constants.py` and are **disabled automatically** when pytest sets `DOCASSIST_TESTING=1`.
+- **There is no rate limiting.** The backend does not throttle requests, and each answer or scan extraction can occupy the CPU for minutes. Put a reverse proxy or firewall with limits in front of it before exposing it beyond a trusted network.
 - **Payload caps:** `POST /documents` text is capped by `MAX_DOCUMENT_CONTENT_CHARS`; `POST /documents/extract` rejects PDFs larger than `MAX_PDF_UPLOAD_BYTES` (see `Backend/src/constants.py`).
 
 ## Telegram webhook

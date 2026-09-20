@@ -7,8 +7,6 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from src import db
@@ -18,7 +16,6 @@ from src.documents.folder_scanner import watch_folder
 from src.documents.routes import router as documents_router
 from src.integrations.telegram.routes import router as telegram_router, service as telegram_service
 from src.queries.routes import router as queries_router
-from src.rate_limit import limiter
 from src.warmup import warmup_runtime
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -63,8 +60,6 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title=APP_NAME, version=APP_VERSION, lifespan=lifespan)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.include_router(documents_router)
 app.include_router(queries_router)

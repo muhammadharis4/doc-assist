@@ -2,19 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from src import db
-from src.constants import (
-    DEFAULT_HISTORY_LIMIT,
-    MAX_HISTORY_LIMIT,
-    RATE_LIMIT_QUERIES_EXECUTE,
-    RATE_LIMIT_QUERIES_STREAM,
-    RATE_LIMIT_QUERY_HISTORY_DELETE,
-    RATE_LIMIT_QUERY_HISTORY_LIST,
-)
-from src.rate_limit import limiter
+from src.constants import DEFAULT_HISTORY_LIMIT, MAX_HISTORY_LIMIT
 from src.schemas import DeleteStatusResponse, QueryExecuteRequest, QueryResponse
 
 router = APIRouter(prefix="/queries", tags=["queries"])
@@ -55,13 +47,11 @@ def _validate_query_text(query_text: str) -> str:
 
 
 @router.post("", response_model=QueryResponse)
-@limiter.limit(RATE_LIMIT_QUERIES_EXECUTE)
-async def run_query(request: Request, payload: QueryExecuteRequest) -> dict[str, object]:
+async def run_query(payload: QueryExecuteRequest) -> dict[str, object]:
     """
     Runs hybrid retrieval and returns answer with sources.
 
     Args:
-        request (Request): Request (required for rate limiting).
         payload (QueryExecuteRequest): Query payload.
 
     Returns:
@@ -78,15 +68,11 @@ async def run_query(request: Request, payload: QueryExecuteRequest) -> dict[str,
 
 
 @router.post("/stream")
-@limiter.limit(RATE_LIMIT_QUERIES_STREAM)
-async def run_query_stream(
-    request: Request, payload: QueryExecuteRequest
-) -> StreamingResponse:
+async def run_query_stream(payload: QueryExecuteRequest) -> StreamingResponse:
     """
     Streams hybrid retrieval and answer tokens to the frontend.
 
     Args:
-        request (Request): Request (required for rate limiting).
         payload (QueryExecuteRequest): Query payload.
 
     Returns:
@@ -110,16 +96,13 @@ async def run_query_stream(
 
 
 @router.get("/history", response_model=list[QueryResponse])
-@limiter.limit(RATE_LIMIT_QUERY_HISTORY_LIST)
 def query_history(
-    request: Request,
     limit: int = Query(default=DEFAULT_HISTORY_LIMIT, ge=1, le=MAX_HISTORY_LIMIT),
 ) -> list[dict[str, object]]:
     """
     Returns recent query history used by the frontend chat panel.
 
     Args:
-        request (Request): Request (required for rate limiting).
         limit (int): Maximum number of history rows to return.
 
     Returns:
@@ -130,13 +113,11 @@ def query_history(
 
 
 @router.delete("/history/{query_id}", response_model=DeleteStatusResponse)
-@limiter.limit(RATE_LIMIT_QUERY_HISTORY_DELETE)
-def delete_query_history(request: Request, query_id: str) -> DeleteStatusResponse:
+def delete_query_history(query_id: str) -> DeleteStatusResponse:
     """
     Deletes one query history entry and its stored sources.
 
     Args:
-        request (Request): Request (required for rate limiting).
         query_id (str): The query history identifier.
 
     Returns:

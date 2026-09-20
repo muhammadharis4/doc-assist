@@ -4,19 +4,10 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, UploadFile
 
 from src import db
-from src.constants import (
-    INGEST_EXTENSIONS,
-    MAX_PDF_UPLOAD_BYTES,
-    RATE_LIMIT_DOCUMENTS_CREATE,
-    RATE_LIMIT_DOCUMENTS_DELETE,
-    RATE_LIMIT_DOCUMENTS_EXTRACT,
-    RATE_LIMIT_DOCUMENTS_LIST,
-    RATE_LIMIT_DOCUMENTS_PATCH,
-)
-from src.rate_limit import limiter
+from src.constants import INGEST_EXTENSIONS, MAX_PDF_UPLOAD_BYTES
 from src.schemas import (
     DeleteStatusResponse,
     DocumentCreateRequest,
@@ -30,9 +21,7 @@ service = DocumentService()
 
 
 @router.get("", response_model=list[DocumentResponse])
-@limiter.limit(RATE_LIMIT_DOCUMENTS_LIST)
 def list_documents(
-    request: Request,
     q: str | None = Query(
         default=None,
         description="Case-insensitive substring match on filename.",
@@ -50,7 +39,6 @@ def list_documents(
     Returns stored documents with optional filters (newest first).
 
     Args:
-        request (Request): Request (required for rate limiting).
         q (str | None): Filename substring filter.
         document_type (str | None): Document type filter.
         status (str | None): Status or ``inbox``.
@@ -73,9 +61,7 @@ def list_documents(
 
 
 @router.post("", response_model=DocumentResponse)
-@limiter.limit(RATE_LIMIT_DOCUMENTS_CREATE)
 def create_document(
-    request: Request,
     payload: DocumentCreateRequest,
     background_tasks: BackgroundTasks,
 ) -> dict[str, object]:
@@ -83,7 +69,6 @@ def create_document(
     Stores and indexes a document for retrieval.
 
     Args:
-        request (Request): Request (required for rate limiting).
         payload (DocumentCreateRequest): Document create payload.
 
     Returns:
@@ -106,13 +91,11 @@ def create_document(
 
 
 @router.post("/extract")
-@limiter.limit(RATE_LIMIT_DOCUMENTS_EXTRACT)
-async def extract_pdf(request: Request, file: UploadFile = File(...)) -> dict[str, str]:
+async def extract_pdf(file: UploadFile = File(...)) -> dict[str, str]:
     """
     Extracts text from an uploaded PDF file.
 
     Args:
-        request (Request): Request (required for rate limiting).
         file (UploadFile): PDF file upload.
 
     Returns:
@@ -150,9 +133,7 @@ async def extract_pdf(request: Request, file: UploadFile = File(...)) -> dict[st
 
 
 @router.patch("/{document_id}", response_model=DocumentResponse)
-@limiter.limit(RATE_LIMIT_DOCUMENTS_PATCH)
 def patch_document(
-    request: Request,
     document_id: str,
     payload: DocumentPatchRequest,
 ) -> dict[str, object]:
@@ -160,7 +141,6 @@ def patch_document(
     Updates mutable fields on a document (tags only).
 
     Args:
-        request (Request): Request (required for rate limiting).
         document_id (str): Document id.
         payload (DocumentPatchRequest): Fields to update.
 
@@ -180,13 +160,11 @@ def patch_document(
 
 
 @router.delete("/{document_id}", response_model=DeleteStatusResponse)
-@limiter.limit(RATE_LIMIT_DOCUMENTS_DELETE)
-def remove_document(request: Request, document_id: str) -> DeleteStatusResponse:
+def remove_document(document_id: str) -> DeleteStatusResponse:
     """
     Deletes one document and all indexed chunks.
 
     Args:
-        request (Request): Request (required for rate limiting).
         document_id (str): The document identifier.
 
     Returns:

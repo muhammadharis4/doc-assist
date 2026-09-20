@@ -1,7 +1,5 @@
 # API framework
 fastapi==0.136.0
-# Per-IP rate limits
-slowapi==0.1.9
 # ASGI server for FastAPI
 uvicorn[standard]==0.44.0
 

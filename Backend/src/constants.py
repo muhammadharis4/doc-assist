@@ -35,19 +35,6 @@ INGEST_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png")
 # Seconds between scans of the watched folder.
 WATCH_INTERVAL_SEC = 60
 
-# Per-IP rate limits (SlowAPI). Disabled when ``DOCASSIST_TESTING`` is set (pytest).
-RATE_LIMIT_DOCUMENTS_LIST = "120/minute"
-RATE_LIMIT_DOCUMENTS_CREATE = "20/minute"
-# Batches often upload many PDFs in sequence; Next proxies as one IP, so keep headroom.
-RATE_LIMIT_DOCUMENTS_EXTRACT = "60/minute"
-RATE_LIMIT_DOCUMENTS_DELETE = "60/minute"
-RATE_LIMIT_DOCUMENTS_PATCH = "60/minute"
-RATE_LIMIT_QUERIES_EXECUTE = "30/minute"
-RATE_LIMIT_QUERIES_STREAM = "15/minute"
-RATE_LIMIT_QUERY_HISTORY_LIST = "120/minute"
-RATE_LIMIT_QUERY_HISTORY_DELETE = "60/minute"
-RATE_LIMIT_TELEGRAM_HEALTH = "60/minute"
-
 SOURCE_SNIPPET_MAX_CHARS = 500
 
 TELEGRAM_SOURCE_LIMIT = 3

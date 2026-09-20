@@ -61,7 +61,7 @@ These are the **only** values read from the environment in `src/config.py`. Each
 
 ### Constants (code, not env)
 
-Everything else lives in **`src/constants.py`**: model names, chunk sizes, top-k, the RRF constant, per-IP rate limits, upload size limits, and Telegram message limits. Change them in code rather than adding env knobs.
+Everything else lives in **`src/constants.py`**: model names, chunk sizes, top-k, the RRF constant, upload size limits, and Telegram message limits. Change them in code rather than adding env knobs.
 
 See also the repository root **`SECURITY.md`** for Telegram webhook and deployment notes.
 

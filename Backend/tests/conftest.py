@@ -16,7 +16,6 @@ os.environ["DATABASE_URL"] = "postgresql://docassist:docassist@localhost:5433/do
 os.environ.setdefault("WATCH_FOLDER", "")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "")
 os.environ.setdefault("TELEGRAM_WEBHOOK_URL", "")
-os.environ.setdefault("DOCASSIST_TESTING", "1")
 
 import pytest
 from starlette.testclient import TestClient
