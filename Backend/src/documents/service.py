@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from pathlib import Path
 from time import perf_counter
 
 from fastapi import HTTPException
@@ -41,7 +42,10 @@ class DocumentService:
             total_start = perf_counter()
             content = str(document.get("content", ""))
             chunk_start = perf_counter()
-            chunks = chunk_text(content)
+            # The file name in every chunk lets "Mai 2023" match the chunk that holds the values,
+            # not only the header chunk of each month.
+            title = Path(str(document["filename"])).stem
+            chunks = [f"{title}\n{chunk}" for chunk in chunk_text(content)]
             if not chunks:
                 raise ValueError("Document has no indexable text")
             chunk_ms = (perf_counter() - chunk_start) * 1000

@@ -8,8 +8,9 @@ APP_VERSION = "1.0.0"
 EMBEDDING_MODEL = "bge-m3"  # served by Ollama: `ollama pull bge-m3`
 EMBEDDING_DIMENSIONS = 1024  # bge-m3; chunks.embedding in db.py uses this
 
-CHUNK_SIZE_CHARS = 500
-CHUNK_OVERLAP_CHARS = 120
+# One-page forms (payslips) keep their labels and values together at this size.
+CHUNK_SIZE_CHARS = 1000
+CHUNK_OVERLAP_CHARS = 200
 
 TOP_K = 5
 # Reciprocal Rank Fusion constant, and the score bump for a document type the router matched.

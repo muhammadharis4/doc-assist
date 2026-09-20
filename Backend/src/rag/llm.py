@@ -30,6 +30,18 @@ def _ollama_options(temperature: float | None = None) -> dict[str, float | int]:
     }
 
 
+# Tuned on the real sample documents: a stricter "reply exactly: Not found" made the 7B model
+# refuse questions whose answer was in the excerpts; this wording answers them and still
+# declines when the excerpts lack the answer.
+_SYSTEM_PROMPT = (
+    "You answer questions about the user's personal documents (German payslips, forms, letters). "
+    "The question may be in English or German. Each excerpt is numbered [1], [2], ... "
+    "Read the excerpts carefully: table labels and their values are on adjacent lines. "
+    "Use only the excerpts, copy figures and dates exactly as written, and cite the excerpt number like [1]. "
+    "Only if the excerpts really do not contain the answer, say briefly that you could not find it."
+)
+
+
 class LlmService:
     """Generates grounded answers from retrieved chunks."""
 
@@ -48,32 +60,14 @@ class LlmService:
             list[dict[str, str]]: Messages sent to Ollama.
         """
 
-        context_parts: list[str] = []
-        for idx, chunk in enumerate(chunks):
-            filename = str(chunk.get("filename") or "unknown")
-            document_type = str(chunk.get("documentType") or "other")
-            chunk_index = chunk.get("chunkIndex")
-            location = f"chunk {chunk_index}" if chunk_index is not None else "chunk ?"
-            context_parts.append(
-                f"[{idx + 1}] Source: {filename} [{document_type}] ({location})\n{chunk.get('content', '')}"
-            )
-
-        context = "\n\n".join(context_parts)
-        prompt = (
-            f"Question: {query}\n\n"
-            f"Context:\n{context}"
+        context = "\n\n".join(
+            f"[{idx + 1}] {chunk.get('filename') or 'unknown'}\n{chunk.get('content', '')}"
+            for idx, chunk in enumerate(chunks)
         )
 
         return [
-            {
-                "role": "system",
-                "content": (
-                    "Answer only from the context in the user message. Quote exact figures, dates and names "
-                    "as written, and cite the source label number like [1]. If the context does not contain "
-                    'the answer, reply exactly: "Not found in the documents." Do not guess or assume.'
-                ),
-            },
-            {"role": "user", "content": prompt},
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user", "content": f"Excerpts:\n{context}\n\nQuestion: {query}\nAnswer:"},
         ]
 
     async def warmup(self) -> None:

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import io
 import logging
+import re
+import shutil
+import subprocess
 import threading
 from functools import lru_cache
 
@@ -51,7 +54,33 @@ def _pdf_text_layer(file_bytes: bytes) -> str:
 
     if not pages or any(len(page.strip()) < MIN_TEXT_LAYER_CHARS_PER_PAGE for page in pages):
         return ""
-    return "\n\n".join(pages)
+    return _layout_text(file_bytes) or "\n\n".join(pages)
+
+
+def _layout_text(file_bytes: bytes) -> str:
+    """
+    Reads a digital PDF in reading layout, so table labels stay next to their values.
+
+    pdfium returns a form's labels and values as two separate blocks; poppler's layout mode
+    keeps each value under its label ("Netto-Verdienst" above "1.257,26"), which a
+    language model can map correctly.
+
+    Args:
+        file_bytes (bytes): Raw PDF bytes.
+
+    Returns:
+        str: The text, or an empty string when poppler is not installed or fails.
+    """
+
+    if not shutil.which("pdftotext"):
+        return ""
+    result = subprocess.run(
+        ["pdftotext", "-layout", "-", "-"], input=file_bytes, capture_output=True, timeout=60
+    )
+    if result.returncode != 0:
+        return ""
+    text = result.stdout.decode("utf-8", errors="replace").replace("\f", "\n\n")
+    return re.sub(r"[ \t]{2,}", "  ", text)
 
 
 @lru_cache(maxsize=1)
