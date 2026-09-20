@@ -23,7 +23,7 @@ Dark-mode examples from the current Next.js UI:
 Doc Assist/
 ├── Backend/           # FastAPI API + RAG pipeline
 ├── docs/screenshots/  # UI screenshots (referenced from README)
-├── frontend/        # Next.js UI + `app/api/*` proxies to Backend
+├── frontend/        # Next.js UI (`/api/*` is rewritten to the Backend)
 ├── LICENSE            # MIT
 ├── docker-compose.yml # Optional full stack for local/demo (see SECURITY.md)
 └── SECURITY.md        # Threat model and hardening notes (read before exposing to a network)

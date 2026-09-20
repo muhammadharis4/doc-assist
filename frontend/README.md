@@ -20,9 +20,11 @@ Create **`frontend/.env.local`** (gitignored):
 BACKEND_API_URL=http://localhost:8000
 ```
 
-The browser calls **same-origin** routes under `app/api/*`; those server handlers forward to `BACKEND_API_URL`. Set this to the FastAPI base URL (no trailing slash required — it is normalized in code).
+The browser calls **same-origin** routes under `/api/*`; Next **rewrites** them to `BACKEND_API_URL` (see `next.config.ts`). Set this to the FastAPI base URL (no trailing slash required — it is normalized in code).
 
-**Security note:** `BACKEND_API_URL` must be a **trusted** internal URL in production. It is not end-user input in the default app, but a compromised deployment could misuse it if you inject untrusted values into the server environment.
+**`BACKEND_API_URL` is read at build time.** Next bakes rewrite destinations into the build, so `npm run dev` picks it up at start, but a production build needs it when you run `npm run build` (Docker passes it as a build arg).
+
+**Security note:** `BACKEND_API_URL` must be a **trusted** internal URL in production. It is not end-user input in the default app, but a compromised deployment could misuse it if you inject untrusted values into the build environment.
 
 ---
 
@@ -57,10 +59,10 @@ The browser calls **same-origin** routes under `app/api/*`; those server handler
 
 | Folder | Role |
 |--------|------|
-| `app/` | Next.js App Router: routes, layouts, `app/api/*` proxies |
+| `app/` | Next.js App Router: routes and layouts |
 | `components/` | Reusable UI |
 | `containers/` | Page-level compositions (chat, documents) wired to state and services |
-| `services/` | Browser API clients (`services/*.ts`) and server-only helpers (`services/server/`) |
+| `services/` | Browser API clients (`services/*.ts`) |
 | `types/` | Shared TypeScript models and API shapes |
 | `libs/` | MUI theme (light and dark color schemes) and cross-cutting UI tokens |
 | `styles/` | Global CSS (`globals.css` imported from `app/layout.tsx`) |
@@ -69,21 +71,14 @@ The browser calls **same-origin** routes under `app/api/*`; those server handler
 
 ## API proxy shape
 
-Client code under `services/*` talks to **Next.js** routes, which proxy to the backend:
+Client code under `services/*` calls **same-origin** `/api/*` URLs, and `next.config.ts` rewrites two prefixes to the backend (nothing else is reachable through the UI port):
 
-| Next route | Proxies to backend |
-|------------|---------------------|
-| `GET` `/api/documents` | `/documents` (forwards query string for filters) |
-| `POST` `/api/documents` | `/documents` |
-| `PATCH` `/api/documents/[id]` | `/documents/{id}` (tags) |
-| `DELETE` `/api/documents/[id]` | `/documents/{id}` |
-| `POST` `/api/documents/extract` | `/documents/extract` |
-| `POST` `/api/queries` | `/queries` |
-| `POST` `/api/queries/stream` | `/queries/stream` (SSE) |
-| `GET` `/api/queries/history` | `/queries/history` |
-| `DELETE` `/api/queries/history/[id]` | `/queries/history/{id}` |
+| Browser path | Forwarded to backend |
+|--------------|-----------------------|
+| `/api/documents/...` | `/documents/...` (list, create, tags, delete, `extract`) |
+| `/api/queries/...` | `/queries/...` (ask, `stream` as SSE, `history`) |
 
-Implementation: `services/server/backend.ts` (`backendUrl`, `proxyRequest`).
+Two Next proxy defaults are raised because they are too small for this app: request bodies are buffered up to **10 MB** (the backend accepts PDFs up to 25 MB, so it is set to 30 MB) and proxied calls time out after **30 s** (a CPU answer or a scan extraction takes minutes, so it is set to 10 min). Both are `experimental` options in `next.config.ts`.
 
 ---
 
@@ -96,7 +91,7 @@ docker compose build frontend
 docker compose up frontend
 ```
 
-The image uses Next **`output: "standalone"`**. Runtime env for the Node process should include **`BACKEND_API_URL`** pointing at the backend service (Compose sets `http://backend:8000` for `frontend`).
+The image uses Next **`output: "standalone"`**. `BACKEND_API_URL` is a **build argument** pointing at the backend service (Compose passes `http://backend:8000`); changing it means rebuilding the frontend image.
 
 ---
 

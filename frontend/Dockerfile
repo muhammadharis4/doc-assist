@@ -1,6 +1,7 @@
 # DocAssist frontend — Next.js App Router (`output: standalone`)
 # Build: docker build -t docassist-frontend .
-# Run (with backend reachable): BACKEND_API_URL=http://backend:8000
+# The backend URL is a BUILD arg: Next bakes the /api rewrite destinations into the build.
+#   docker build --build-arg BACKEND_API_URL=http://backend:8000 -t docassist-frontend .
 
 FROM node:20-alpine AS base
 WORKDIR /app
@@ -15,6 +16,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY . .
 
+ARG BACKEND_API_URL=http://backend:8000
+ENV BACKEND_API_URL=$BACKEND_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN mkdir -p public && npm run build
 

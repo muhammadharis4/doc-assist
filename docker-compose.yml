@@ -8,7 +8,7 @@
 #   docker compose build
 #   docker compose up
 #
-# Frontend: http://localhost:3000 — API proxies use BACKEND_API_URL=http://backend:8000
+# Frontend: http://localhost:3000 — /api/* is forwarded to the backend (build arg BACKEND_API_URL=http://backend:8000)
 # Backend: http://localhost:8000/docs
 #
 # SECURITY
@@ -21,10 +21,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        # Build-time: the frontend's /api rewrites point here (see frontend/next.config.ts).
+        BACKEND_API_URL: http://backend:8000
     ports:
       - "3000:3000"
-    environment:
-      BACKEND_API_URL: http://backend:8000
 
     depends_on:
       backend:
