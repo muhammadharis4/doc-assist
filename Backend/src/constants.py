@@ -5,7 +5,7 @@ from __future__ import annotations
 APP_NAME = "DocAssist Backend"
 APP_VERSION = "1.0.0"
 
-EMBEDDING_MODEL_PATH = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+EMBEDDING_MODEL = "bge-m3"  # served by Ollama: `ollama pull bge-m3`
 EMBEDDING_DIMENSIONS = 1024  # bge-m3; chunks.embedding in db.py uses this
 
 CHUNK_SIZE_CHARS = 500

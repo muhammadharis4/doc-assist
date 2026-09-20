@@ -18,7 +18,7 @@ from src.constants import (
     CHUNK_OVERLAP_CHARS,
     CHUNK_SIZE_CHARS,
     DOC_TYPE_SCORE_BOOST,
-    EMBEDDING_MODEL_PATH,
+    EMBEDDING_MODEL,
     MAX_QUERY_LENGTH,
     OCR_LANGUAGES,
     OLLAMA_MODEL,
@@ -104,7 +104,7 @@ class Settings:
     opensearch_url: str
     opensearch_index_name: str
     opensearch_pipeline_name: str
-    embedding_model_path: str
+    embedding_model: str
     chunk_size_chars: int
     chunk_overlap_chars: int
     top_k: int
@@ -145,7 +145,7 @@ def _build_settings() -> Settings:
         opensearch_url=os.getenv("OPENSEARCH_URL", "http://localhost:9200"),
         opensearch_index_name=OPENSEARCH_INDEX_NAME,
         opensearch_pipeline_name=OPENSEARCH_PIPELINE_NAME,
-        embedding_model_path=EMBEDDING_MODEL_PATH,
+        embedding_model=EMBEDDING_MODEL,
         chunk_size_chars=CHUNK_SIZE_CHARS,
         chunk_overlap_chars=CHUNK_OVERLAP_CHARS,
         top_k=TOP_K,

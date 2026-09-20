@@ -1,11 +1,11 @@
-"""Embedding model loading and vector generation."""
+"""Embedding generation through Ollama."""
 
 from __future__ import annotations
 
 import logging
 from functools import lru_cache
 
-from sentence_transformers import SentenceTransformer
+import ollama
 
 from src.config import settings
 
@@ -13,21 +13,20 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
-def get_embedding_model() -> SentenceTransformer:
+def _client() -> ollama.Client:
     """
-    Loads and caches the sentence-transformer model.
+    Creates and caches the Ollama client.
 
     Returns:
-        SentenceTransformer: The cached embedding model.
+        ollama.Client: The cached client.
     """
 
-    logger.info("Loading embedding model from path: %s", settings.embedding_model_path)
-    return SentenceTransformer(settings.embedding_model_path)
+    return ollama.Client(host=settings.ollama_base_url)
 
 
 def generate_embeddings(chunks: list[str]) -> list[list[float]]:
     """
-    Generates normalized embeddings for multiple text chunks.
+    Generates embeddings for multiple text chunks.
 
     Args:
         chunks (list[str]): List of text chunks.
@@ -39,15 +38,14 @@ def generate_embeddings(chunks: list[str]) -> list[list[float]]:
     if not chunks:
         return []
 
-    model = get_embedding_model()
-    vectors = model.encode(chunks, normalize_embeddings=True)
+    response = _client().embed(model=settings.embedding_model, input=chunks)
     logger.info("Generated embeddings for %d text chunks.", len(chunks))
-    return [vector.tolist() for vector in vectors]
+    return [list(vector) for vector in response.embeddings]
 
 
 def generate_query_embedding(query: str) -> list[float]:
     """
-    Generates one normalized embedding vector for a query.
+    Generates one embedding vector for a query.
 
     Args:
         query (str): The user query text.
@@ -56,6 +54,4 @@ def generate_query_embedding(query: str) -> list[float]:
         list[float]: The query embedding vector.
     """
 
-    model = get_embedding_model()
-    vector = model.encode([query], normalize_embeddings=True)
-    return vector[0].tolist()
+    return generate_embeddings([query])[0]
