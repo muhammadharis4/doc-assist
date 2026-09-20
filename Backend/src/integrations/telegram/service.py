@@ -12,6 +12,8 @@ from telegram.constants import ChatAction
 from src import db
 from src.config import settings
 from src.constants import (
+    INGEST_EXTENSIONS,
+    MAX_PDF_UPLOAD_BYTES,
     TELEGRAM_DOCS_LIST_LIMIT,
     TELEGRAM_MAX_MESSAGE_CHARS,
     TELEGRAM_SCOPE_LABEL_ENABLED,
@@ -32,6 +34,8 @@ class TelegramService:
         self._secret = settings.telegram_webhook_secret.strip()
         self._bot = Bot(self._token) if self._token else None
         self._query_service = None
+        self._document_service = None
+        self._ingest_tasks: set[asyncio.Task] = set()
         self._chat_document_scope: dict[int, str] = {}
 
         if (
@@ -55,6 +59,17 @@ class TelegramService:
 
             self._query_service = QueryService()
         return self._query_service
+
+    def _get_document_service(self):
+        """
+        Lazily constructs the document service (imports Docling) on the first upload.
+        """
+
+        if self._document_service is None:
+            from src.documents.service import DocumentService
+
+            self._document_service = DocumentService()
+        return self._document_service
 
     @property
     def enabled(self) -> bool:
@@ -150,11 +165,16 @@ class TelegramService:
         if message is None:
             return
 
+        chat_id = message.chat_id
+
+        attachment = message.document or (message.photo[-1] if message.photo else None)
+        if attachment is not None:
+            await self._accept_attachment(chat_id, attachment)
+            return
+
         text = (message.text or "").strip()
         if not text:
             return
-
-        chat_id = message.chat_id
 
         if text.startswith("/start"):
             await self._bot.send_message(
@@ -178,7 +198,7 @@ class TelegramService:
                     "/use <id|name> - Focus one document\n"
                     "/clear - Clear focused document\n"
                     "/status - Show document processing status\n\n"
-                    "Or just send a plain question."
+                    "Send a PDF or photo to add it as a document, or just send a plain question."
                 ),
             )
             return
@@ -273,6 +293,71 @@ class TelegramService:
                     "Please try again later."
                 ),
             )
+
+    async def _accept_attachment(self, chat_id: int, attachment) -> None:
+        """
+        Acknowledges a file right away and ingests it in the background.
+
+        Telegram retries webhooks that answer slowly, and Docling can take minutes, so the
+        work must not block the webhook; the file hash makes a retry harmless.
+
+        Args:
+            chat_id (int): Chat to reply to.
+            attachment: A Telegram ``Document`` or the largest ``PhotoSize``.
+
+        Returns:
+            None: This function only schedules work and sends a reply.
+        """
+
+        suffix = ".pdf" if getattr(attachment, "mime_type", None) == "application/pdf" else ".jpg"
+        name = getattr(attachment, "file_name", None) or f"telegram-{attachment.file_unique_id}{suffix}"
+
+        if not name.lower().endswith(INGEST_EXTENSIONS):
+            await self._bot.send_message(chat_id=chat_id, text="Unsupported file type. Send a PDF, JPG, or PNG.")
+            return
+        if (attachment.file_size or 0) > MAX_PDF_UPLOAD_BYTES:
+            await self._bot.send_message(chat_id=chat_id, text="That file is too large.")
+            return
+
+        await self._bot.send_message(
+            chat_id=chat_id,
+            text=f"Received {name}. Processing can take a few minutes; I'll message you when it's ready.",
+        )
+        task = asyncio.create_task(self._ingest_attachment(chat_id, attachment.file_id, name))
+        self._ingest_tasks.add(task)  # keep a reference so the task is not garbage collected
+        task.add_done_callback(self._ingest_tasks.discard)
+
+    async def _ingest_attachment(self, chat_id: int, file_id: str, name: str) -> None:
+        """
+        Downloads one Telegram file, ingests it, and tells the user how it went.
+
+        Args:
+            chat_id (int): Chat to reply to.
+            file_id (str): Telegram file id.
+            name (str): Filename to store.
+
+        Returns:
+            None: This function only sends a reply.
+        """
+
+        try:
+            telegram_file = await self._bot.get_file(file_id)
+            data = bytes(await telegram_file.download_as_bytearray())
+            document = await asyncio.to_thread(
+                self._get_document_service().ingest_file, data, name, "telegram"
+            )
+        except Exception:  # pragma: no cover - network/runtime dependent
+            logger.exception("Telegram file ingest failed")
+            reply = f"Something went wrong while processing {name}."
+        else:
+            if document is None:
+                reply = f"{name} is already in your documents."
+            elif document["status"] == "ready":
+                reply = f"{name} is ready. Ask me a question about it."
+            else:
+                reply = f"I couldn't read {name}: {document.get('errorMessage') or 'unknown error'}"
+
+        await self._bot.send_message(chat_id=chat_id, text=reply)
 
     def _build_docs_message(self) -> str:
         """
