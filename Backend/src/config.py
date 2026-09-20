@@ -100,7 +100,7 @@ class Settings:
 
     app_name: str
     app_version: str
-    db_path: str
+    database_url: str
     opensearch_url: str
     opensearch_index_name: str
     opensearch_pipeline_name: str
@@ -131,7 +131,7 @@ def _build_settings() -> Settings:
     """
     Builds Settings from constants plus a minimal environment surface:
 
-    ``APP_DB_PATH``, ``OPENSEARCH_URL``, ``OLLAMA_BASE_URL``, ``USE_MOCK_LLM``,
+    ``DATABASE_URL``, ``OPENSEARCH_URL``, ``OLLAMA_BASE_URL``, ``USE_MOCK_LLM``,
     ``TELEGRAM_BOT_TOKEN``, ``TELEGRAM_WEBHOOK_SECRET``, ``TELEGRAM_WEBHOOK_URL``,
     ``CORS_ALLOW_ORIGINS``, ``TRUSTED_HOSTS``.
     """
@@ -139,7 +139,9 @@ def _build_settings() -> Settings:
     return Settings(
         app_name=APP_NAME,
         app_version=APP_VERSION,
-        db_path=os.getenv("APP_DB_PATH", "./data/app.db"),
+        database_url=os.getenv(
+            "DATABASE_URL", "postgresql://docassist:docassist@localhost:5432/docassist"
+        ),
         opensearch_url=os.getenv("OPENSEARCH_URL", "http://localhost:9200"),
         opensearch_index_name=OPENSEARCH_INDEX_NAME,
         opensearch_pipeline_name=OPENSEARCH_PIPELINE_NAME,

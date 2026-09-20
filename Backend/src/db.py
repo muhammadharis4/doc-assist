@@ -1,17 +1,17 @@
-"""SQLite persistence for documents, queries, and sources."""
+"""Postgres persistence for documents, chunks (pgvector), queries, and sources."""
 
 from __future__ import annotations
 
-import json
-import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Iterator
 from uuid import uuid4
 
+import psycopg
+from psycopg.rows import dict_row
+
 from src.config import settings
-from src.constants import MAX_HISTORY_LIMIT
+from src.constants import EMBEDDING_DIMENSIONS, MAX_HISTORY_LIMIT
 
 
 def _utc_now() -> str:
@@ -27,18 +27,16 @@ def _utc_now() -> str:
 
 def init_db() -> None:
     """
-    Creates required tables if they do not exist.
+    Creates the vector extension, tables, and indexes if they do not exist.
 
     Returns:
         None: This function only initializes database tables.
     """
 
-    db_file = Path(settings.db_path)
-    db_file.parent.mkdir(parents=True, exist_ok=True)
-
     with _connection() as connection:
-        connection.executescript(
-            """
+        connection.execute("CREATE EXTENSION IF NOT EXISTS vector")
+        connection.execute(
+            f"""
             CREATE TABLE IF NOT EXISTS documents (
                 id TEXT PRIMARY KEY,
                 filename TEXT NOT NULL,
@@ -49,8 +47,21 @@ def init_db() -> None:
                 status TEXT NOT NULL DEFAULT 'ready',
                 error_message TEXT,
                 indexed_at TEXT,
-                tags_json TEXT NOT NULL DEFAULT '[]'
+                tags TEXT[] NOT NULL DEFAULT '{{}}'
             );
+
+            CREATE TABLE IF NOT EXISTS chunks (
+                id BIGSERIAL PRIMARY KEY,
+                document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+                chunk_index INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                embedding vector({EMBEDDING_DIMENSIONS}) NOT NULL,
+                tsv tsvector GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED
+            );
+            CREATE INDEX IF NOT EXISTS chunks_document_idx ON chunks (document_id);
+            CREATE INDEX IF NOT EXISTS chunks_tsv_idx ON chunks USING gin (tsv);
+            CREATE INDEX IF NOT EXISTS chunks_embedding_idx
+                ON chunks USING hnsw (embedding vector_cosine_ops);
 
             CREATE TABLE IF NOT EXISTS query_history (
                 id TEXT PRIMARY KEY,
@@ -61,118 +72,55 @@ def init_db() -> None:
 
             CREATE TABLE IF NOT EXISTS query_sources (
                 id TEXT PRIMARY KEY,
-                query_history_id TEXT NOT NULL,
+                query_history_id TEXT NOT NULL REFERENCES query_history(id) ON DELETE CASCADE,
                 document_id TEXT,
                 filename TEXT,
                 document_type TEXT NOT NULL DEFAULT 'other',
                 snippet TEXT NOT NULL,
-                score REAL,
-                FOREIGN KEY (query_history_id) REFERENCES query_history(id)
+                score REAL
             );
             """
         )
 
-        _ensure_document_columns(connection)
-        _ensure_query_source_columns(connection)
-
-
-def _ensure_document_columns(connection: sqlite3.Connection) -> None:
-    """
-    Ensures the documents table includes async processing columns.
-
-    Args:
-        connection (sqlite3.Connection): Active SQLite connection.
-
-    Returns:
-        None: This function only applies schema compatibility updates.
-    """
-
-    columns = {
-        row["name"]
-        for row in connection.execute("PRAGMA table_info(documents)").fetchall()
-    }
-
-    if "status" not in columns:
-        connection.execute(
-            "ALTER TABLE documents ADD COLUMN status TEXT NOT NULL DEFAULT 'ready'"
-        )
-    if "error_message" not in columns:
-        connection.execute("ALTER TABLE documents ADD COLUMN error_message TEXT")
-    if "indexed_at" not in columns:
-        connection.execute("ALTER TABLE documents ADD COLUMN indexed_at TEXT")
-    if "document_type" not in columns:
-        connection.execute(
-            "ALTER TABLE documents ADD COLUMN document_type TEXT NOT NULL DEFAULT 'other'"
-        )
-    if "tags_json" not in columns:
-        connection.execute(
-            "ALTER TABLE documents ADD COLUMN tags_json TEXT NOT NULL DEFAULT '[]'"
-        )
-
-
-def _ensure_query_source_columns(connection: sqlite3.Connection) -> None:
-    """
-    Ensures query_sources includes optional metadata columns.
-
-    Args:
-        connection (sqlite3.Connection): Active SQLite connection.
-
-    Returns:
-        None: This function only applies schema compatibility updates.
-    """
-
-    columns = {
-        row["name"]
-        for row in connection.execute("PRAGMA table_info(query_sources)").fetchall()
-    }
-
-    if "document_type" not in columns:
-        connection.execute(
-            "ALTER TABLE query_sources ADD COLUMN document_type TEXT NOT NULL DEFAULT 'other'"
-        )
-
 
 @contextmanager
-def _connection() -> Iterator[sqlite3.Connection]:
+def _connection() -> Iterator[psycopg.Connection]:
     """
-    Yields a configured SQLite connection.
+    Yields a Postgres connection that commits on success and closes on exit.
 
     Returns:
-        Iterator[sqlite3.Connection]: Managed SQLite connection context.
+        Iterator[psycopg.Connection]: Managed connection returning dict rows.
     """
 
-    connection = sqlite3.connect(settings.db_path)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA journal_mode=WAL")
-    connection.execute("PRAGMA busy_timeout=5000")
-    connection.execute("PRAGMA foreign_keys=ON")
-    try:
+    # ponytail: one connection per call, add psycopg_pool if latency shows up.
+    with psycopg.connect(settings.database_url, row_factory=dict_row) as connection:
         yield connection
-        connection.commit()
-    finally:
-        connection.close()
 
 
-def _tags_from_json(raw: str | None) -> list[str]:
+def _document_from_row(row: dict[str, object], *, with_content: bool) -> dict[str, object]:
     """
-    Parses stored ``tags_json`` into a list of strings.
+    Maps a documents row to the API payload shape.
 
     Args:
-        raw (str | None): JSON array text from SQLite.
+        row (dict[str, object]): Row from the documents table.
+        with_content (bool): Include the full text (list responses omit it).
 
     Returns:
-        list[str]: Tags for API responses (empty on invalid JSON).
+        dict[str, object]: Document payload with camelCase keys.
     """
 
-    if not raw or not str(raw).strip():
-        return []
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError:
-        return []
-    if not isinstance(parsed, list):
-        return []
-    return [str(item).strip() for item in parsed if str(item).strip()]
+    return {
+        "id": row["id"],
+        "filename": row["filename"],
+        "content": row["content"] if with_content else "",
+        "mimeType": row["mime_type"],
+        "documentType": row["document_type"] or "other",
+        "createdAt": row["created_at"],
+        "status": row["status"],
+        "errorMessage": row["error_message"],
+        "indexedAt": row["indexed_at"],
+        "tags": row["tags"],
+    }
 
 
 def create_document(
@@ -192,7 +140,7 @@ def create_document(
         mime_type (str | None): Optional MIME type.
         document_type (str): User-selected document category.
         status (str): Processing status for new rows.
-        tags (list[str] | None): Optional tag list (stored as JSON).
+        tags (list[str] | None): Optional tag list.
 
     Returns:
         dict[str, object]: Stored document payload.
@@ -201,26 +149,17 @@ def create_document(
     document_id = str(uuid4())
     created_at = _utc_now()
     tag_list = list(tags) if tags is not None else []
-    tags_json = json.dumps(tag_list)
 
     with _connection() as connection:
         connection.execute(
             """
             INSERT INTO documents (
-                id,
-                filename,
-                content,
-                mime_type,
-                document_type,
-                created_at,
-                status,
-                error_message,
-                indexed_at,
-                tags_json
+                id, filename, content, mime_type, document_type,
+                created_at, status, error_message, indexed_at, tags
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NULL, NULL, %s)
             """,
-            (document_id, filename, content, mime_type, document_type, created_at, status, tags_json),
+            (document_id, filename, content, mime_type, document_type, created_at, status, tag_list),
         )
 
     return {
@@ -253,7 +192,7 @@ def list_documents(
         filename_substring (str | None): Case-insensitive substring match on ``filename``.
         document_type (str | None): Exact ``document_type`` filter.
         status (str | None): Exact status, or ``inbox`` for pending and processing.
-        tag (str | None): Exact tag match (case-insensitive) against JSON tags.
+        tag (str | None): Exact tag match (case-insensitive).
         created_from (str | None): Inclusive lower bound on ``created_at`` (ISO string).
         created_to (str | None): Inclusive upper bound on ``created_at`` (ISO string).
 
@@ -265,11 +204,11 @@ def list_documents(
     params: list[object] = []
 
     if filename_substring and filename_substring.strip():
-        clauses.append("INSTR(LOWER(filename), LOWER(?)) > 0")
+        clauses.append("POSITION(LOWER(%s) IN LOWER(filename)) > 0")
         params.append(filename_substring.strip())
 
     if document_type and document_type.strip():
-        clauses.append("document_type = ?")
+        clauses.append("document_type = %s")
         params.append(document_type.strip())
 
     if status and status.strip():
@@ -277,31 +216,25 @@ def list_documents(
         if lowered == "inbox":
             clauses.append("status IN ('pending', 'processing')")
         else:
-            clauses.append("status = ?")
+            clauses.append("status = %s")
             params.append(status.strip())
 
     if tag and tag.strip():
-        clauses.append(
-            """
-            EXISTS (
-                SELECT 1 FROM json_each(COALESCE(documents.tags_json, '[]')) AS je
-                WHERE LOWER(je.value) = LOWER(?)
-            )
-            """
-        )
+        clauses.append("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE LOWER(t) = LOWER(%s))")
         params.append(tag.strip())
 
     if created_from and created_from.strip():
-        clauses.append("created_at >= ?")
+        clauses.append("created_at >= %s")
         params.append(created_from.strip())
 
     if created_to and created_to.strip():
-        clauses.append("created_at <= ?")
+        clauses.append("created_at <= %s")
         params.append(created_to.strip())
 
-    where_sql = " AND ".join(clauses) if clauses else "1 = 1"
+    where_sql = " AND ".join(clauses) if clauses else "TRUE"
     sql = f"""
-        SELECT id, filename, mime_type, document_type, created_at, status, error_message, indexed_at, tags_json
+        SELECT id, filename, content, mime_type, document_type, created_at, status,
+               error_message, indexed_at, tags
         FROM documents
         WHERE {where_sql}
         ORDER BY created_at DESC
@@ -310,21 +243,7 @@ def list_documents(
     with _connection() as connection:
         rows = connection.execute(sql, params).fetchall()
 
-    return [
-        {
-            "id": row["id"],
-            "filename": row["filename"],
-            "content": "",
-            "mimeType": row["mime_type"],
-            "documentType": row["document_type"] or "other",
-            "createdAt": row["created_at"],
-            "status": row["status"],
-            "errorMessage": row["error_message"],
-            "indexedAt": row["indexed_at"],
-            "tags": _tags_from_json(row["tags_json"]),
-        }
-        for row in rows
-    ]
+    return [_document_from_row(row, with_content=False) for row in rows]
 
 
 def get_document(document_id: str) -> dict[str, object] | None:
@@ -340,29 +259,11 @@ def get_document(document_id: str) -> dict[str, object] | None:
 
     with _connection() as connection:
         row = connection.execute(
-            """
-            SELECT id, filename, content, mime_type, document_type, created_at, status, error_message, indexed_at, tags_json
-            FROM documents
-            WHERE id = ?
-            """,
+            "SELECT * FROM documents WHERE id = %s",
             (document_id,),
         ).fetchone()
 
-    if row is None:
-        return None
-
-    return {
-        "id": row["id"],
-        "filename": row["filename"],
-        "content": row["content"],
-        "mimeType": row["mime_type"],
-        "documentType": row["document_type"] or "other",
-        "createdAt": row["created_at"],
-        "status": row["status"],
-        "errorMessage": row["error_message"],
-        "indexedAt": row["indexed_at"],
-        "tags": _tags_from_json(row["tags_json"]),
-    }
+    return None if row is None else _document_from_row(row, with_content=True)
 
 
 def update_document_tags(document_id: str, tags: list[str]) -> dict[str, object] | None:
@@ -377,11 +278,10 @@ def update_document_tags(document_id: str, tags: list[str]) -> dict[str, object]
         dict[str, object] | None: Updated document row, or ``None`` if id missing.
     """
 
-    tags_json = json.dumps(tags)
     with _connection() as connection:
         result = connection.execute(
-            "UPDATE documents SET tags_json = ? WHERE id = ?",
-            (tags_json, document_id),
+            "UPDATE documents SET tags = %s WHERE id = %s",
+            (tags, document_id),
         )
         if result.rowcount == 0:
             return None
@@ -415,8 +315,8 @@ def update_document_status(
         connection.execute(
             """
             UPDATE documents
-            SET status = ?, error_message = ?, indexed_at = ?
-            WHERE id = ?
+            SET status = %s, error_message = %s, indexed_at = %s
+            WHERE id = %s
             """,
             (status, error_message, indexed_at, document_id),
         )
@@ -424,7 +324,7 @@ def update_document_status(
 
 def delete_document(document_id: str) -> bool:
     """
-    Deletes a document row and returns True when a row was removed.
+    Deletes a document row (its chunks cascade) and returns True when a row was removed.
 
     Args:
         document_id (str): The document identifier.
@@ -434,16 +334,13 @@ def delete_document(document_id: str) -> bool:
     """
 
     with _connection() as connection:
-        result = connection.execute(
-            "DELETE FROM documents WHERE id = ?",
-            (document_id,),
-        )
+        result = connection.execute("DELETE FROM documents WHERE id = %s", (document_id,))
     return result.rowcount > 0
 
 
 def delete_query_history(query_id: str) -> bool:
     """
-    Deletes one query history row and its attached source rows.
+    Deletes one query history row; its source rows cascade.
 
     Args:
         query_id (str): The query history identifier.
@@ -453,14 +350,7 @@ def delete_query_history(query_id: str) -> bool:
     """
 
     with _connection() as connection:
-        connection.execute(
-            "DELETE FROM query_sources WHERE query_history_id = ?",
-            (query_id,),
-        )
-        result = connection.execute(
-            "DELETE FROM query_history WHERE id = ?",
-            (query_id,),
-        )
+        result = connection.execute("DELETE FROM query_history WHERE id = %s", (query_id,))
 
     return result.rowcount > 0
 
@@ -483,10 +373,7 @@ def store_query(query: str, answer: str, sources: list[dict[str, str | float | N
 
     with _connection() as connection:
         connection.execute(
-            """
-            INSERT INTO query_history (id, query, answer, created_at)
-            VALUES (?, ?, ?, ?)
-            """,
+            "INSERT INTO query_history (id, query, answer, created_at) VALUES (%s, %s, %s, %s)",
             (query_id, query, answer, created_at),
         )
 
@@ -494,15 +381,9 @@ def store_query(query: str, answer: str, sources: list[dict[str, str | float | N
             connection.execute(
                 """
                 INSERT INTO query_sources (
-                    id,
-                    query_history_id,
-                    document_id,
-                    filename,
-                    document_type,
-                    snippet,
-                    score
+                    id, query_history_id, document_id, filename, document_type, snippet, score
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     str(uuid4()),
@@ -540,35 +421,26 @@ def list_query_history(limit: int) -> list[dict[str, object]]:
 
     with _connection() as connection:
         history_rows = connection.execute(
-            """
-            SELECT id, query, answer, created_at
-            FROM query_history
-            ORDER BY created_at DESC
-            LIMIT ?
-            """,
+            "SELECT id, query, answer, created_at FROM query_history ORDER BY created_at DESC LIMIT %s",
             (safe_limit,),
         ).fetchall()
 
-        result: list[dict[str, object]] = []
-        history_ids = [str(history["id"]) for history in history_rows]
         sources_by_history_id: dict[str, list[dict[str, object]]] = {
-            history_id: [] for history_id in history_ids
+            row["id"]: [] for row in history_rows
         }
 
-        if history_ids:
-            placeholders = ", ".join("?" for _ in history_ids)
+        if sources_by_history_id:
             source_rows = connection.execute(
-                f"""
+                """
                 SELECT query_history_id, document_id, filename, document_type, snippet, score
                 FROM query_sources
-                WHERE query_history_id IN ({placeholders})
+                WHERE query_history_id = ANY(%s)
                 """,
-                history_ids,
+                (list(sources_by_history_id),),
             ).fetchall()
 
             for row in source_rows:
-                history_id = str(row["query_history_id"])
-                sources_by_history_id.setdefault(history_id, []).append(
+                sources_by_history_id[row["query_history_id"]].append(
                     {
                         "documentId": row["document_id"],
                         "filename": row["filename"],
@@ -578,17 +450,14 @@ def list_query_history(limit: int) -> list[dict[str, object]]:
                     }
                 )
 
-        for history in history_rows:
-            history_id = str(history["id"])
-            result.append(
-                {
-                    "id": history_id,
-                    "query": history["query"],
-                    "answer": history["answer"],
-                    "userId": None,
-                    "createdAt": history["created_at"],
-                    "sources": sources_by_history_id.get(history_id, []),
-                }
-            )
-
-    return result
+    return [
+        {
+            "id": history["id"],
+            "query": history["query"],
+            "answer": history["answer"],
+            "userId": None,
+            "createdAt": history["created_at"],
+            "sources": sources_by_history_id[history["id"]],
+        }
+        for history in history_rows
+    ]

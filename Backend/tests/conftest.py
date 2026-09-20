@@ -1,18 +1,18 @@
 """
-Pytest fixtures. Environment for `APP_DB_PATH` must be set before any `src` import.
+Pytest fixtures. `DATABASE_URL` must be set before any `src` import.
+
+Needs a throwaway pgvector Postgres (never point this at real data):
+    docker run -d --rm --name docassist-test-db -p 5433:5432 -e POSTGRES_USER=docassist \
+        -e POSTGRES_PASSWORD=docassist -e POSTGRES_DB=docassist_test pgvector/pgvector:pg17
 """
 
 from __future__ import annotations
 
 import importlib
 import os
-import tempfile
 from unittest.mock import AsyncMock, patch
 
-# Isolated SQLite file for the test process (before importing `src.config`).
-_fd, _TEST_DB = tempfile.mkstemp(suffix=".db")
-os.close(_fd)
-os.environ["APP_DB_PATH"] = _TEST_DB
+os.environ["DATABASE_URL"] = "postgresql://docassist:docassist@localhost:5433/docassist_test"
 os.environ.setdefault("USE_MOCK_LLM", "true")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "")
 os.environ.setdefault("TELEGRAM_WEBHOOK_URL", "")
