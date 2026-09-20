@@ -16,8 +16,11 @@ TOP_K = 5
 RRF_K = 60
 TYPE_BOOST = 0.005
 
-OLLAMA_MODEL = "llama3.2:1b"
+OLLAMA_MODEL = "qwen2.5:7b"
 OLLAMA_TEMPERATURE = 0.2
+# Context window sent to Ollama. Small on purpose: the prompt is ~5 chunks, and on CPU a
+# bigger window means slower first tokens. Ollama reloads the model if this changes between calls.
+OLLAMA_NUM_CTX = 4096
 
 MAX_QUERY_LENGTH = 2000
 DEFAULT_HISTORY_LIMIT = 20

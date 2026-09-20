@@ -7,21 +7,27 @@ from collections.abc import AsyncIterator
 import ollama
 
 from src.config import settings
-from src.constants import OLLAMA_MODEL, OLLAMA_TEMPERATURE
+from src.constants import OLLAMA_MODEL, OLLAMA_NUM_CTX, OLLAMA_TEMPERATURE
 
 
-def _ollama_temperature(override: float | None) -> float:
+def _ollama_options(temperature: float | None = None) -> dict[str, float | int]:
     """
-    Resolves the temperature sent to Ollama (per-request override vs server default).
+    Builds the options sent with every Ollama chat call.
+
+    The same ``num_ctx`` must be used everywhere (warmup included), otherwise Ollama
+    reloads the model between calls.
 
     Args:
-        override (float | None): Optional client-provided temperature.
+        temperature (float | None): Optional per-request override of the default temperature.
 
     Returns:
-        float: Effective temperature in ``[0, 1]`` (validated on the HTTP model).
+        dict[str, float | int]: Ollama ``options`` payload.
     """
 
-    return OLLAMA_TEMPERATURE if override is None else override
+    return {
+        "temperature": OLLAMA_TEMPERATURE if temperature is None else temperature,
+        "num_ctx": OLLAMA_NUM_CTX,
+    }
 
 
 class LlmService:
@@ -80,7 +86,7 @@ class LlmService:
 
         await self._client.chat(
             model=OLLAMA_MODEL,
-            options={"temperature": 0},
+            options=_ollama_options(0),
             messages=[
                 {
                     "role": "user",
@@ -113,7 +119,7 @@ class LlmService:
 
         response = await self._client.chat(
             model=OLLAMA_MODEL,
-            options={"temperature": _ollama_temperature(temperature)},
+            options=_ollama_options(temperature),
             messages=self._build_messages(query, chunks),
         )
         return response["message"]["content"].strip()
@@ -137,7 +143,7 @@ class LlmService:
 
         response = await self._client.chat(
             model=OLLAMA_MODEL,
-            options={"temperature": _ollama_temperature(temperature)},
+            options=_ollama_options(temperature),
             messages=[
                 {
                     "role": "system",
@@ -173,7 +179,7 @@ class LlmService:
 
         stream = await self._client.chat(
             model=OLLAMA_MODEL,
-            options={"temperature": _ollama_temperature(temperature)},
+            options=_ollama_options(temperature),
             messages=self._build_messages(query, chunks),
             stream=True,
         )
@@ -202,7 +208,7 @@ class LlmService:
 
         stream = await self._client.chat(
             model=OLLAMA_MODEL,
-            options={"temperature": _ollama_temperature(temperature)},
+            options=_ollama_options(temperature),
             messages=[
                 {
                     "role": "system",
