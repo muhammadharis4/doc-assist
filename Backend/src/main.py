@@ -12,6 +12,7 @@ from slowapi.errors import RateLimitExceeded
 
 from src import db
 from src.config import settings
+from src.constants import APP_NAME, APP_VERSION
 from src.documents.folder_scanner import watch_folder
 from src.documents.routes import router as documents_router
 from src.http_security import install_security_middleware
@@ -62,7 +63,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
+app = FastAPI(title=APP_NAME, version=APP_VERSION, lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

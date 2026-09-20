@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from src.config import settings
+from src.constants import CHUNK_OVERLAP_CHARS, CHUNK_SIZE_CHARS
 
 
 def clean_text(text: str) -> str:
@@ -65,8 +65,8 @@ def chunk_text(text: str) -> list[str]:
     if not normalized:
         return []
 
-    chunk_size = max(50, settings.chunk_size_chars)
-    overlap = max(0, min(settings.chunk_overlap_chars, chunk_size - 1))
+    chunk_size = max(50, CHUNK_SIZE_CHARS)
+    overlap = max(0, min(CHUNK_OVERLAP_CHARS, chunk_size - 1))
     blocks = [part.strip() for part in normalized.split("\n\n") if part.strip()]
     if not blocks:
         return []

@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator
 import ollama
 
 from src.config import settings
+from src.constants import OLLAMA_MODEL, OLLAMA_TEMPERATURE
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ def _ollama_temperature(override: float | None) -> float:
         float: Effective temperature in ``[0, 1]`` (validated on the HTTP model).
     """
 
-    return settings.ollama_temperature if override is None else override
+    return OLLAMA_TEMPERATURE if override is None else override
 
 
 class LlmService:
@@ -84,7 +85,7 @@ class LlmService:
             return
 
         await self._client.chat(
-            model=settings.ollama_model,
+            model=OLLAMA_MODEL,
             options={"temperature": 0},
             messages=[
                 {
@@ -121,7 +122,7 @@ class LlmService:
             return self._mock_answer(chunks)
 
         response = await self._client.chat(
-            model=settings.ollama_model,
+            model=OLLAMA_MODEL,
             options={"temperature": _ollama_temperature(temperature)},
             messages=self._build_messages(query, chunks),
         )
@@ -149,7 +150,7 @@ class LlmService:
             return f"Mock general reply to: {query.strip()[:180]}"
 
         response = await self._client.chat(
-            model=settings.ollama_model,
+            model=OLLAMA_MODEL,
             options={"temperature": _ollama_temperature(temperature)},
             messages=[
                 {
@@ -190,7 +191,7 @@ class LlmService:
             return
 
         stream = await self._client.chat(
-            model=settings.ollama_model,
+            model=OLLAMA_MODEL,
             options={"temperature": _ollama_temperature(temperature)},
             messages=self._build_messages(query, chunks),
             stream=True,
@@ -224,7 +225,7 @@ class LlmService:
             return
 
         stream = await self._client.chat(
-            model=settings.ollama_model,
+            model=OLLAMA_MODEL,
             options={"temperature": _ollama_temperature(temperature)},
             messages=[
                 {

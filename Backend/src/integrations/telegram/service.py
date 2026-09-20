@@ -14,9 +14,9 @@ from src.config import settings
 from src.constants import (
     INGEST_EXTENSIONS,
     MAX_PDF_UPLOAD_BYTES,
+    MAX_QUERY_LENGTH,
     TELEGRAM_DOCS_LIST_LIMIT,
     TELEGRAM_MAX_MESSAGE_CHARS,
-    TELEGRAM_SCOPE_LABEL_ENABLED,
     TELEGRAM_SOURCE_LIMIT,
     TELEGRAM_WEBHOOK_RETRY_MAX,
 )
@@ -248,10 +248,10 @@ class TelegramService:
             return
 
         query_text = text
-        if len(query_text) > settings.max_query_length:
+        if len(query_text) > MAX_QUERY_LENGTH:
             await self._bot.send_message(
                 chat_id=chat_id,
-                text=f"Question is too long. Max length is {settings.max_query_length} characters.",
+                text=f"Question is too long. Max length is {MAX_QUERY_LENGTH} characters.",
             )
             return
 
@@ -491,7 +491,7 @@ class TelegramService:
         if source_lines:
             message += "\n\nSources:\n" + "\n".join(source_lines)
 
-        if scope_label and TELEGRAM_SCOPE_LABEL_ENABLED:
+        if scope_label:
             message += f"\n\nScope: {scope_label}"
 
         max_message_chars = max(100, TELEGRAM_MAX_MESSAGE_CHARS)

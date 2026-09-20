@@ -12,20 +12,6 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
-from src.constants import (
-    APP_NAME,
-    APP_VERSION,
-    CHUNK_OVERLAP_CHARS,
-    CHUNK_SIZE_CHARS,
-    EMBEDDING_MODEL,
-    MAX_QUERY_LENGTH,
-    OLLAMA_MODEL,
-    OLLAMA_TEMPERATURE,
-    SOURCE_SNIPPET_MAX_CHARS,
-    TOP_K,
-)
-
-
 load_dotenv()
 
 
@@ -90,19 +76,9 @@ class Settings:
         Settings: Immutable settings container.
     """
 
-    app_name: str
-    app_version: str
     database_url: str
     watch_folder: str
-    embedding_model: str
-    chunk_size_chars: int
-    chunk_overlap_chars: int
-    top_k: int
-    source_snippet_max_chars: int
-    max_query_length: int
     ollama_base_url: str
-    ollama_model: str
-    ollama_temperature: float
     use_mock_llm: bool
     telegram_bot_token: str
     telegram_webhook_secret: str
@@ -121,21 +97,11 @@ def _build_settings() -> Settings:
     """
 
     return Settings(
-        app_name=APP_NAME,
-        app_version=APP_VERSION,
         database_url=os.getenv(
             "DATABASE_URL", "postgresql://docassist:docassist@localhost:5432/docassist"
         ),
         watch_folder=os.getenv("WATCH_FOLDER", "Sample data"),
-        embedding_model=EMBEDDING_MODEL,
-        chunk_size_chars=CHUNK_SIZE_CHARS,
-        chunk_overlap_chars=CHUNK_OVERLAP_CHARS,
-        top_k=TOP_K,
-        source_snippet_max_chars=SOURCE_SNIPPET_MAX_CHARS,
-        max_query_length=MAX_QUERY_LENGTH,
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-        ollama_model=OLLAMA_MODEL,
-        ollama_temperature=OLLAMA_TEMPERATURE,
         use_mock_llm=_as_bool(os.getenv("USE_MOCK_LLM"), default=False),
         telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
         telegram_webhook_secret=os.getenv("TELEGRAM_WEBHOOK_SECRET", ""),

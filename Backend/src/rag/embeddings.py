@@ -8,6 +8,7 @@ from functools import lru_cache
 import ollama
 
 from src.config import settings
+from src.constants import EMBEDDING_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ def generate_embeddings(chunks: list[str]) -> list[list[float]]:
     if not chunks:
         return []
 
-    response = _client().embed(model=settings.embedding_model, input=chunks)
+    response = _client().embed(model=EMBEDDING_MODEL, input=chunks)
     logger.info("Generated embeddings for %d text chunks.", len(chunks))
     return [list(vector) for vector in response.embeddings]
 

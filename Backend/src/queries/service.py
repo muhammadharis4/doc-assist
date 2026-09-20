@@ -9,7 +9,7 @@ from collections.abc import AsyncIterator
 from time import perf_counter
 
 from src import db
-from src.config import settings
+from src.constants import SOURCE_SNIPPET_MAX_CHARS, TOP_K
 from src.rag.llm import LlmService
 from src.rag.router import infer_document_types, latest_n
 
@@ -55,7 +55,7 @@ class QueryService:
             tuple[list[dict[str, object]], list[dict[str, object]]]: Retrieval hits and sources.
         """
 
-        effective_top_k = top_k if top_k is not None else settings.top_k
+        effective_top_k = top_k if top_k is not None else TOP_K
         from src.rag.embeddings import generate_query_embedding
 
         query_embedding = generate_query_embedding(query_text)
@@ -72,7 +72,7 @@ class QueryService:
                 "documentId": hit.get("documentId"),
                 "filename": hit.get("filename"),
                 "documentType": hit.get("documentType") or "other",
-                "snippet": str(hit.get("content", ""))[: settings.source_snippet_max_chars],
+                "snippet": str(hit.get("content", ""))[:SOURCE_SNIPPET_MAX_CHARS],
                 "score": float(hit.get("score", 0.0)),
             }
             for hit in hits
