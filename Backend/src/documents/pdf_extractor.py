@@ -1,4 +1,4 @@
-"""Document text extraction through Docling (digital PDFs, scans, and photos)."""
+"""Document text extraction: the PDF text layer when present, Docling for scans and photos."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import logging
 import threading
 from functools import lru_cache
 
+import pypdfium2 as pdfium
 from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
 from docling.datamodel.base_models import DocumentStream, InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
@@ -16,8 +17,41 @@ from src.rag.chunking import clean_text
 
 logger = logging.getLogger(__name__)
 
+# A page with less text than this is treated as a scan.
+MIN_TEXT_LAYER_CHARS_PER_PAGE = 50
+
 # ponytail: one conversion at a time keeps CPU/RAM bounded; a job queue if uploads pile up.
 _convert_lock = threading.Lock()
+
+
+def _pdf_text_layer(file_bytes: bytes) -> str:
+    """
+    Reads the embedded text of a digital PDF.
+
+    Docling's PDF backends each dropped the body of some digital forms (payslips) and not
+    others, while the text layer was complete every time. Rows keep their values on one line.
+
+    Args:
+        file_bytes (bytes): Raw file bytes.
+
+    Returns:
+        str: The text, or an empty string when the file is not a PDF or any page has no
+            usable text layer (a scan), so the caller falls back to OCR.
+    """
+
+    try:
+        pdf = pdfium.PdfDocument(file_bytes)
+    except pdfium.PdfiumError:  # not a PDF, e.g. a photo saved with a .pdf name
+        return ""
+
+    try:
+        pages = [page.get_textpage().get_text_range() for page in pdf]
+    finally:
+        pdf.close()
+
+    if not pages or any(len(page.strip()) < MIN_TEXT_LAYER_CHARS_PER_PAGE for page in pages):
+        return ""
+    return "\n\n".join(pages)
 
 
 @lru_cache(maxsize=1)
@@ -32,8 +66,6 @@ def _converter() -> DocumentConverter:
     options = PdfPipelineOptions()
     options.do_ocr = True
     options.do_table_structure = True
-    # The default PDF backend silently dropped the body of some digital forms
-    # (payslips); the pypdfium2 backend keeps it.
     return DocumentConverter(
         format_options={
             InputFormat.PDF: PdfFormatOption(
@@ -45,7 +77,7 @@ def _converter() -> DocumentConverter:
 
 def extract_text_from_pdf_bytes(file_bytes: bytes, source_name: str | None = None) -> str:
     """
-    Extracts text (tables as markdown) from a PDF or image payload.
+    Extracts text from a PDF or image payload (tables as markdown when OCR is needed).
 
     The real file type is detected from the content, not the extension.
 
@@ -58,11 +90,15 @@ def extract_text_from_pdf_bytes(file_bytes: bytes, source_name: str | None = Non
     """
 
     display_name = source_name or "uploaded.pdf"
+
+    text = _pdf_text_layer(file_bytes)
+    if text.strip():
+        logger.info("Read text layer of %s", display_name)
+        return clean_text(text)
+
+    logger.info("No usable text layer in %s; running Docling OCR", display_name)
     with _convert_lock:
         result = _converter().convert(
             DocumentStream(name=display_name, stream=io.BytesIO(file_bytes))
         )
-
-    cleaned = clean_text(result.document.export_to_markdown())
-    logger.info("Extracted %d characters from %s", len(cleaned), display_name)
-    return cleaned
+    return clean_text(result.document.export_to_markdown())
