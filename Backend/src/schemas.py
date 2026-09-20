@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.constants import (
     DOCUMENT_TYPE_INSURANCE,
@@ -94,28 +94,6 @@ class DocumentCreateRequest(BaseModel):
     @classmethod
     def _validate_tags(cls, value: object) -> list[str]:
         return normalize_document_tags(value)
-
-    @model_validator(mode="before")
-    @classmethod
-    def normalize_payload(cls, value: object) -> object:
-        """
-        Accepts legacy frontend payload fields for a smooth migration.
-
-        Args:
-            value (object): Raw incoming payload.
-
-        Returns:
-            object: Normalized payload.
-        """
-
-        if not isinstance(value, dict):
-            return value
-
-        normalized = dict(value)
-        if "content" not in normalized and "extractedText" in normalized:
-            normalized["content"] = normalized.get("extractedText")
-
-        return normalized
 
 
 class DocumentResponse(BaseModel):
