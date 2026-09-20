@@ -60,10 +60,6 @@ class LlmService:
 
         context = "\n\n".join(context_parts)
         prompt = (
-            "Answer only from the context below. Quote exact figures, dates and names as written, "
-            "and cite the source label number like [1]. "
-            "If the context does not contain the answer, reply exactly: "
-            "\"Not found in the documents.\" Do not guess or assume.\n\n"
             f"Question: {query}\n\n"
             f"Context:\n{context}"
         )
@@ -71,7 +67,11 @@ class LlmService:
         return [
             {
                 "role": "system",
-                "content": "You answer strictly from the provided document excerpts.",
+                "content": (
+                    "Answer only from the context in the user message. Quote exact figures, dates and names "
+                    "as written, and cite the source label number like [1]. If the context does not contain "
+                    'the answer, reply exactly: "Not found in the documents." Do not guess or assume.'
+                ),
             },
             {"role": "user", "content": prompt},
         ]

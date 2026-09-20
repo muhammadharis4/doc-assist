@@ -247,7 +247,7 @@ export function DocumentUploadDialog({
                                 <input
                                     hidden
                                     type="file"
-                                    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                    accept=".pdf,.jpg,.jpeg,.png"
                                     multiple
                                     onChange={async (event) => {
                                         const files = Array.from(
@@ -441,12 +441,7 @@ function buildPayload(
  * @returns Text used as document `content` (at least the filename on failure).
  */
 async function readFileText(file: File): Promise<string> {
-    const isScannable =
-        file.type === "application/pdf" ||
-        file.type.startsWith("image/") ||
-        /\.(pdf|jpe?g|png)$/i.test(file.name);
-
-    if (isScannable) {
+    if (/\.(pdf|jpe?g|png)$/i.test(file.name)) {
         return (await extractPdfText(file)).trim() || file.name;
     }
 
