@@ -154,7 +154,7 @@ class DocumentService:
 
     def delete_document(self, document_id: str) -> bool:
         """
-        Removes one document from SQLite.
+        Removes one document (and its chunks) from Postgres.
 
         Args:
             document_id (str): The document identifier.
@@ -180,11 +180,12 @@ class DocumentService:
         if not file_bytes:
             raise HTTPException(status_code=400, detail="file is empty")
 
-        text = extract_text_from_pdf_bytes(file_bytes=file_bytes, source_name=filename)
+        try:
+            text = extract_text_from_pdf_bytes(file_bytes=file_bytes, source_name=filename)
+        except Exception as error:  # untrusted upload: corrupt or unsupported files
+            logger.warning("Could not read %s: %s", filename, error)
+            raise HTTPException(status_code=422, detail="Could not read this file.") from error
         if not text.strip():
-            raise HTTPException(
-                status_code=422,
-                detail="No readable text found in PDF. If this is scanned, ensure Tesseract is installed.",
-            )
+            raise HTTPException(status_code=422, detail="No readable text found in this file.")
 
         return text

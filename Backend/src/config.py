@@ -20,7 +20,6 @@ from src.constants import (
     DOC_TYPE_SCORE_BOOST,
     EMBEDDING_MODEL,
     MAX_QUERY_LENGTH,
-    OCR_LANGUAGES,
     OLLAMA_MODEL,
     OLLAMA_TEMPERATURE,
     OPENSEARCH_INDEX_NAME,
@@ -114,7 +113,6 @@ class Settings:
     doc_type_score_boost: float
     text_score_weight: float
     vector_score_weight: float
-    ocr_languages: str
     max_query_length: int
     ollama_base_url: str
     ollama_model: str
@@ -155,7 +153,6 @@ def _build_settings() -> Settings:
         doc_type_score_boost=DOC_TYPE_SCORE_BOOST,
         text_score_weight=TEXT_SCORE_WEIGHT,
         vector_score_weight=VECTOR_SCORE_WEIGHT,
-        ocr_languages=OCR_LANGUAGES,
         max_query_length=MAX_QUERY_LENGTH,
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
         ollama_model=OLLAMA_MODEL,

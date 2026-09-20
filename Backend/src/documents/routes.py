@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 
 from src.constants import (
@@ -139,7 +141,10 @@ async def extract_pdf(request: Request, file: UploadFile = File(...)) -> dict[st
         chunks.append(buf)
 
     file_bytes = b"".join(chunks)
-    text = service.extract_pdf_text(file_bytes=file_bytes, filename=file.filename)
+    # Docling can take minutes on CPU: keep the event loop free for other requests.
+    text = await asyncio.to_thread(
+        service.extract_pdf_text, file_bytes=file_bytes, filename=file.filename
+    )
     return {"text": text}
 
 
