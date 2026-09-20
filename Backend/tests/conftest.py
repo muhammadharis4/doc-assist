@@ -13,6 +13,7 @@ import os
 from unittest.mock import AsyncMock, patch
 
 os.environ["DATABASE_URL"] = "postgresql://docassist:docassist@localhost:5433/docassist_test"
+os.environ.setdefault("WATCH_FOLDER", "")
 os.environ.setdefault("USE_MOCK_LLM", "true")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "")
 os.environ.setdefault("TELEGRAM_WEBHOOK_URL", "")

@@ -7,6 +7,7 @@ import asyncio
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 
 from src.constants import (
+    INGEST_EXTENSIONS,
     MAX_PDF_UPLOAD_BYTES,
     RATE_LIMIT_DOCUMENTS_CREATE,
     RATE_LIMIT_DOCUMENTS_DELETE,
@@ -119,10 +120,10 @@ async def extract_pdf(request: Request, file: UploadFile = File(...)) -> dict[st
     """
 
     filename = file.filename or ""
-    is_pdf_name = filename.lower().endswith(".pdf")
-    is_pdf_mime = (file.content_type or "").lower() == "application/pdf"
-    if not (is_pdf_name or is_pdf_mime):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+    is_supported_name = filename.lower().endswith(INGEST_EXTENSIONS)
+    is_supported_mime = (file.content_type or "").lower() in {"application/pdf", "image/jpeg", "image/png"}
+    if not (is_supported_name or is_supported_mime):
+        raise HTTPException(status_code=400, detail="Only PDF, JPG, and PNG files are supported")
 
     max_bytes = MAX_PDF_UPLOAD_BYTES
     chunks: list[bytes] = []

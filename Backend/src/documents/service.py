@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from time import perf_counter
 
@@ -189,3 +190,41 @@ class DocumentService:
             raise HTTPException(status_code=422, detail="No readable text found in this file.")
 
         return text
+
+    def ingest_file(self, file_bytes: bytes, filename: str, source: str) -> dict[str, object] | None:
+        """
+        Extracts, chunks, embeds, and stores one file. Shared by the folder scanner and Telegram.
+
+        The row is created first (with the file hash) so a re-scan or retry skips the file,
+        and an unreadable file stays ``failed`` instead of being retried forever.
+
+        Args:
+            file_bytes (bytes): Raw file bytes (PDF or image).
+            filename (str): Original filename.
+            source (str): Origin label, e.g. ``folder`` or ``telegram``.
+
+        Returns:
+            dict[str, object] | None: The final document row, or ``None`` if already ingested.
+        """
+
+        digest = hashlib.sha256(file_bytes).hexdigest()
+        if db.find_document_id_by_hash(digest):
+            return None
+
+        document = db.create_document(
+            filename, "", None, "other", status="processing", source=source, content_hash=digest
+        )
+        document_id = str(document["id"])
+
+        try:
+            text = extract_text_from_pdf_bytes(file_bytes=file_bytes, source_name=filename)
+            if not text.strip():
+                raise ValueError("No readable text found in this file.")
+            db.set_document_content(document_id, text)
+        except Exception as error:  # untrusted file: corrupt or unsupported
+            logger.warning("Could not read %s: %s", filename, error)
+            db.update_document_status(document_id, "failed", error_message=str(error))
+            return db.get_document(document_id)
+
+        self.process_document(document_id)
+        return db.get_document(document_id)

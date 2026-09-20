@@ -32,6 +32,10 @@ MAX_HISTORY_LIMIT = 100
 MAX_DOCUMENT_CONTENT_CHARS = 1_000_000
 # Largest PDF upload for ``POST /documents/extract`` (bytes).
 MAX_PDF_UPLOAD_BYTES = 25 * 1024 * 1024
+# File types Docling reads; shared by the upload route, folder scanner, and Telegram.
+INGEST_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png")
+# Seconds between scans of the watched folder.
+WATCH_INTERVAL_SEC = 60
 
 # Per-IP rate limits (SlowAPI). Disabled when ``DOCASSIST_TESTING`` is set (pytest).
 RATE_LIMIT_DOCUMENTS_LIST = "120/minute"

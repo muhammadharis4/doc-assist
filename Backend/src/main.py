@@ -12,6 +12,7 @@ from slowapi.errors import RateLimitExceeded
 
 from src import db
 from src.config import settings
+from src.documents.folder_scanner import watch_folder
 from src.documents.routes import router as documents_router
 from src.http_security import install_security_middleware
 from src.integrations.telegram.routes import router as telegram_router, service as telegram_service
@@ -54,6 +55,8 @@ async def lifespan(_: FastAPI):
         await warmup_runtime()
     except Exception as error:  # pragma: no cover - environment-dependent startup
         logger.warning("Startup step failed for warmup: %s", error)
+
+    asyncio.create_task(watch_folder())
 
     if telegram_service.enabled and settings.telegram_webhook_url.strip():
         asyncio.create_task(telegram_service.register_webhook_retry_loop())

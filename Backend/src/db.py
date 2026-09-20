@@ -47,8 +47,12 @@ def init_db() -> None:
                 status TEXT NOT NULL DEFAULT 'ready',
                 error_message TEXT,
                 indexed_at TEXT,
-                tags TEXT[] NOT NULL DEFAULT '{{}}'
+                tags TEXT[] NOT NULL DEFAULT '{{}}',
+                source TEXT NOT NULL DEFAULT 'upload',
+                content_hash TEXT
             );
+            CREATE UNIQUE INDEX IF NOT EXISTS documents_hash_idx
+                ON documents (content_hash) WHERE content_hash IS NOT NULL;
 
             CREATE TABLE IF NOT EXISTS chunks (
                 id BIGSERIAL PRIMARY KEY,
@@ -130,6 +134,8 @@ def create_document(
     document_type: str,
     status: str = "pending",
     tags: list[str] | None = None,
+    source: str = "upload",
+    content_hash: str | None = None,
 ) -> dict[str, object]:
     """
     Stores one document row and returns the created row.
@@ -141,6 +147,8 @@ def create_document(
         document_type (str): User-selected document category.
         status (str): Processing status for new rows.
         tags (list[str] | None): Optional tag list.
+        source (str): Where the file came from (``upload``, ``folder``, ``telegram``).
+        content_hash (str | None): SHA-256 of the original file, unique when set.
 
     Returns:
         dict[str, object]: Stored document payload.
@@ -155,11 +163,14 @@ def create_document(
             """
             INSERT INTO documents (
                 id, filename, content, mime_type, document_type,
-                created_at, status, error_message, indexed_at, tags
+                created_at, status, error_message, indexed_at, tags, source, content_hash
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, NULL, NULL, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NULL, NULL, %s, %s, %s)
             """,
-            (document_id, filename, content, mime_type, document_type, created_at, status, tag_list),
+            (
+                document_id, filename, content, mime_type, document_type,
+                created_at, status, tag_list, source, content_hash,
+            ),
         )
 
     return {
@@ -246,6 +257,24 @@ def list_documents(
     return [_document_from_row(row, with_content=False) for row in rows]
 
 
+def find_document_id_by_hash(content_hash: str) -> str | None:
+    """
+    Returns the id of the document ingested from a file with this hash, if any.
+
+    Args:
+        content_hash (str): SHA-256 of the original file.
+
+    Returns:
+        str | None: Document id, or ``None`` when the file is new.
+    """
+
+    with _connection() as connection:
+        row = connection.execute(
+            "SELECT id FROM documents WHERE content_hash = %s", (content_hash,)
+        ).fetchone()
+    return None if row is None else row["id"]
+
+
 def get_document(document_id: str) -> dict[str, object] | None:
     """
     Returns one document row by id.
@@ -287,6 +316,22 @@ def update_document_tags(document_id: str, tags: list[str]) -> dict[str, object]
             return None
 
     return get_document(document_id)
+
+
+def set_document_content(document_id: str, content: str) -> None:
+    """
+    Stores the extracted text of one document.
+
+    Args:
+        document_id (str): The document identifier.
+        content (str): Extracted document text.
+
+    Returns:
+        None: This function only updates one document row.
+    """
+
+    with _connection() as connection:
+        connection.execute("UPDATE documents SET content = %s WHERE id = %s", (content, document_id))
 
 
 def update_document_status(
