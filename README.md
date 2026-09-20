@@ -1,6 +1,6 @@
 # DocAssist Monorepo
 
-DocAssist is a retrieval-augmented assistant over your uploaded documents: a **FastAPI** backend (chunking, embeddings, OpenSearch hybrid search, optional Ollama) and a **Next.js** App Router frontend.
+DocAssist is a retrieval-augmented assistant over your uploaded documents: a **FastAPI** backend (Docling text extraction and OCR, Postgres + pgvector hybrid search, answers from a local Ollama model) and a **Next.js** App Router frontend.
 
 **License:** [MIT](./LICENSE) — see the [License](#license) section below.
 
@@ -35,8 +35,8 @@ Doc Assist/
 ## Prerequisites
 
 - **Python 3.11+**, **Node 20+** (matching the frontend Docker image).
-- **OpenSearch** reachable at `OPENSEARCH_URL` (default `http://localhost:9200` for native dev).
-- **Ollama** (optional) at `OLLAMA_BASE_URL`, or `USE_MOCK_LLM=true` for tests/demo without an LLM.
+- **Postgres with pgvector** reachable at `DATABASE_URL` (the `pgvector/pgvector` Docker image; `Backend/README.md` has the command).
+- **Ollama** at `OLLAMA_BASE_URL` with `qwen2.5:7b` and `bge-m3` pulled.
 
 ---
 
@@ -45,10 +45,13 @@ Doc Assist/
 ```bash
 cd Backend
 python -m venv .venv
-.\.venv\Scripts\activate
+source .venv/bin/activate          # Windows: .\.venv\Scripts\activate
+pip install torch --index-url https://download.pytorch.org/whl/cpu   # CPU-only: Docling needs torch
 pip install -r requirements.txt
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+Start Postgres and pull the Ollama models first: see **`Backend/README.md`**.
 
 - API: `http://localhost:8000` — OpenAPI: `/docs`
 - **Environment:** only a small set of variables is read from the process environment; see `Backend/src/config.py` (`_build_settings`) and **`Backend/README.md`**. Other defaults live in **`Backend/src/constants.py`** (not env).
@@ -84,7 +87,7 @@ docker compose up
 ```
 
 - UI: `http://localhost:3000` — backend: `http://localhost:8000/docs`
-- Compose includes a **development-only** OpenSearch configuration. **Do not** use that topology as-is on the public internet — read **`SECURITY.md`**.
+- Compose runs Postgres with a **demo password** and expects Ollama on the host. **Do not** use that topology as-is on the public internet — read **`SECURITY.md`**.
 
 ---
 
@@ -109,7 +112,7 @@ Full detail: **`Backend/README.md`**, **`frontend/README.md`**.
 
 ## Testing and CI
 
-**Backend** (from `Backend/`):
+**Backend** (from `Backend/`): needs a throwaway pgvector Postgres on port 5433, see **`Backend/README.md`**.
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt

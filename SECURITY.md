@@ -19,11 +19,12 @@ This document summarizes how DocAssist handles sensitive data and known limitati
 - If a webhook URL is set **without** a secret, the app logs a **warning** at startup: the endpoint is easier to abuse if it is reachable by untrusted parties.
 - User-facing error text from the bot does **not** include raw exception messages (avoids leaking stack or internal details to chat).
 
-## Docker Compose / OpenSearch
+## Docker Compose / Postgres
 
-- The bundled `docker-compose.yml` runs OpenSearch with **`DISABLE_SECURITY_PLUGIN=true`**. That is **only appropriate for local development or isolated demos**.
-- OpenSearch **port 9200 is not published** to the host by default; only the `backend` service can reach it on the Docker network. Do not re-expose it without authentication and TLS in production.
-- For production, use a **managed OpenSearch** or a properly secured cluster, and set `OPENSEARCH_URL` accordingly.
+- The bundled `docker-compose.yml` runs Postgres with a **demo password** (`docassist`). That is **only appropriate for local development or isolated demos**.
+- Postgres **port 5432 is not published** to the host by default; only the `backend` service can reach it on the Docker network. Do not re-expose it without a strong password and TLS in production.
+- For production, use a managed or properly secured Postgres with the pgvector extension, and set `DATABASE_URL` accordingly.
+- The `WATCH_FOLDER` setting makes the backend ingest every PDF and image placed in that folder. Point it only at a folder you control.
 
 ## Dependency and container hygiene
 
