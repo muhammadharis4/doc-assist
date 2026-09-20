@@ -196,29 +196,3 @@ class QueryService:
             len(hits),
         )
         yield _serialize_sse_event("done", stored)
-
-    def get_history(self, limit: int) -> list[dict[str, object]]:
-        """
-        Returns recent query history with source snippets.
-
-        Args:
-            limit (int): Maximum number of history rows to return.
-
-        Returns:
-            list[dict[str, object]]: Recent query history rows ordered by recency.
-        """
-
-        return db.list_query_history(limit)
-
-    def delete_history_item(self, query_id: str) -> bool:
-        """
-        Removes one stored query history item and its sources.
-
-        Args:
-            query_id (str): The query history identifier.
-
-        Returns:
-            bool: True when the history item existed and was removed.
-        """
-
-        return db.delete_query_history(query_id)

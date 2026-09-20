@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
+from src import db
 from src.constants import (
     DEFAULT_HISTORY_LIMIT,
     MAX_HISTORY_LIMIT,
@@ -125,7 +126,7 @@ def query_history(
         list[dict[str, object]]: Recent query history rows.
     """
 
-    return _get_query_service().get_history(limit)
+    return db.list_query_history(limit)
 
 
 @router.delete("/history/{query_id}", response_model=DeleteStatusResponse)
@@ -145,7 +146,7 @@ def delete_query_history(request: Request, query_id: str) -> DeleteStatusRespons
     if not query_id.strip():
         raise HTTPException(status_code=400, detail="query_id is required")
 
-    deleted = _get_query_service().delete_history_item(query_id.strip())
+    deleted = db.delete_query_history(query_id.strip())
     if not deleted:
         raise HTTPException(status_code=404, detail="query history not found")
 

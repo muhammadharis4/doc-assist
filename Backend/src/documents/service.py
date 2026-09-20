@@ -19,37 +19,6 @@ logger = logging.getLogger(__name__)
 class DocumentService:
     """Handles document persistence and indexing."""
 
-    def create_document(
-        self,
-        filename: str,
-        content: str,
-        mime_type: str | None,
-        document_type: str,
-        tags: list[str] | None = None,
-    ) -> dict[str, object]:
-        """
-        Stores a document and marks it pending for background indexing.
-
-        Args:
-            filename (str): Document filename.
-            content (str): Document content.
-            mime_type (str | None): Optional MIME type for the document.
-            document_type (str): Document category for retrieval.
-            tags (list[str] | None): Optional labels stored with the row.
-
-        Returns:
-            dict[str, object]: The stored document payload.
-        """
-
-        return db.create_document(
-            filename=filename,
-            content=content,
-            mime_type=mime_type,
-            document_type=document_type,
-            status="pending",
-            tags=tags,
-        )
-
     def process_document(self, document_id: str) -> None:
         """
         Runs chunking, embedding, and indexing for one stored document.
@@ -105,67 +74,6 @@ class DocumentService:
                 error_message=str(error),
                 indexed_at=None,
             )
-
-    def list_documents(
-        self,
-        *,
-        filename_substring: str | None = None,
-        document_type: str | None = None,
-        status: str | None = None,
-        tag: str | None = None,
-        created_from: str | None = None,
-        created_to: str | None = None,
-    ) -> list[dict[str, object]]:
-        """
-        Lists stored documents with optional filters.
-
-        Args:
-            filename_substring (str | None): Case-insensitive substring on filename.
-            document_type (str | None): Exact document type.
-            status (str | None): Exact status, or ``inbox`` for pending and processing.
-            tag (str | None): Tag that must exist on the document.
-            created_from (str | None): ISO lower bound on ``created_at``.
-            created_to (str | None): ISO upper bound on ``created_at``.
-
-        Returns:
-            list[dict[str, object]]: Matching rows, newest first.
-        """
-
-        return db.list_documents(
-            filename_substring=filename_substring,
-            document_type=document_type,
-            status=status,
-            tag=tag,
-            created_from=created_from,
-            created_to=created_to,
-        )
-
-    def patch_document_tags(self, document_id: str, tags: list[str]) -> dict[str, object] | None:
-        """
-        Replaces tags for one document.
-
-        Args:
-            document_id (str): Document id.
-            tags (list[str]): New tag list.
-
-        Returns:
-            dict[str, object] | None: Updated document, or ``None`` if missing.
-        """
-
-        return db.update_document_tags(document_id=document_id, tags=tags)
-
-    def delete_document(self, document_id: str) -> bool:
-        """
-        Removes one document (and its chunks) from Postgres.
-
-        Args:
-            document_id (str): The document identifier.
-
-        Returns:
-            bool: True when the document existed and was removed.
-        """
-
-        return db.delete_document(document_id)
 
     def extract_pdf_text(self, file_bytes: bytes, filename: str | None) -> str:
         """

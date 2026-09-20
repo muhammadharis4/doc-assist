@@ -6,6 +6,7 @@ import asyncio
 
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 
+from src import db
 from src.constants import (
     INGEST_EXTENSIONS,
     MAX_PDF_UPLOAD_BYTES,
@@ -61,7 +62,7 @@ def list_documents(
         list[dict[str, object]]: Matching document rows.
     """
 
-    return service.list_documents(
+    return db.list_documents(
         filename_substring=q,
         document_type=document_type,
         status=status,
@@ -93,7 +94,7 @@ def create_document(
     if not content:
         raise HTTPException(status_code=400, detail="content is required")
 
-    document = service.create_document(
+    document = db.create_document(
         filename=payload.filename.strip(),
         content=content,
         mime_type=payload.mimeType.strip() if payload.mimeType else None,
@@ -171,7 +172,7 @@ def patch_document(
     if not trimmed_id:
         raise HTTPException(status_code=400, detail="document_id is required")
 
-    updated = service.patch_document_tags(trimmed_id, list(payload.tags))
+    updated = db.update_document_tags(trimmed_id, list(payload.tags))
     if updated is None:
         raise HTTPException(status_code=404, detail="document not found")
 
@@ -195,7 +196,7 @@ def remove_document(request: Request, document_id: str) -> DeleteStatusResponse:
     if not document_id.strip():
         raise HTTPException(status_code=400, detail="document_id is required")
 
-    deleted = service.delete_document(document_id.strip())
+    deleted = db.delete_document(document_id.strip())
     if not deleted:
         raise HTTPException(status_code=404, detail="document not found")
 
