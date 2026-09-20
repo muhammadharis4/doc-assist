@@ -34,6 +34,11 @@ const nextConfig: NextConfig = {
     async redirects() {
         return [
             {
+                source: "/",
+                destination: "/chat",
+                permanent: false,
+            },
+            {
                 source: "/queries",
                 destination: "/chat",
                 permanent: true,

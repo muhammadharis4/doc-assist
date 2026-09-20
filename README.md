@@ -12,7 +12,6 @@ Dark-mode examples from the current Next.js UI:
 
 | | |
 |:--|:--|
-| **Landing** (`/`) | ![Landing page](./docs/screenshots/ui-landing.png) |
 | **Documents** (`/documents`) | ![Documents library](./docs/screenshots/ui-documents.png) |
 | **Chat** (`/chat`) | ![Chat with RAG sidebar](./docs/screenshots/ui-chat.png) |
 
@@ -72,7 +71,7 @@ npm install
 npm run dev
 ```
 
-- App: `http://localhost:3000` — routes: `/`, `/documents`, `/chat` (legacy `/queries` redirects to `/chat`).
+- App: `http://localhost:3000` — routes: `/documents`, `/chat` (`/` and legacy `/queries` redirect to `/chat`).
 - Quality gates: `npm run lint`, `npm run typecheck`, `npm run check` (includes `next build`).
 
 ---
@@ -135,7 +134,7 @@ npm run check
 
 - Keep API contracts stable unless you intentionally version or document a break.
 - Prefer small, reviewable changes; run **`pytest`** in `Backend/` and **`npm run check`** in `frontend/` before opening a PR.
-- Update READMEs when behavior, env vars, deployment assumptions, or **prominent UI** changes (refresh `docs/screenshots/` when the marketing, documents, or chat layouts change materially).
+- Update READMEs when behavior, env vars, deployment assumptions, or **prominent UI** changes (refresh `docs/screenshots/` when the documents or chat layouts change materially).
 
 ---
 

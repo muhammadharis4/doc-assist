@@ -1,8 +1,8 @@
 # DocAssist Frontend
 
-Next.js **App Router** UI for DocAssist: marketing home, document hub, chat with streamed answers and history.
+Next.js **App Router** UI for DocAssist: document hub, chat with streamed answers and history.
 
-**Screenshots** (repo root): [`../docs/screenshots/`](../docs/screenshots/) — `ui-landing.png`, `ui-documents.png`, `ui-chat.png` (also embedded in the [root README](../README.md#screenshots)).
+**Screenshots** (repo root): [`../docs/screenshots/`](../docs/screenshots/) — `ui-documents.png`, `ui-chat.png` (also embedded in the [root README](../README.md#screenshots)).
 
 ---
 
@@ -46,11 +46,10 @@ The browser calls **same-origin** routes under `app/api/*`; those server handler
 
 | Path | Description |
 |------|-------------|
-| `/` | Landing / product overview |
 | `/documents` | Upload, list, delete documents |
 | `/chat` | Ask questions, stream tokens, history |
 
-`/queries` redirects to `/chat` (see `next.config.ts`).
+`/` and `/queries` redirect to `/chat` (see `next.config.ts`).
 
 ---
 
@@ -59,8 +58,8 @@ The browser calls **same-origin** routes under `app/api/*`; those server handler
 | Folder | Role |
 |--------|------|
 | `app/` | Next.js App Router: routes, layouts, `app/api/*` proxies |
-| `components/` | Reusable UI (including `marketing/` for the home page) |
-| `containers/` | Page-level compositions (chat, documents, home) wired to state and services |
+| `components/` | Reusable UI |
+| `containers/` | Page-level compositions (chat, documents) wired to state and services |
 | `services/` | Browser API clients (`services/*.ts`) and server-only helpers (`services/server/`) |
 | `types/` | Shared TypeScript models and API shapes |
 | `libs/` | Theme factory and cross-cutting UI tokens |

@@ -1,6 +1,6 @@
 /**
  * MUI theme factory and dark-mode shell colors.
- * Body background matches the landing gradient via `MuiCssBaseline` overrides.
+ * Body background gradient comes from `MuiCssBaseline` overrides.
  */
 
 import { createTheme } from "@mui/material";

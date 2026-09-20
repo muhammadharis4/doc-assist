@@ -7,7 +7,6 @@ import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
 import { Alert, Box, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
-import { NavHomeButton } from "@/components/NavHomeButton";
 import { QueryComposer } from "@/components/queries/QueryComposer";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import {
@@ -269,7 +268,6 @@ export function ChatView() {
                 >
                     <Box sx={{ flex: 1 }} />
                     <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                        <NavHomeButton size="small" />
                         <Tooltip title="New chat">
                             <IconButton
                                 size="small"

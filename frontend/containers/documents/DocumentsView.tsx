@@ -19,7 +19,6 @@ import { DocumentUploadDialog } from "@/components/documents/DocumentUploadDialo
 import { DocumentsFilters } from "@/components/documents/DocumentsFilters";
 import { DocumentsTable } from "@/components/documents/DocumentsTable";
 import { EditDocumentTagsDialog } from "@/components/documents/EditDocumentTagsDialog";
-import { NavHomeButton } from "@/components/NavHomeButton";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import {
     createDocument,
@@ -150,7 +149,6 @@ export function DocumentsView() {
                         </Box>
 
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                            <NavHomeButton />
                             <ThemeSwitcher />
                             <Tooltip title="Add files">
                                 <IconButton
