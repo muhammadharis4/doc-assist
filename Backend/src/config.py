@@ -31,25 +31,6 @@ def _parse_csv_tuple(raw: str | None) -> tuple[str, ...]:
     return tuple(part.strip() for part in str(raw).split(",") if part.strip())
 
 
-def _parse_cors_origins(raw: str | None) -> tuple[str, ...]:
-    """
-    Parses ``CORS_ALLOW_ORIGINS``: empty disables CORS middleware; ``*`` allows all.
-
-    Args:
-        raw (str | None): Raw environment value.
-
-    Returns:
-        tuple[str, ...]: Origins list, or ``("*",)`` when set to a lone asterisk.
-    """
-
-    stripped = (raw or "").strip()
-    if not stripped:
-        return ()
-    if stripped == "*":
-        return ("*",)
-    return _parse_csv_tuple(stripped)
-
-
 @dataclass(frozen=True)
 class Settings:
     """
@@ -65,7 +46,6 @@ class Settings:
     telegram_bot_token: str
     telegram_webhook_secret: str
     telegram_webhook_url: str
-    cors_allow_origins: tuple[str, ...]
     trusted_hosts: tuple[str, ...]
 
 
@@ -75,7 +55,7 @@ def _build_settings() -> Settings:
 
     ``DATABASE_URL``, ``WATCH_FOLDER``, ``OLLAMA_BASE_URL``,
     ``TELEGRAM_BOT_TOKEN``, ``TELEGRAM_WEBHOOK_SECRET``, ``TELEGRAM_WEBHOOK_URL``,
-    ``CORS_ALLOW_ORIGINS``, ``TRUSTED_HOSTS``.
+    ``TRUSTED_HOSTS``.
     """
 
     return Settings(
@@ -87,7 +67,6 @@ def _build_settings() -> Settings:
         telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
         telegram_webhook_secret=os.getenv("TELEGRAM_WEBHOOK_SECRET", ""),
         telegram_webhook_url=os.getenv("TELEGRAM_WEBHOOK_URL", ""),
-        cors_allow_origins=_parse_cors_origins(os.getenv("CORS_ALLOW_ORIGINS")),
         trusted_hosts=_parse_csv_tuple(os.getenv("TRUSTED_HOSTS")),
     )
 

@@ -57,7 +57,6 @@ These are the **only** values read from the environment in `src/config.py`. Each
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token (empty disables Telegram features) |
 | `TELEGRAM_WEBHOOK_SECRET` | Strong secret for webhook validation header (recommended when using webhooks) |
 | `TELEGRAM_WEBHOOK_URL` | Public HTTPS URL for `setWebhook` |
-| `CORS_ALLOW_ORIGINS` | Comma-separated browser origins allowed by CORS (empty disables CORS middleware). Use `*` only for isolated demos (credentials disabled) |
 | `TRUSTED_HOSTS` | Comma-separated `Host` values for `TrustedHostMiddleware` (empty disables the middleware) |
 
 ### Constants (code, not env)

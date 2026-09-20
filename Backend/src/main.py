@@ -9,13 +9,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from src import db
 from src.config import settings
 from src.constants import APP_NAME, APP_VERSION
 from src.documents.folder_scanner import watch_folder
 from src.documents.routes import router as documents_router
-from src.http_security import install_security_middleware
 from src.integrations.telegram.routes import router as telegram_router, service as telegram_service
 from src.queries.routes import router as queries_router
 from src.rate_limit import limiter
@@ -70,7 +70,8 @@ app.include_router(documents_router)
 app.include_router(queries_router)
 app.include_router(telegram_router)
 
-install_security_middleware(app)
+if settings.trusted_hosts:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.trusted_hosts))
 
 
 @app.get("/health")
