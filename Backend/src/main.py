@@ -17,7 +17,6 @@ from src.documents.routes import router as documents_router
 from src.http_security import install_security_middleware
 from src.integrations.telegram.routes import router as telegram_router, service as telegram_service
 from src.queries.routes import router as queries_router
-from src.rag.opensearch_store import ensure_index_and_pipeline
 from src.rate_limit import limiter
 from src.warmup import warmup_runtime
 from src.utils.logging import setup_logging
@@ -49,7 +48,6 @@ async def lifespan(_: FastAPI):
     """Initializes storage dependencies when the API starts."""
 
     _run_startup_step("database", db.init_db)
-    _run_startup_step("opensearch", ensure_index_and_pipeline)
 
     try:
         await warmup_runtime()

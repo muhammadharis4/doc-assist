@@ -23,23 +23,35 @@ import pytest
 from starlette.testclient import TestClient
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _empty_test_database() -> None:
+    """Starts every test run on an empty database (tests assume no leftover rows)."""
+
+    from src import db
+
+    db.init_db()
+    with db._connection() as connection:
+        connection.execute("TRUNCATE documents, query_history CASCADE")
+
+
 @pytest.fixture
 def client() -> TestClient:
     """
-    FastAPI client with OpenSearch index setup, embedding/LLM warmup, and document
-    index writes skipped so tests run without a local OpenSearch cluster (CI-safe).
+    FastAPI client on the test Postgres, with warmup and embedding calls faked so tests
+    need no Ollama (CI-safe).
     """
 
+    from src.constants import EMBEDDING_DIMENSIONS
+
     main_mod = importlib.import_module("src.main")
-    with patch.object(main_mod, "ensure_index_and_pipeline", lambda: None):
-        with patch.object(main_mod, "warmup_runtime", new_callable=AsyncMock):
+    with patch.object(main_mod, "warmup_runtime", new_callable=AsyncMock):
+        with patch(
+            "src.rag.embeddings.generate_embeddings",
+            lambda chunks: [[0.1] * EMBEDDING_DIMENSIONS for _ in chunks],
+        ):
             with patch(
-                "src.db.replace_document_chunks",
-                lambda *args, **kwargs: None,
+                "src.rag.embeddings.generate_query_embedding",
+                lambda query: [0.1] * EMBEDDING_DIMENSIONS,
             ):
-                with patch(
-                    "src.documents.routes.delete_document_chunks",
-                    lambda *args, **kwargs: None,
-                ):
-                    with TestClient(main_mod.app) as test_client:
-                        yield test_client
+                with TestClient(main_mod.app) as test_client:
+                    yield test_client

@@ -11,7 +11,7 @@ from time import perf_counter
 from src import db
 from src.config import settings
 from src.rag.llm import LlmService
-from src.rag.opensearch_store import hybrid_search
+from src.rag.router import infer_document_types, latest_n
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +59,13 @@ class QueryService:
         from src.rag.embeddings import generate_query_embedding
 
         query_embedding = generate_query_embedding(query_text)
-        hits = hybrid_search(
+        hits = db.hybrid_search(
             query=query_text,
             query_embedding=query_embedding,
             top_k=effective_top_k,
             document_ids=document_ids,
+            boost_types=infer_document_types(query_text),
+            latest_n=latest_n(query_text),
         )
         sources = [
             {

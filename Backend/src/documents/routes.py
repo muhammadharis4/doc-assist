@@ -23,7 +23,6 @@ from src.schemas import (
     DocumentResponse,
 )
 from src.documents.service import DocumentService
-from src.rag.opensearch_store import delete_document_chunks
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 service = DocumentService()
@@ -181,11 +180,7 @@ def patch_document(
 
 @router.delete("/{document_id}", response_model=DeleteStatusResponse)
 @limiter.limit(RATE_LIMIT_DOCUMENTS_DELETE)
-def remove_document(
-    request: Request,
-    document_id: str,
-    background_tasks: BackgroundTasks,
-) -> DeleteStatusResponse:
+def remove_document(request: Request, document_id: str) -> DeleteStatusResponse:
     """
     Deletes one document and all indexed chunks.
 
@@ -203,7 +198,5 @@ def remove_document(
     deleted = service.delete_document(document_id.strip())
     if not deleted:
         raise HTTPException(status_code=404, detail="document not found")
-
-    background_tasks.add_task(delete_document_chunks, document_id.strip())
 
     return DeleteStatusResponse(status="deleted")
