@@ -118,10 +118,12 @@ class DocumentService:
 
         digest = hashlib.sha256(file_bytes).hexdigest()
         if db.find_document_id_by_hash(digest):
+            db.backfill_document_file(digest, file_bytes)
             return None
 
         document = db.create_document(
-            filename, "", None, "other", status="processing", source=source, content_hash=digest
+            filename, "", None, "other", status="processing", source=source, content_hash=digest,
+            file_data=file_bytes,
         )
         document_id = str(document["id"])
 

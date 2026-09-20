@@ -1,6 +1,7 @@
 export interface QuerySource {
     id?: string;
     documentId: string | null;
+    filename?: string | null;
     snippet: string;
 }
 

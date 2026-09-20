@@ -33,7 +33,7 @@ interface DocumentUploadDialogProps {
     /** Fired when the dialog is dismissed (and reset) without blocking submit. */
     onClose: () => void;
     /** Persists all staged files; parent runs API calls. */
-    onSubmit: (payload: CreateDocumentInput[]) => Promise<void>;
+    onSubmit: (items: { payload: CreateDocumentInput; file: File }[]) => Promise<void>;
     /** Disables close / upload UI while a batch is in progress. */
     isSubmitting: boolean;
 }
@@ -152,14 +152,15 @@ export function DocumentUploadDialog({
         }
 
         await onSubmit(
-            pendingFiles.map((item) =>
-                buildPayload(
+            pendingFiles.map((item) => ({
+                file: item.file,
+                payload: buildPayload(
                     item.file,
                     item.extractedText,
                     item.documentType,
                     tags,
                 ),
-            ),
+            })),
         );
         resetDialog();
         onClose();

@@ -6,6 +6,7 @@ import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
 import { Alert, Box, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { AnswerWithSources } from "@/components/chat/AnswerWithSources";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { QueryComposer } from "@/components/queries/QueryComposer";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
@@ -393,7 +394,11 @@ export function ChatView() {
                                         })}
                                     />
                                     <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                                        {item.answer ?? "No answer returned."}
+                                        {item.answer ? (
+                                            <AnswerWithSources answer={item.answer} sources={item.sources} />
+                                        ) : (
+                                            "No answer returned."
+                                        )}
                                     </Typography>
                                 </Box>
                             </Box>

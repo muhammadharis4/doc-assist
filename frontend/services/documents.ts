@@ -54,15 +54,22 @@ export async function listDocuments(
 /**
  * Persists a new document (text + metadata) through the Next API (`POST /api/documents`).
  * @param input - `CreateDocumentInput` (content, type, filename, optional tags).
+ * @param file - Original file to store next to the text so it can be opened later.
  * @returns The created `DocumentItem`.
  */
-export function createDocument(
+export async function createDocument(
     input: CreateDocumentInput,
+    file?: File,
 ): Promise<DocumentItem> {
-    return fetchJson<DocumentItem>(`/api/documents`, {
+    const document = await fetchJson<DocumentItem>(`/api/documents`, {
         method: "POST",
         body: JSON.stringify(input),
     });
+    if (file) {
+        // Keep the original so citations can open it later.
+        await fetch(`/api/documents/${document.id}/file`, { method: "PUT", body: file });
+    }
+    return document;
 }
 
 /**

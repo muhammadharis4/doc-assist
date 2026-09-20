@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import mimetypes
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, Response, UploadFile
 
 from src import db
 from src.constants import INGEST_EXTENSIONS, MAX_PDF_UPLOAD_BYTES
@@ -130,6 +131,48 @@ async def extract_pdf(file: UploadFile = File(...)) -> dict[str, str]:
         service.extract_pdf_text, file_bytes=file_bytes, filename=file.filename
     )
     return {"text": text}
+
+
+@router.get("/{document_id}/file")
+def get_document_file(document_id: str) -> Response:
+    """
+    Returns the original uploaded file so the browser can open it.
+
+    Args:
+        document_id (str): The document identifier.
+
+    Returns:
+        Response: The file bytes, shown inline.
+    """
+
+    stored = db.get_document_file(document_id.strip())
+    if stored is None:
+        raise HTTPException(status_code=404, detail="file not found")
+
+    filename, data = stored
+    media_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    return Response(content=data, media_type=media_type, headers={"Content-Disposition": "inline"})
+
+
+@router.put("/{document_id}/file", response_model=DeleteStatusResponse)
+async def put_document_file(document_id: str, request: Request) -> DeleteStatusResponse:
+    """
+    Attaches the original file (raw request body) to a document created from extracted text.
+
+    Args:
+        document_id (str): The document identifier.
+        request (Request): Request whose body is the file bytes.
+
+    Returns:
+        DeleteStatusResponse: ``stored`` on success.
+    """
+
+    data = await request.body()
+    if len(data) > MAX_PDF_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="file too large")
+    if not db.set_document_file(document_id.strip(), data):
+        raise HTTPException(status_code=404, detail="document not found")
+    return DeleteStatusResponse(status="stored")
 
 
 @router.patch("/{document_id}", response_model=DocumentResponse)

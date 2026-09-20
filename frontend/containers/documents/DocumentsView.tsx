@@ -207,18 +207,18 @@ export function DocumentsView() {
             <DocumentUploadDialog
                 open={isUploadOpen}
                 onClose={() => setIsUploadOpen(false)}
-                onSubmit={async (payloads) => {
+                onSubmit={async (items) => {
                     setIsSubmitting(true);
                     setErrorMessage("");
                     setSuccessMessage("");
 
                     try {
-                        for (const payload of payloads) {
-                            await createDocument(payload);
+                        for (const { payload, file } of items) {
+                            await createDocument(payload, file);
                         }
 
                         setSuccessMessage(
-                            `${payloads.length} file${payloads.length > 1 ? "s" : ""} uploaded. Processing started in background.`,
+                            `${items.length} file${items.length > 1 ? "s" : ""} uploaded. Processing started in background.`,
                         );
                         await refreshDocuments();
                     } catch (error: unknown) {

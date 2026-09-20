@@ -50,8 +50,10 @@ def init_db() -> None:
                 indexed_at TEXT,
                 tags TEXT[] NOT NULL DEFAULT '{{}}',
                 source TEXT NOT NULL DEFAULT 'upload',
-                content_hash TEXT
+                content_hash TEXT,
+                file_data BYTEA
             );
+            ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_data BYTEA;
             CREATE UNIQUE INDEX IF NOT EXISTS documents_hash_idx
                 ON documents (content_hash) WHERE content_hash IS NOT NULL;
 
@@ -137,6 +139,7 @@ def create_document(
     tags: list[str] | None = None,
     source: str = "upload",
     content_hash: str | None = None,
+    file_data: bytes | None = None,
 ) -> dict[str, object]:
     """
     Stores one document row and returns the created row.
@@ -150,6 +153,7 @@ def create_document(
         tags (list[str] | None): Optional tag list.
         source (str): Where the file came from (``upload``, ``folder``, ``telegram``).
         content_hash (str | None): SHA-256 of the original file, unique when set.
+        file_data (bytes | None): The original file, so it can be opened again later.
 
     Returns:
         dict[str, object]: Stored document payload.
@@ -164,13 +168,13 @@ def create_document(
             """
             INSERT INTO documents (
                 id, filename, content, mime_type, document_type,
-                created_at, status, error_message, indexed_at, tags, source, content_hash
+                created_at, status, error_message, indexed_at, tags, source, content_hash, file_data
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, NULL, NULL, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NULL, NULL, %s, %s, %s, %s)
             """,
             (
                 document_id, filename, content, mime_type, document_type,
-                created_at, status, tag_list, source, content_hash,
+                created_at, status, tag_list, source, content_hash, file_data,
             ),
         )
 
@@ -256,6 +260,65 @@ def list_documents(
         rows = connection.execute(sql, params).fetchall()
 
     return [_document_from_row(row, with_content=False) for row in rows]
+
+
+def get_document_file(document_id: str) -> tuple[str, bytes] | None:
+    """
+    Returns the original file of a document.
+
+    Args:
+        document_id (str): The document identifier.
+
+    Returns:
+        tuple[str, bytes] | None: Filename and bytes, or ``None`` when the document or its file is missing.
+    """
+
+    with _connection() as connection:
+        row = connection.execute(
+            "SELECT filename, file_data FROM documents WHERE id = %s", (document_id,)
+        ).fetchone()
+
+    if row is None or row["file_data"] is None:
+        return None
+    return row["filename"], bytes(row["file_data"])
+
+
+def set_document_file(document_id: str, file_data: bytes) -> bool:
+    """
+    Stores the original file on a document.
+
+    Args:
+        document_id (str): The document identifier.
+        file_data (bytes): The original file.
+
+    Returns:
+        bool: ``True`` when the document exists.
+    """
+
+    with _connection() as connection:
+        cursor = connection.execute(
+            "UPDATE documents SET file_data = %s WHERE id = %s", (file_data, document_id)
+        )
+    return cursor.rowcount > 0
+
+
+def backfill_document_file(content_hash: str, file_data: bytes) -> None:
+    """
+    Stores the original file on a document ingested before files were kept.
+
+    Args:
+        content_hash (str): SHA-256 of the file.
+        file_data (bytes): The original file.
+
+    Returns:
+        None: Rows that already have a file are left alone.
+    """
+
+    with _connection() as connection:
+        connection.execute(
+            "UPDATE documents SET file_data = %s WHERE content_hash = %s AND file_data IS NULL",
+            (file_data, content_hash),
+        )
 
 
 def find_document_id_by_hash(content_hash: str) -> str | None:
