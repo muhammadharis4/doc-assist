@@ -48,36 +48,37 @@ export function getChatShellTokens(theme: Theme) {
     };
 }
 
+const lightBackground = "#f5f7fb";
+const darkPrimary = "#7aa2ff";
+
+const darkBodyBackground = {
+    backgroundColor: darkShell,
+    backgroundImage: [
+        `radial-gradient(1200px 500px at 50% -10%, ${alpha(darkPrimary, 0.12)}, transparent 55%)`,
+        `linear-gradient(180deg, ${lighten(darkShell, 0.06)} 0%, ${darkShell} 45%, ${darkShell} 100%)`,
+    ].join(", "),
+    backgroundAttachment: "fixed" as const,
+};
+
 /**
- * Builds the app MUI theme (palette, typography, `MuiCssBaseline` body styles).
- * @param mode - `"dark"` (current app default) or `"light"` (reserved).
- * @returns A MUI `Theme` from `createTheme`.
+ * The app MUI theme. Light and dark are MUI color schemes: `ThemeProvider` (see
+ * `app/providers.tsx`) picks and persists the mode, and `useColorScheme` switches it.
  */
-export function createAppTheme(mode: "light" | "dark") {
-    const primaryMain = mode === "dark" ? "#7aa2ff" : "#2457e6";
-    const lightBackground = "#f5f7fb";
-
-    const darkBodyBackground = {
-        backgroundColor: darkShell,
-        backgroundImage: [
-            `radial-gradient(1200px 500px at 50% -10%, ${alpha(primaryMain, 0.12)}, transparent 55%)`,
-            `linear-gradient(180deg, ${lighten(darkShell, 0.06)} 0%, ${darkShell} 45%, ${darkShell} 100%)`,
-        ].join(", "),
-        backgroundAttachment: "fixed" as const,
-    };
-
-    return createTheme({
-        palette: {
-            mode,
-            primary: {
-                main: primaryMain,
+export const appTheme = createTheme({
+        colorSchemes: {
+            dark: {
+                palette: {
+                    primary: { main: darkPrimary },
+                    secondary: { main: "#48d1c6" },
+                    background: { default: darkShell, paper: darkShell },
+                },
             },
-            secondary: {
-                main: mode === "dark" ? "#48d1c6" : "#0f766e",
-            },
-            background: {
-                default: mode === "dark" ? darkShell : lightBackground,
-                paper: mode === "dark" ? darkShell : "#ffffff",
+            light: {
+                palette: {
+                    primary: { main: "#2457e6" },
+                    secondary: { main: "#0f766e" },
+                    background: { default: lightBackground, paper: "#ffffff" },
+                },
             },
         },
         shape: {
@@ -98,13 +99,12 @@ export function createAppTheme(mode: "light" | "dark") {
         },
         components: {
             MuiCssBaseline: {
-                styleOverrides: {
+                styleOverrides: (theme) => ({
                     body:
-                        mode === "dark"
+                        theme.palette.mode === "dark"
                             ? { ...darkBodyBackground }
                             : { backgroundColor: lightBackground },
-                },
+                }),
             },
         },
     });
-}

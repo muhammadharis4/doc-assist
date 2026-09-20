@@ -62,11 +62,8 @@ The browser calls **same-origin** routes under `app/api/*`; those server handler
 | `containers/` | Page-level compositions (chat, documents) wired to state and services |
 | `services/` | Browser API clients (`services/*.ts`) and server-only helpers (`services/server/`) |
 | `types/` | Shared TypeScript models and API shapes |
-| `libs/` | Theme factory and cross-cutting UI tokens |
-| `hooks/` | Client hooks and context (e.g. theme mode) |
+| `libs/` | MUI theme (light and dark color schemes) and cross-cutting UI tokens |
 | `styles/` | Global CSS (`globals.css` imported from `app/layout.tsx`) |
-| `actions/` | Reserved for Server Actions |
-| `store/` | Reserved for client global state if you add it later |
 
 ---
 
@@ -106,7 +103,7 @@ The image uses Next **`output: "standalone"`**. Runtime env for the Node process
 ## Quality targets
 
 - Strict TypeScript on API helpers and typed domain models (`types/*`).
-- Accessible UI patterns via MUI; theme mode persisted client-side (`hooks/theme-mode.tsx`).
+- Accessible UI patterns via MUI; theme mode (light/dark) persisted client-side by MUI's `ThemeProvider` (`app/providers.tsx`).
 
 For repository-wide security and deployment assumptions, see the root **`SECURITY.md`**.
 

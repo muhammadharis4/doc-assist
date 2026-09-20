@@ -1,36 +1,27 @@
 /**
- * Client wrapper: theme mode (`ThemeModeProvider`), MUI `ThemeProvider`, `CssBaseline`.
+ * Client wrapper: MUI `ThemeProvider` (light/dark color schemes, persisted) and `CssBaseline`.
  */
 "use client";
 
-import { useMemo, type ReactNode } from "react";
-import { CssBaseline, ThemeProvider } from "@mui/material";
-import { createAppTheme } from "@/libs/theme";
-import { ThemeModeProvider, useThemeMode } from "@/hooks/theme-mode";
+import type { ReactNode } from "react";
+import { CssBaseline } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
+import { appTheme } from "@/libs/theme";
 
 /**
- * Applies `createAppTheme(mode)` from `useThemeMode` and mounts `CssBaseline`.
- */
-function AppThemeSubtree({ children }: { children: ReactNode }) {
-    const { mode } = useThemeMode();
-    const theme = useMemo(() => createAppTheme(mode), [mode]);
-
-    return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline enableColorScheme />
-            {children}
-        </ThemeProvider>
-    );
-}
-
-/**
- * Wraps the app in persisted theme mode and MUI’s theme provider.
+ * Wraps the app in MUI’s theme provider. The mode defaults to dark and is stored in
+ * `localStorage` under `docassist-theme-mode` (the key the previous custom hook used).
  * @param children - App routes and layouts.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
     return (
-        <ThemeModeProvider>
-            <AppThemeSubtree>{children}</AppThemeSubtree>
-        </ThemeModeProvider>
+        <ThemeProvider
+            theme={appTheme}
+            defaultMode="dark"
+            modeStorageKey="docassist-theme-mode"
+        >
+            <CssBaseline enableColorScheme />
+            {children}
+        </ThemeProvider>
     );
 }
