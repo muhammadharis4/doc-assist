@@ -65,46 +65,46 @@ const darkBodyBackground = {
  * `app/providers.tsx`) picks and persists the mode, and `useColorScheme` switches it.
  */
 export const appTheme = createTheme({
-        colorSchemes: {
-            dark: {
-                palette: {
-                    primary: { main: darkPrimary },
-                    secondary: { main: "#48d1c6" },
-                    background: { default: darkShell, paper: darkShell },
-                },
-            },
-            light: {
-                palette: {
-                    primary: { main: "#2457e6" },
-                    secondary: { main: "#0f766e" },
-                    background: { default: lightBackground, paper: "#ffffff" },
-                },
+    colorSchemes: {
+        dark: {
+            palette: {
+                primary: { main: darkPrimary },
+                secondary: { main: "#48d1c6" },
+                background: { default: darkShell, paper: darkShell },
             },
         },
-        shape: {
-            borderRadius: 8,
-        },
-        typography: {
-            fontFamily: "var(--font-geist-sans), Arial, sans-serif",
-            h4: {
-                fontWeight: 700,
-            },
-            h5: {
-                fontWeight: 700,
-            },
-            button: {
-                textTransform: "none",
-                fontWeight: 700,
+        light: {
+            palette: {
+                primary: { main: "#2457e6" },
+                secondary: { main: "#0f766e" },
+                background: { default: lightBackground, paper: "#ffffff" },
             },
         },
-        components: {
-            MuiCssBaseline: {
-                styleOverrides: (theme) => ({
-                    body:
-                        theme.palette.mode === "dark"
-                            ? { ...darkBodyBackground }
-                            : { backgroundColor: lightBackground },
-                }),
-            },
+    },
+    shape: {
+        borderRadius: 8,
+    },
+    typography: {
+        fontFamily: "var(--font-geist-sans), Arial, sans-serif",
+        h4: {
+            fontWeight: 700,
         },
-    });
+        h5: {
+            fontWeight: 700,
+        },
+        button: {
+            textTransform: "none",
+            fontWeight: 700,
+        },
+    },
+    components: {
+        MuiCssBaseline: {
+            styleOverrides: (theme) => ({
+                body:
+                    theme.palette.mode === "dark"
+                        ? { ...darkBodyBackground }
+                        : { backgroundColor: lightBackground },
+            }),
+        },
+    },
+});
