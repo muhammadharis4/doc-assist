@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Iterator
@@ -11,7 +12,7 @@ import psycopg
 from psycopg.rows import dict_row
 
 from src.config import settings
-from src.constants import EMBEDDING_DIMENSIONS, MAX_HISTORY_LIMIT
+from src.constants import EMBEDDING_DIMENSIONS, MAX_HISTORY_LIMIT, RRF_K, TYPE_BOOST
 
 
 def _utc_now() -> str:
@@ -408,6 +409,86 @@ def delete_document(document_id: str) -> bool:
     with _connection() as connection:
         result = connection.execute("DELETE FROM documents WHERE id = %s", (document_id,))
     return result.rowcount > 0
+
+
+def hybrid_search(
+    query: str,
+    query_embedding: list[float],
+    top_k: int,
+    document_ids: list[str] | None = None,
+    boost_types: list[str] | None = None,
+    latest_n: int | None = None,
+) -> list[dict[str, object]]:
+    """
+    Finds the best chunks by merging keyword and vector rankings with RRF.
+
+    Args:
+        query (str): The user query text (keyword side).
+        query_embedding (list[float]): The query embedding (vector side).
+        top_k (int): Maximum number of chunks to return.
+        document_ids (list[str] | None): Restrict to these documents.
+        boost_types (list[str] | None): Document types that get a small score boost.
+        latest_n (int | None): Restrict to the N newest ready documents.
+
+    Returns:
+        list[dict[str, object]]: Ranked chunks with document metadata, best first.
+    """
+
+    # OR the words: natural questions rarely have every word in one chunk.
+    words = list(dict.fromkeys(w for w in re.findall(r"\w+", query.lower()) if len(w) >= 3))
+    params = {
+        "ids": document_ids,
+        "latest": latest_n,
+        "boost": boost_types or [],
+        "vec": "[" + ",".join(map(str, query_embedding)) + "]",
+        "tsq": " | ".join(words[:20]),
+        "pool": max(20, top_k * 6),
+        "k": top_k,
+    }
+    sql = f"""
+        WITH scoped AS (
+            SELECT c.id, c.embedding, c.tsv
+            FROM chunks c JOIN documents d ON d.id = c.document_id
+            WHERE d.status = 'ready'
+              AND (%(ids)s::text[] IS NULL OR d.id = ANY(%(ids)s))
+              AND (%(latest)s::int IS NULL OR d.id IN (
+                    SELECT id FROM documents WHERE status = 'ready'
+                    ORDER BY created_at DESC LIMIT %(latest)s))
+        ),
+        semantic AS (
+            SELECT id, ROW_NUMBER() OVER (ORDER BY embedding <=> %(vec)s::vector) AS rank
+            FROM scoped ORDER BY embedding <=> %(vec)s::vector LIMIT %(pool)s
+        ),
+        keyword AS (
+            SELECT id, ROW_NUMBER() OVER (ORDER BY ts_rank_cd(tsv, q) DESC) AS rank
+            FROM scoped, to_tsquery('simple', %(tsq)s) AS q
+            WHERE tsv @@ q ORDER BY ts_rank_cd(tsv, q) DESC LIMIT %(pool)s
+        )
+        SELECT c.document_id, d.filename, d.document_type, c.content, c.chunk_index,
+               COALESCE(1.0 / ({RRF_K} + s.rank), 0) + COALESCE(1.0 / ({RRF_K} + k.rank), 0)
+               + CASE WHEN d.document_type = ANY(%(boost)s) THEN {TYPE_BOOST} ELSE 0 END AS score
+        FROM semantic s
+        FULL JOIN keyword k ON k.id = s.id
+        JOIN chunks c ON c.id = COALESCE(s.id, k.id)
+        JOIN documents d ON d.id = c.document_id
+        ORDER BY score DESC
+        LIMIT %(k)s
+    """
+
+    with _connection() as connection:
+        rows = connection.execute(sql, params).fetchall()
+
+    return [
+        {
+            "documentId": row["document_id"],
+            "filename": row["filename"],
+            "documentType": row["document_type"] or "other",
+            "content": row["content"],
+            "chunkIndex": row["chunk_index"],
+            "score": float(row["score"]),
+        }
+        for row in rows
+    ]
 
 
 def delete_query_history(query_id: str) -> bool:

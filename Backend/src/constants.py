@@ -11,7 +11,10 @@ EMBEDDING_DIMENSIONS = 1024  # bge-m3; chunks.embedding in db.py uses this
 CHUNK_SIZE_CHARS = 500
 CHUNK_OVERLAP_CHARS = 120
 
-TOP_K = 8
+TOP_K = 5
+# Reciprocal Rank Fusion constant, and the score bump for a document type the router matched.
+RRF_K = 60
+TYPE_BOOST = 0.005
 
 OLLAMA_MODEL = "llama3.2:1b"
 OLLAMA_TEMPERATURE = 0.2
