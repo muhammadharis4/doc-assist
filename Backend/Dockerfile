@@ -19,7 +19,9 @@ RUN apt-get update \
 
 COPY requirements.txt .
 
+# CPU-only torch first, so Docling's torch dependency doesn't pull the NVIDIA/CUDA packages.
 RUN pip install --upgrade pip \
+    && pip install torch --index-url https://download.pytorch.org/whl/cpu \
     && pip install -r requirements.txt
 
 COPY src ./src

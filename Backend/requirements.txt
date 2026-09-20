@@ -5,24 +5,15 @@ slowapi==0.1.9
 # ASGI server for FastAPI
 uvicorn[standard]==0.44.0
 
-# Embedding model loading/inference
-sentence-transformers==5.4.1
-# OpenSearch client for indexing and hybrid search
-opensearch-py==3.1.0
-# Ollama client for local LLM generation
+# Postgres driver (documents, pgvector chunks, hybrid search)
+psycopg[binary]==3.3.6
+# Ollama client for LLM generation and bge-m3 embeddings
 ollama==0.6.1
 
 # Data validation and typed request/response models
 pydantic==2.13.2
-# Numeric operations used by embedding stack
-numpy==2.4.4
-
-# PDF text extraction
-PyPDF2==3.0.1
-# OCR engine bridge for scanned PDFs
-pytesseract==0.3.13
-# Image processing for OCR pre-processing
-Pillow==12.2.0
+# PDF/image parsing with OCR and table structure (pulls in torch: install CPU torch first)
+docling==2.129.0
 # Multipart form-data upload handling
 python-multipart==0.0.26
 
