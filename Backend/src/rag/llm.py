@@ -60,10 +60,10 @@ class LlmService:
 
         context = "\n\n".join(context_parts)
         prompt = (
-            "Use the provided context as the primary source of truth. "
-            "If context is partial, provide a practical best-effort answer and clearly call out assumptions. "
-            "When possible, cite the strongest source using the source label number. "
-            "Do not refuse unless the question is unrelated to the context and no safe best-effort guidance is possible.\n\n"
+            "Answer only from the context below. Quote exact figures, dates and names as written, "
+            "and cite the source label number like [1]. "
+            "If the context does not contain the answer, reply exactly: "
+            "\"Not found in the documents.\" Do not guess or assume.\n\n"
             f"Question: {query}\n\n"
             f"Context:\n{context}"
         )
@@ -71,7 +71,7 @@ class LlmService:
         return [
             {
                 "role": "system",
-                "content": "You are a helpful assistant grounded in provided sources.",
+                "content": "You answer strictly from the provided document excerpts.",
             },
             {"role": "user", "content": prompt},
         ]
