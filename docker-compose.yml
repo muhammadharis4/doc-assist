@@ -36,6 +36,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    volumes:
+      # Watched folder (WATCH_FOLDER defaults to "Sample data"): files dropped here are ingested.
+      - "./Backend/Sample data:/app/Sample data:ro"
     environment:
       DATABASE_URL: postgresql://docassist:docassist@postgres:5432/docassist
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}

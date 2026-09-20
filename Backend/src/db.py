@@ -276,6 +276,21 @@ def find_document_id_by_hash(content_hash: str) -> str | None:
     return None if row is None else row["id"]
 
 
+def folder_document_ids_by_hash() -> dict[str, str]:
+    """
+    Returns the documents that came from the watched folder, keyed by file hash.
+
+    Returns:
+        dict[str, str]: Mapping of SHA-256 file hash to document id.
+    """
+
+    with _connection() as connection:
+        rows = connection.execute(
+            "SELECT content_hash, id FROM documents WHERE source = 'folder' AND content_hash IS NOT NULL"
+        ).fetchall()
+    return {row["content_hash"]: row["id"] for row in rows}
+
+
 def get_document(document_id: str) -> dict[str, object] | None:
     """
     Returns one document row by id.

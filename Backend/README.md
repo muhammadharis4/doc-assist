@@ -53,7 +53,7 @@ These are the **only** values read from the environment in `src/config.py`. Each
 |----------|---------|
 | `DATABASE_URL` | Postgres connection URL (default `postgresql://docassist:docassist@localhost:5432/docassist`) |
 | `OLLAMA_BASE_URL` | Ollama API base URL (default `http://localhost:11434`) |
-| `WATCH_FOLDER` | Folder scanned for new files every 60 s (default `Sample data`; empty disables scanning) |
+| `WATCH_FOLDER` | Folder kept in sync every 60 s: new files are ingested, and a document is removed when its file is deleted (default `Sample data`; empty disables it) |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token (empty disables Telegram features) |
 | `TELEGRAM_WEBHOOK_SECRET` | Strong secret for webhook validation header (recommended when using webhooks) |
 | `TELEGRAM_WEBHOOK_URL` | Public HTTPS URL for `setWebhook` |
@@ -92,6 +92,7 @@ See also the repository root **`SECURITY.md`** for Telegram webhook and deployme
    - Scans and photos go through **Docling** (OCR and table structure; tables become markdown). The real file type is detected from the content, not the extension.
    - The file's SHA-256 is stored, so the same file is never ingested twice. A file that cannot be read is kept as `failed` and not retried.
    - The document type (`salary_slip`, `tax`, ...) is guessed from keywords.
+   - The watched folder is kept in sync: files are matched to documents by hash, so a rename keeps the document and a deleted file removes it. A folder with no files at all removes nothing (it is more likely unmounted than emptied), and a missing folder is re-checked every cycle. In Docker Compose, `Backend/Sample data/` is mounted read-only at `/app/Sample data`.
 2. **Index.** The text is chunked, each chunk is embedded with `bge-m3` (1024 dimensions), and both are stored in the Postgres `chunks` table (vector column plus a full-text `tsvector`).
 3. **Query.** A keyword router picks a small score boost for the matching document type and reads hints like "latest payslip" (the newest one *of that type*). One SQL query ranks chunks by keyword and by vector similarity and merges the two rankings with RRF. The top 5 chunks are kept.
 4. **Generate.** The chunks go to `qwen2.5:7b` through Ollama. History and sources are stored in Postgres.
