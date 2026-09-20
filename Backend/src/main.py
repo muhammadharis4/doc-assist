@@ -20,9 +20,8 @@ from src.integrations.telegram.routes import router as telegram_router, service 
 from src.queries.routes import router as queries_router
 from src.rate_limit import limiter
 from src.warmup import warmup_runtime
-from src.utils.logging import setup_logging
 
-setup_logging()
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
 
 
