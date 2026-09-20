@@ -1,4 +1,4 @@
-"""Query route validation without hitting OpenSearch or Ollama."""
+"""Query route validation without hitting Ollama."""
 
 from __future__ import annotations
 

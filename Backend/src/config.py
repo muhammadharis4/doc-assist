@@ -17,19 +17,12 @@ from src.constants import (
     APP_VERSION,
     CHUNK_OVERLAP_CHARS,
     CHUNK_SIZE_CHARS,
-    DOC_TYPE_SCORE_BOOST,
     EMBEDDING_MODEL,
     MAX_QUERY_LENGTH,
     OLLAMA_MODEL,
     OLLAMA_TEMPERATURE,
-    OPENSEARCH_INDEX_NAME,
-    OPENSEARCH_PIPELINE_NAME,
-    RAG_CANDIDATE_MULTIPLIER,
-    RAG_MAX_RESULTS_PER_DOCUMENT,
     SOURCE_SNIPPET_MAX_CHARS,
-    TEXT_SCORE_WEIGHT,
     TOP_K,
-    VECTOR_SCORE_WEIGHT,
 )
 
 
@@ -101,19 +94,11 @@ class Settings:
     app_version: str
     database_url: str
     watch_folder: str
-    opensearch_url: str
-    opensearch_index_name: str
-    opensearch_pipeline_name: str
     embedding_model: str
     chunk_size_chars: int
     chunk_overlap_chars: int
     top_k: int
-    rag_candidate_multiplier: int
-    rag_max_results_per_document: int
     source_snippet_max_chars: int
-    doc_type_score_boost: float
-    text_score_weight: float
-    vector_score_weight: float
     max_query_length: int
     ollama_base_url: str
     ollama_model: str
@@ -130,7 +115,7 @@ def _build_settings() -> Settings:
     """
     Builds Settings from constants plus a minimal environment surface:
 
-    ``DATABASE_URL``, ``WATCH_FOLDER``, ``OPENSEARCH_URL``, ``OLLAMA_BASE_URL``, ``USE_MOCK_LLM``,
+    ``DATABASE_URL``, ``WATCH_FOLDER``, ``OLLAMA_BASE_URL``, ``USE_MOCK_LLM``,
     ``TELEGRAM_BOT_TOKEN``, ``TELEGRAM_WEBHOOK_SECRET``, ``TELEGRAM_WEBHOOK_URL``,
     ``CORS_ALLOW_ORIGINS``, ``TRUSTED_HOSTS``.
     """
@@ -142,19 +127,11 @@ def _build_settings() -> Settings:
             "DATABASE_URL", "postgresql://docassist:docassist@localhost:5432/docassist"
         ),
         watch_folder=os.getenv("WATCH_FOLDER", "Sample data"),
-        opensearch_url=os.getenv("OPENSEARCH_URL", "http://localhost:9200"),
-        opensearch_index_name=OPENSEARCH_INDEX_NAME,
-        opensearch_pipeline_name=OPENSEARCH_PIPELINE_NAME,
         embedding_model=EMBEDDING_MODEL,
         chunk_size_chars=CHUNK_SIZE_CHARS,
         chunk_overlap_chars=CHUNK_OVERLAP_CHARS,
         top_k=TOP_K,
-        rag_candidate_multiplier=RAG_CANDIDATE_MULTIPLIER,
-        rag_max_results_per_document=RAG_MAX_RESULTS_PER_DOCUMENT,
         source_snippet_max_chars=SOURCE_SNIPPET_MAX_CHARS,
-        doc_type_score_boost=DOC_TYPE_SCORE_BOOST,
-        text_score_weight=TEXT_SCORE_WEIGHT,
-        vector_score_weight=VECTOR_SCORE_WEIGHT,
         max_query_length=MAX_QUERY_LENGTH,
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
         ollama_model=OLLAMA_MODEL,
