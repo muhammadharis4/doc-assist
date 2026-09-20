@@ -319,20 +319,24 @@ def update_document_tags(document_id: str, tags: list[str]) -> dict[str, object]
     return get_document(document_id)
 
 
-def set_document_content(document_id: str, content: str) -> None:
+def set_document_content(document_id: str, content: str, document_type: str) -> None:
     """
-    Stores the extracted text of one document.
+    Stores the extracted text and the guessed type of one document.
 
     Args:
         document_id (str): The document identifier.
         content (str): Extracted document text.
+        document_type (str): Document category guessed from the text.
 
     Returns:
         None: This function only updates one document row.
     """
 
     with _connection() as connection:
-        connection.execute("UPDATE documents SET content = %s WHERE id = %s", (content, document_id))
+        connection.execute(
+            "UPDATE documents SET content = %s, document_type = %s WHERE id = %s",
+            (content, document_type, document_id),
+        )
 
 
 def update_document_status(
@@ -428,7 +432,8 @@ def hybrid_search(
         top_k (int): Maximum number of chunks to return.
         document_ids (list[str] | None): Restrict to these documents.
         boost_types (list[str] | None): Document types that get a small score boost.
-        latest_n (int | None): Restrict to the N newest ready documents.
+        latest_n (int | None): Restrict to the N most recently added ready documents
+            (only among ``boost_types`` when given).
 
     Returns:
         list[dict[str, object]]: Ranked chunks with document metadata, best first.
@@ -452,7 +457,9 @@ def hybrid_search(
             WHERE d.status = 'ready'
               AND (%(ids)s::text[] IS NULL OR d.id = ANY(%(ids)s))
               AND (%(latest)s::int IS NULL OR d.id IN (
-                    SELECT id FROM documents WHERE status = 'ready'
+                    SELECT id FROM documents
+                    WHERE status = 'ready'
+                      AND (cardinality(%(boost)s::text[]) = 0 OR document_type = ANY(%(boost)s))
                     ORDER BY created_at DESC LIMIT %(latest)s))
         ),
         semantic AS (

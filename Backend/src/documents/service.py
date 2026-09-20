@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from src import db
 from src.documents.pdf_extractor import extract_text_from_pdf_bytes
 from src.rag.chunking import chunk_text
+from src.rag.router import guess_document_type
 
 logger = logging.getLogger(__name__)
 
@@ -220,7 +221,7 @@ class DocumentService:
             text = extract_text_from_pdf_bytes(file_bytes=file_bytes, source_name=filename)
             if not text.strip():
                 raise ValueError("No readable text found in this file.")
-            db.set_document_content(document_id, text)
+            db.set_document_content(document_id, text, guess_document_type(filename, text))
         except Exception as error:  # untrusted file: corrupt or unsupported
             logger.warning("Could not read %s: %s", filename, error)
             db.update_document_status(document_id, "failed", error_message=str(error))

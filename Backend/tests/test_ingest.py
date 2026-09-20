@@ -45,6 +45,7 @@ def test_ingest_stores_chunks_and_skips_duplicates(service: DocumentService) -> 
     document = service.ingest_file(data, "a.pdf", "folder")
 
     assert document["status"] == "ready"
+    assert document["documentType"] == "rental_contract"
     assert _chunk_count(document["id"]) > 0
     assert service.ingest_file(data, "copy of a.pdf", "folder") is None
     db.delete_document(document["id"])

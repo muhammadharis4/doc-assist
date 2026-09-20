@@ -65,6 +65,11 @@ def test_filters_and_type_boost(corpus) -> None:
     boosted = db.hybrid_search("zzz", _vec(0), top_k=5, document_ids=scoped, boost_types=["other"])
     assert _ids(boosted)[0] == docs["other"]
 
+    # "Latest 1" among boosted types: the newest salary slip only, not the newest document overall.
+    newest = db.hybrid_search("zzz", _vec(0), top_k=5, document_ids=None, boost_types=["salary_slip"], latest_n=1)
+    assert {hit["documentType"] for hit in newest} == {"salary_slip"}
+    assert len({hit["documentId"] for hit in newest}) == 1
+
     db.update_document_status(docs["rent"], "processing")
     hits = db.hybrid_search(f"Kaltmiete{tag}", _vec(1), top_k=5, document_ids=scoped)
     assert docs["rent"] not in _ids(hits)
